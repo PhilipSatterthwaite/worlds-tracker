@@ -246,7 +246,7 @@
 
   <footer>
     Data from the official <a href="https://lolesports.com" target="_blank" rel="noopener">LoL Esports</a> schedule and live stats feeds.
-    Refreshes every minute around match time (live game stats every 15s), every few minutes otherwise.
+    During live matches, game stats refresh every 10s and the schedule every 30s; every few minutes otherwise.
     Watch at <a href="https://lolesports.com/live/worlds" target="_blank" rel="noopener">lolesports.com</a>.
   </footer>
 </div>
@@ -366,12 +366,14 @@ function loadCache() {
   } catch {}
 }
 
-// Poll fast around matches, slowly otherwise; back off on failures.
+// Poll fast around matches, slowly otherwise; back off on failures. The
+// schedule is CDN-cached for 60s, so 30s while live catches each refresh
+// within half a minute; polling faster gets nothing new.
 function nextDelay() {
   const now = Date.now();
   const live = state.matches.some(m => m.status === 'live');
   const next = state.matches.find(m => m.status === 'upcoming' && m.time > now);
-  let d = live || (next && next.time - now < 60 * 60e3) ? 60e3 : 3 * 60e3;
+  let d = live ? 30e3 : next && next.time - now < 60 * 60e3 ? 60e3 : 3 * 60e3;
   if (state.failures) d = Math.min(10 * 60e3, Math.max(d, 30e3 * 2 ** state.failures));
   return d;
 }
@@ -390,21 +392,39 @@ document.addEventListener('visibilitychange', () => {
 
 /* ---------- live game stats ---------- */
 
-// Feed wants a past timestamp on a 10s boundary.
-const feedTime = ms => new Date(Math.floor(ms / 10e3) * 10e3).toISOString();
+// The feed rejects a startingTime newer than ~30s and serves a new chunk of
+// frames each time the 10s boundary advances, so 10s is the useful poll rate.
+const LIVE_POLL = 10e3;
+const feedTime = () => new Date(Math.floor((Date.now() - 30e3) / 10e3) * 10e3).toISOString();
+
+async function gameWindow(gameId) {
+  const res = await fetch(`${FEED}/window/${gameId}?startingTime=${feedTime()}`);
+  if (!res.ok) return null;
+  const w = await res.json();
+  return w.frames?.length ? w : null;
+}
 
 async function fetchLive(match) {
   const d = await api('getLive');
   const ev = (d.schedule?.events || []).find(e => e.match?.id === match.id);
   const games = ev?.match?.games || [];
-  const game = games.find(g => g.state === 'inProgress');
-  if (!game) return { matchId: match.id, between: true, gameNo: games.filter(g => g.state === 'completed').length + 1 };
-
-  const res = await fetch(`${FEED}/window/${game.id}?startingTime=${feedTime(Date.now() - 45e3)}`);
-  if (!res.ok) return { matchId: match.id, gameNo: game.number, noStats: true };
-  const w = await res.json();
-  const f = w.frames?.at(-1);
-  if (!f) return { matchId: match.id, gameNo: game.number, noStats: true };
+  // getLive is CDN-cached for a minute, so ask the stats feed directly whether
+  // the current game has ended and the next one has started.
+  const open = games.filter(g => g.state !== 'completed' && g.state !== 'unneeded');
+  let game = null, w = null;
+  for (const g of open.slice(0, 2)) {
+    const win = await gameWindow(g.id);
+    if (!win) break;
+    game = g; w = win;
+    if (win.frames.at(-1).gameState !== 'finished') break;
+  }
+  if (!w) return { matchId: match.id, between: true, gameNo: open[0]?.number || games.filter(g => g.state === 'completed').length + 1 };
+  const f = w.frames.at(-1);
+  if (f.gameState === 'finished') {
+    // Pull the series score as soon as a game ends instead of waiting for the next scheduled refresh.
+    if (state.reloadedFor !== game.id) { state.reloadedFor = game.id; load(); }
+    return { matchId: match.id, finished: true, gameNo: game.number };
+  }
 
   // First frame of the game gives the clock's zero; fetched once per game.
   if (!(game.id in state.gameStart)) {
@@ -425,6 +445,7 @@ async function fetchLive(match) {
     t2: t1Blue ? f.redTeam : f.blueTeam,
     gameState: f.gameState,
     clock: start ? Date.parse(f.rfc460Timestamp) - start : null,
+    at: Date.now(),
   };
 }
 
@@ -436,7 +457,8 @@ async function syncLive() {
     try { state.live = await fetchLive(m); } catch { state.live = { matchId: m.id, noStats: true }; }
     renderHero();
   }
-  state.liveTimer = setTimeout(syncLive, 15e3);
+  // Land just after each 10s boundary, when the feed has a fresh chunk.
+  state.liveTimer = setTimeout(syncLive, LIVE_POLL - (Date.now() % LIVE_POLL) + 1e3);
 }
 
 /* ---------- formatting ---------- */
@@ -504,6 +526,7 @@ function liveStats(m) {
   const L = state.live;
   if (!L || L.matchId !== m.id) return `<div class="ls"><div class="ls-note">Loading live game stats…</div></div>`;
   if (L.between) return `<div class="ls"><div class="ls-note">Between games · Game ${L.gameNo} up next</div></div>`;
+  if (L.finished) return `<div class="ls"><div class="ls-note">Game ${L.gameNo} just ended · updating series score…</div></div>`;
   if (L.noStats) return `<div class="ls"><div class="ls-note">Game ${L.gameNo || ''} in progress · live stats unavailable right now</div></div>`;
   const a = L.t1, b = L.t2;
   const stat = (label, x, y, fmt = v => v) => `<div class="ls-row">
@@ -514,7 +537,7 @@ function liveStats(m) {
   const [s1, s2] = L.t1Blue ? ['blue', 'red'] : ['red', 'blue'];
   return `<div class="ls">
     <div class="ls-row"><span class="v">${esc(m.t1?.short)}<span class="side ${s1}">${s1.toUpperCase()}</span></span>
-      <span class="k">Game ${L.gameNo}${L.clock != null ? ' · ' + clock(L.clock) : ''}${L.gameState === 'paused' ? ' · paused' : ''}</span>
+      <span class="k">Game ${L.gameNo}${L.clock != null ? ` · <span data-clock="${L.clock}" data-at="${L.at}" data-run="${L.gameState === 'in_game' ? 1 : 0}">${clock(L.clock)}</span>` : ''}${L.gameState === 'paused' ? ' · paused' : ''}</span>
       <span class="v r"><span class="side ${s2}">${s2.toUpperCase()}</span>${esc(m.t2?.short)}</span></div>
     <div class="goldbar" title="Gold share"><div style="width:${(a.totalGold / total * 100).toFixed(1)}%;background:var(--${s1})"></div></div>
     <div class="ls-row"><span></span><span class="k">${diff === 0 ? 'Even gold' : `${diff > 0 ? esc(m.t1?.short) : esc(m.t2?.short)} +${kGold(Math.abs(diff))}`}</span><span></span></div>
@@ -718,6 +741,10 @@ function render() {
 let lastMinute = 0;
 function tick() {
   for (const el of document.querySelectorAll('[data-until]')) el.textContent = until(+el.dataset.until);
+  // Run the game clock forward between 10s stat polls.
+  for (const el of document.querySelectorAll('[data-clock]')) {
+    el.textContent = clock(+el.dataset.clock + (el.dataset.run === '1' ? Date.now() - +el.dataset.at : 0));
+  }
   if (state.fetchedAt) setStatus(state.failures ? 'err' : 'ok', `Updated ${ago(state.fetchedAt)}`);
 }
 setInterval(() => {
