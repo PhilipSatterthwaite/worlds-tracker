@@ -104,6 +104,46 @@
   .drakes.r { justify-content: flex-end; }
   .drk { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
   .ls-note { color: var(--muted); font-size: 12px; text-align: center; padding: 6px 0; }
+  .ls-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr); gap: 0 32px; }
+  .ls-h { font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin: 14px 0 6px; display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+  .ls-h small { text-transform: none; letter-spacing: 0; font-weight: 500; }
+
+  /* Objective timers */
+  .objs { display: flex; flex-wrap: wrap; gap: 6px; }
+  .oc { display: inline-flex; align-items: baseline; gap: 6px; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 4px 9px; font-size: 12px; color: var(--muted); }
+  .oc b { color: var(--text); font-variant-numeric: tabular-nums; }
+  .oc.up b { color: var(--gold); }
+  .oc[hidden] { display: none; }
+  .oc.blue { border-color: rgba(79,140,255,.5); }
+  .oc.blue b { color: var(--blue); }
+  .oc.red { border-color: rgba(239,68,68,.5); }
+  .oc.red b { color: var(--red); }
+
+  /* Draft + lane gold */
+  .ln { display: grid; grid-template-columns: minmax(0, 1fr) 78px minmax(0, 1fr); align-items: center; gap: 10px; padding: 6px 0; }
+  .ln + .ln { border-top: 1px solid var(--line); }
+  .lp { display: flex; align-items: center; gap: 9px; min-width: 0; }
+  .lp.r { flex-direction: row-reverse; text-align: right; }
+  .ch { width: 34px; height: 34px; border-radius: 6px; flex: none; display: block; background: var(--panel-2); }
+  .ch.sm { width: 24px; height: 24px; border-radius: 4px; }
+  .chw { position: relative; flex: none; }
+  .chw .hp { position: absolute; left: 1px; right: 1px; bottom: -4px; height: 3px; background: var(--line); border-radius: 2px; overflow: hidden; }
+  .chw .hp > i { display: block; height: 100%; background: var(--win); }
+  .lp.dead .ch { filter: grayscale(1); opacity: .4; }
+  .lp-t { min-width: 0; display: flex; flex-direction: column; line-height: 1.25; }
+  .lp-t b { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .lp-t span { font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
+  .lp-t i { font-style: normal; }
+  .lp-g { margin-left: auto; font-weight: 700; font-size: 13px; font-variant-numeric: tabular-nums; }
+  .lp.r .lp-g { margin-left: 0; margin-right: auto; }
+  .ln-mid { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+  .ln-role { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
+  .ln-diff { font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--muted); }
+  .ln-diff.blue { color: var(--blue); }
+  .ln-diff.red { color: var(--red); }
+  .ln-bar { position: relative; width: 100%; height: 4px; background: var(--line); border-radius: 2px; }
+  .ln-bar > i { position: absolute; top: 0; bottom: 0; border-radius: 2px; transition: width .6s ease; }
+  .more-btn { font-size: 12px; padding: 3px 10px; border-radius: 999px; color: var(--gold); }
 
   .live-pip { width: 8px; height: 8px; border-radius: 50%; background: var(--live); display: inline-block; animation: pulse 1.4s infinite; flex: none; }
   @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .3; } }
@@ -228,13 +268,59 @@
   .srow.live .st { color: var(--live); font-weight: 700; }
   .tag { display: inline-flex; align-items: center; gap: 6px; }
 
+  /* Players tab */
+  .pl-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 0 0 12px; }
+  .pl-bar .note { margin-left: auto; }
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  .seg button { border: 0; border-radius: 0; background: var(--panel-2); color: var(--muted); font-weight: 600; }
+  .seg button.on { background: var(--gold-soft); color: var(--gold); }
+  select, input[type=search] {
+    font: inherit; color: var(--text); background: var(--panel-2); border: 1px solid var(--line);
+    border-radius: 8px; padding: 6px 10px; min-width: 0;
+  }
+  input[type=search] { width: 220px; max-width: 100%; }
+  select:focus, input[type=search]:focus { outline: none; border-color: var(--gold); }
+  .tbl { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); overflow-x: auto; scrollbar-width: thin; scrollbar-color: var(--line-2) transparent; }
+  .tbl table { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+  .tbl th { text-align: left; font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; padding: 8px 10px; background: var(--panel-2); white-space: nowrap; }
+  .tbl td { padding: 6px 10px; border-top: 1px solid var(--line); white-space: nowrap; }
+  .tbl .n { text-align: right; }
+  .tbl .dim { color: var(--muted); }
+  .tbl tr.click { cursor: pointer; }
+  .tbl tr.click:hover > td { background: rgba(255,255,255,.03); }
+  .tbl tr.open > td { background: var(--gold-soft); }
+  .tbl span.click { cursor: pointer; text-decoration: underline dotted var(--line-2); text-underline-offset: 3px; }
+  .tbl span.click:hover { color: var(--gold); }
+  .tbl tr.grp > td { background: var(--panel-2); font-weight: 700; font-size: 12px; }
+  .tbl td.detail { padding: 14px; background: var(--bg); white-space: normal; }
+  .pc { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+  .pc small { color: var(--muted); font-weight: 500; }
+  .cpool { display: inline-flex; gap: 4px; }
+  .cpool span { position: relative; }
+  .cpool sup { position: absolute; right: -3px; bottom: -3px; font-size: 9px; font-weight: 700; background: var(--bg); border: 1px solid var(--line); border-radius: 4px; padding: 0 3px; line-height: 12px; }
+  .items { display: inline-flex; gap: 2px; vertical-align: middle; }
+  .items img { width: 22px; height: 22px; border-radius: 3px; }
+  .rw { color: var(--win); font-weight: 700; }
+  .rl { color: var(--loss); font-weight: 700; }
+  .pd-h { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; font-size: 15px; }
+  .pd-h span { color: var(--muted); font-size: 13px; }
+  .pd h4 { font-size: 11px; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); margin: 14px 0 6px; }
+
   .note { color: var(--muted); font-size: 12px; }
   .err-box { background: rgba(248,113,113,.08); border: 1px solid rgba(248,113,113,.35); color: #fecaca; border-radius: var(--radius); padding: 10px 14px; margin-bottom: 18px; display: none; }
   .err-box.show { display: block; }
   footer { color: var(--muted); font-size: 12px; border-top: 1px solid var(--line); padding-top: 16px; margin-top: 30px; }
   footer a { color: var(--muted); }
 
+  @media (max-width: 900px) {
+    .ls-grid { grid-template-columns: minmax(0, 1fr); }
+  }
   @media (max-width: 720px) {
+    .ln { grid-template-columns: minmax(0, 1fr) 58px minmax(0, 1fr); gap: 6px; }
+    .lp { gap: 6px; }
+    .ch { width: 28px; height: 28px; }
+    .lp-g, .lp-t .xs { display: none; }
+    .pl-bar .note { margin-left: 0; width: 100%; }
     .srow { grid-template-columns: 58px 1fr auto 1fr; row-gap: 2px; }
     .srow .stg { grid-column: 1 / -1; order: -1; }
     .srow .st { display: none; }
@@ -314,9 +400,33 @@
     <div id="koSched"></div>
   </div>
 
+  <div class="panel" id="panel-players" hidden>
+    <div class="stage-h">
+      <h2>Players <small>Every Worlds 2026 game so far</small></h2>
+      <button class="info-btn" aria-expanded="false" aria-controls="info-players">Where this comes from</button>
+    </div>
+    <div class="info" id="info-players" hidden><ul>
+      <li>Stats come from the <b>final frame of each game</b> in Riot's official live stats feed, covering Play-In through today.</li>
+      <li>The feed doesn't say who won each game in a series, so game results are read from towers and gold, then checked against the series score.</li>
+      <li>Damage share and kill participation are Riot's own numbers. Bans aren't in the feed, so there are no ban stats.</li>
+      <li>Click a player for their champion breakdown and game log.</li>
+    </ul></div>
+    <div id="plLive"></div>
+    <div class="pl-bar">
+      <div class="seg" id="plView">
+        <button data-view="players" class="on">Players</button><button data-view="champs">Champions</button>
+      </div>
+      <select id="plTeam" aria-label="Team"><option value="">All teams</option></select>
+      <input type="search" id="plQ" placeholder="Search player or champion" aria-label="Search">
+      <span class="note" id="plStatus"></span>
+    </div>
+    <div id="plBody"></div>
+  </div>
+
   <footer>
-    Data from the official <a href="https://lolesports.com" target="_blank" rel="noopener">LoL Esports</a> schedule and live stats feeds.
+    Data from the official <a href="https://lolesports.com" target="_blank" rel="noopener">LoL Esports</a> schedule and live stats feeds; champion art from Riot's Data Dragon.
     During live matches, game stats refresh every 10s and the schedule every 30s; every few minutes otherwise.
+    Objective timers use 2026 rules (Dragon 5:00, Grubs 8:00, Herald 15:00, Baron 20:00) and don't account for pauses that happened before you opened the page.
     Watch at <a href="https://lolesports.com/live/worlds" target="_blank" rel="noopener">lolesports.com</a>.
   </footer>
 </div>
@@ -338,10 +448,27 @@ const STAGES = [
   { key: 'swiss', name: 'Swiss' },
   { key: 'ko', name: 'Knockout' },
 ];
+const TABS = [...STAGES, { key: 'players', name: 'Players' }];
+
+const DD = 'https://ddragon.leagueoflegends.com';
+const HIST_KEY = 'worlds2026.games.v1';
+const ROLES = ['top', 'jungle', 'mid', 'bottom', 'support'];
+const ROLE_LABEL = { top: 'Top', jungle: 'Jungle', mid: 'Mid', bottom: 'Bot', support: 'Support' };
+
+// Summoner's Rift timings for the 2026 season (Atakhan removed, Baron back to 20:00).
+const MIN = 60e3;
+const OBJ = {
+  dragonFirst: 5 * MIN, dragonRespawn: 5 * MIN, elderRespawn: 6 * MIN, elderBuff: 2.5 * MIN,
+  baronFirst: 20 * MIN, baronRespawn: 6 * MIN, baronBuff: 3 * MIN,
+  grubs: 8 * MIN, herald: 15 * MIN, inhib: 5 * MIN,
+};
 
 const state = {
   tournament: null, events: [], matches: [], fetchedAt: 0, failures: 0,
-  timer: null, live: null, liveTimer: null, gameStart: {}, tab: null,
+  timer: null, live: null, liveTimer: null, track: null, tab: null, feedLag: 30e3,
+  dd: { ver: '16.20.1', names: {} },
+  hist: { games: {}, matches: {}, busy: false, done: 0, total: 0, at: 0, agg: null },
+  plView: 'players', plTeam: '', plQ: '', plOpen: null,
 };
 
 const $ = id => document.getElementById(id);
@@ -470,13 +597,182 @@ document.addEventListener('visibilitychange', () => {
 // The feed rejects a startingTime newer than ~30s and serves a new chunk of
 // frames each time the 10s boundary advances, so 10s is the useful poll rate.
 const LIVE_POLL = 10e3;
-const feedTime = () => new Date(Math.floor((Date.now() - 30e3) / 10e3) * 10e3).toISOString();
+const feedTime = (ago = 30e3) => new Date(Math.floor((Date.now() - ago) / 10e3) * 10e3).toISOString();
+
+// The feed answers 204 with no body for games it has nothing on yet.
+async function feedJson(url) {
+  const res = await fetch(url);
+  return res.status === 200 ? res.json() : null;
+}
+
+// The feed refuses windows ending under 20s ago by *its* clock. If this
+// device's clock runs ahead, 30s back isn't enough, so step further back on
+// each refusal and stay there.
+async function liveFeed(kind, gameId) {
+  for (;;) {
+    const res = await fetch(`${FEED}/${kind}/${gameId}?startingTime=${feedTime(state.feedLag)}`);
+    if (res.status === 400 && state.feedLag < 90e3) { state.feedLag += 10e3; continue; }
+    return res.status === 200 ? res.json() : null;
+  }
+}
 
 async function gameWindow(gameId) {
-  const res = await fetch(`${FEED}/window/${gameId}?startingTime=${feedTime()}`);
-  if (!res.ok) return null;
-  const w = await res.json();
-  return w.frames?.length ? w : null;
+  const w = await liveFeed('window', gameId);
+  return w?.frames?.length ? w : null;
+}
+
+// The feed opens a few seconds before the game does; 0:00 is the first frame
+// where the players have their starting gold.
+async function gameStart(gameId) {
+  const w = await feedJson(`${FEED}/window/${gameId}`);
+  const first = w?.frames?.[0];
+  if (!first) return null;
+  const t0 = Date.parse(first.rfc460Timestamp);
+  try {
+    const w2 = await feedJson(`${FEED}/window/${gameId}?startingTime=${new Date(Math.floor(t0 / 10e3) * 10e3).toISOString()}`);
+    const f = w2?.frames?.find(f => f.blueTeam.totalGold > 0);
+    if (f) return Date.parse(f.rfc460Timestamp);
+  } catch {}
+  return t0;
+}
+
+// Feed names carry a team prefix ("GEN Chovy").
+function playerName(name, code) {
+  const s = String(name || '').trim(), i = s.indexOf(' ');
+  return i > 0 && (s.slice(0, i) === code || /^[A-Z0-9]{2,5}$/.test(s.slice(0, i))) ? s.slice(i + 1) : s;
+}
+
+/* Objective timers. The feed only has running totals (dragons, barons,
+   inhibitors per team), so a kill's time is the frame where a total ticks up.
+   While polling, consecutive frames catch that directly; for anything that
+   happened before the page was open (or while the tab was hidden), binary
+   search the feed's 10s chunks for the frame where the total was reached. */
+const elders = t => t.dragons.filter(d => d === 'elder').length;
+const COUNTERS = [
+  { key: 'dragon', get: f => f.blueTeam.dragons.length + f.redTeam.dragons.length },
+  { key: 'baron', get: f => f.blueTeam.barons + f.redTeam.barons },
+  { key: 'baronBlue', get: f => f.blueTeam.barons, within: OBJ.baronBuff },
+  { key: 'baronRed', get: f => f.redTeam.barons, within: OBJ.baronBuff },
+  { key: 'elderBlue', get: f => elders(f.blueTeam), within: OBJ.elderBuff },
+  { key: 'elderRed', get: f => elders(f.redTeam), within: OBJ.elderBuff },
+  // inhibBlue = inhibitors blue has destroyed, i.e. red's.
+  { key: 'inhibBlue', get: f => f.blueTeam.inhibitors, within: OBJ.inhib, all: true },
+  { key: 'inhibRed', get: f => f.redTeam.inhibitors, within: OBJ.inhib, all: true },
+];
+
+async function tracker(gameId) {
+  if (state.track?.id !== gameId) state.track = { id: gameId, start: null, paused: 0, lastTs: 0, lastF: null, ev: {}, chunks: new Map() };
+  const T = state.track;
+  if (!T.start) T.start = await gameStart(gameId);
+  return T;
+}
+
+// Game clock at a feed timestamp, minus pauses seen while watching.
+const gameMs = (T, ts) => ts - T.start - T.paused;
+
+function chunk(T, ts) {
+  const t = Math.floor(ts / 10e3) * 10e3;
+  if (!T.chunks.has(t)) {
+    T.chunks.set(t, feedJson(`${FEED}/window/${T.id}?startingTime=${new Date(t).toISOString()}`).then(w => w?.frames || [], () => []));
+  }
+  return T.chunks.get(t);
+}
+
+// Timestamp of the first frame in (lo, hi] where get(frame) >= target,
+// to within a second or so.
+async function whenReached(T, get, target, lo, hi) {
+  while (hi - lo > 10e3) {
+    const mid = lo + (hi - lo) / 2;
+    const fr = await chunk(T, mid);
+    const i = fr.findIndex(f => get(f) >= target);
+    if (i > 0) return Date.parse(fr[i].rfc460Timestamp);
+    if (i === 0) hi = Math.floor(mid / 10e3) * 10e3; // reached at (or just before) this chunk's start
+    else lo = Math.max(mid, fr.length ? Date.parse(fr.at(-1).rfc460Timestamp) : 0);
+  }
+  const hit = (await chunk(T, lo)).find(f => get(f) >= target && Date.parse(f.rfc460Timestamp) <= hi);
+  return hit ? Date.parse(hit.rfc460Timestamp) : hi;
+}
+
+async function backfill(T, { c, was, n, lo, hi }) {
+  // Buffs and inhibitor respawns only matter for a few minutes.
+  if (c.within && hi - c.within > lo) {
+    const fr = await chunk(T, hi - c.within);
+    if (fr.length) { lo = Date.parse(fr[0].rfc460Timestamp); was = Math.max(was, c.get(fr[0])); }
+    if (was >= n) return;
+  }
+  for (let k = c.all ? was + 1 : n; k <= n; k++) {
+    lo = await whenReached(T, c.get, k, lo, hi);
+    (T.ev[c.key] ||= []).push(gameMs(T, lo));
+  }
+}
+
+async function trackObjectives(T, frames) {
+  // The newest chunk is too fresh to request again, so searches read it from here.
+  T.chunks.set(Math.floor(Date.parse(frames[0].rfc460Timestamp) / 10e3) * 10e3, Promise.resolve(frames));
+  const gaps = [];
+  for (const f of frames) {
+    const ts = Date.parse(f.rfc460Timestamp), prev = T.lastF;
+    if (ts <= T.lastTs) continue;
+    if (prev?.gameState === 'paused') T.paused += ts - T.lastTs;
+    const watched = prev && ts - T.lastTs < 15e3;
+    for (const c of COUNTERS) {
+      const was = prev ? c.get(prev) : 0, n = c.get(f);
+      if (n <= was) continue;
+      if (watched) for (let k = was; k < n; k++) (T.ev[c.key] ||= []).push(gameMs(T, ts));
+      else gaps.push({ c, was, n, lo: prev ? T.lastTs : T.start, hi: ts });
+    }
+    T.lastTs = ts; T.lastF = f;
+  }
+  if (gaps.length) {
+    await Promise.all(gaps.map(g => backfill(T, g)));
+    T.chunks.clear();
+    for (const list of Object.values(T.ev)) list.sort((a, b) => a - b);
+  }
+}
+
+// Countdown chips at game time `now`. `zero` is what a chip shows once its
+// timer runs out: 'Up' for spawns, nothing (hidden) for buffs and respawns.
+function objTimers(T, f, now, code) {
+  const ev = k => T.ev[k] || [];
+  const out = [];
+  const soul = [f.blueTeam, f.redTeam].some(t => t.dragons.length - elders(t) >= 4);
+  const lastD = ev('dragon').at(-1), lastB = ev('baron').at(-1);
+  out.push({ label: soul ? 'Elder' : 'Dragon', left: (lastD == null ? OBJ.dragonFirst : lastD + (soul ? OBJ.elderRespawn : OBJ.dragonRespawn)) - now, zero: 'Up' });
+  out.push({ label: 'Baron', left: (lastB == null ? OBJ.baronFirst : lastB + OBJ.baronRespawn) - now, zero: 'Up' });
+  if (now < OBJ.grubs) out.push({ label: 'Grubs', left: OBJ.grubs - now });
+  if (now < OBJ.herald) out.push({ label: 'Herald', left: OBJ.herald - now });
+  for (const side of ['blue', 'red']) {
+    const S = side === 'blue' ? 'Blue' : 'Red', other = side === 'blue' ? 'red' : 'blue';
+    const b = ev(`baron${S}`).at(-1), e = ev(`elder${S}`).at(-1);
+    if (b != null && b + OBJ.baronBuff > now) out.push({ label: `${code[side]} Baron buff`, left: b + OBJ.baronBuff - now, side });
+    if (e != null && e + OBJ.elderBuff > now) out.push({ label: `${code[side]} Elder buff`, left: e + OBJ.elderBuff - now, side });
+    for (const t of ev(`inhib${S}`)) {
+      if (t + OBJ.inhib > now) out.push({ label: `${code[other]} inhib back`, left: t + OBJ.inhib - now, side: other });
+    }
+  }
+  return out;
+}
+
+// Ten players in feed order (blue 1–5, red 6–10), merged with the details
+// feed (items, damage share…) when we have it.
+function gamePlayers(meta, f, code, details) {
+  const out = [];
+  for (const side of ['blue', 'red']) {
+    for (const pm of meta?.[`${side}TeamMetadata`]?.participantMetadata || []) {
+      const p = f[`${side}Team`].participants.find(x => x.participantId === pm.participantId) || {};
+      const x = details?.find(x => x.participantId === pm.participantId) || {};
+      out.push({
+        ...x, ...p, side, role: pm.role, champ: pm.championId, id: pm.esportsPlayerId,
+        team: code[side], name: playerName(pm.summonerName, code[side]),
+      });
+    }
+  }
+  return out;
+}
+
+async function liveDetails(gameId) {
+  try { return (await liveFeed('details', gameId))?.frames?.at(-1)?.participants || null; }
+  catch { return null; }
 }
 
 async function fetchLive(match) {
@@ -493,46 +789,81 @@ async function fetchLive(match) {
     game = g; w = win;
     if (win.frames.at(-1).gameState !== 'finished') break;
   }
-  if (!w) return { matchId: match.id, between: true, gameNo: open[0]?.number || games.filter(g => g.state === 'completed').length + 1 };
+  if (!w) {
+    // Between games: keep the last game's final scoreboard up until the next one loads.
+    const gameNo = open[0]?.number || games.filter(g => g.state === 'completed').length + 1;
+    const prev = games.filter(g => g.state === 'completed').at(-1);
+    const snap = prev && await finalSnapshot(match, ev, prev);
+    return snap ? { ...snap, between: true, nextNo: gameNo } : { matchId: match.id, between: true, gameNo };
+  }
   const f = w.frames.at(-1);
   if (f.gameState === 'finished') {
     // Pull the series score as soon as a game ends instead of waiting for the next scheduled refresh.
     if (state.reloadedFor !== game.id) { state.reloadedFor = game.id; load(); }
-    return { matchId: match.id, finished: true, gameNo: game.number };
+    return { ...await finalSnapshot(match, ev, game, w), finished: true };
   }
 
-  // First frame of the game gives the clock's zero; fetched once per game.
-  if (!(game.id in state.gameStart)) {
-    state.gameStart[game.id] = null;
-    try {
-      const r = await fetch(`${FEED}/window/${game.id}`);
-      const first = (await r.json()).frames?.[0];
-      if (first) state.gameStart[game.id] = Date.parse(first.rfc460Timestamp);
-    } catch {}
+  const T = await tracker(game.id);
+  let now = null, objs = [];
+  if (T.start) {
+    await trackObjectives(T, w.frames);
+    now = gameMs(T, Date.parse(f.rfc460Timestamp));
   }
+  // Items, damage share etc. are only shown on the Players tab, and the
+  // details feed is ~250 KB a poll, so only fetch it there.
+  const details = activeTab() === 'players' ? await liveDetails(game.id) : null;
+  const L = snapshot(match, ev, game, w, details, now);
+  if (now != null) L.objs = objTimers(T, f, now, L.code);
+  return L;
+}
+
+// Everything the live card draws for one window of a game.
+function snapshot(match, ev, game, w, details, clockMs) {
+  const f = w.frames.at(-1);
   const blueId = w.gameMetadata?.blueTeamMetadata?.esportsTeamId;
   const t1Id = ev.match.teams?.find(t => t.code === match.t1?.short)?.id;
   const t1Blue = t1Id ? t1Id === blueId : true;
-  const start = state.gameStart[game.id];
+  const code = t1Blue ? { blue: match.t1?.short, red: match.t2?.short } : { blue: match.t2?.short, red: match.t1?.short };
   return {
-    matchId: match.id, gameNo: game.number, t1Blue,
+    matchId: match.id, gameNo: game.number, t1Blue, code,
     t1: t1Blue ? f.blueTeam : f.redTeam,
     t2: t1Blue ? f.redTeam : f.blueTeam,
-    gameState: f.gameState,
-    clock: start ? Date.parse(f.rfc460Timestamp) - start : null,
+    players: gamePlayers(w.gameMetadata, f, code, details),
+    loading: f.blueTeam.totalGold === 0, // in the feed but not yet at 0:00
+    gameState: f.gameState, objs: [],
+    clock: clockMs,
     at: Date.now(),
   };
 }
 
+// A finished game's last frame (any startingTime after it ended returns it),
+// fetched once per game.
+async function finalSnapshot(match, ev, game, w) {
+  if (state.finalSnap?.id === game.id) return state.finalSnap.snap;
+  w ||= await feedJson(`${FEED}/window/${game.id}?startingTime=${feedTime(state.feedLag + 60e3)}`);
+  const f = w?.frames?.at(-1);
+  if (!f) return null;
+  const T = state.track;
+  const start = T?.id === game.id && T.start ? T.start + T.paused : await gameStart(game.id);
+  const snap = { ...snapshot(match, ev, game, w, await liveDetails(game.id), start ? Date.parse(f.rfc460Timestamp) - start : null), final: true };
+  if (f.gameState === 'finished') state.finalSnap = { id: game.id, snap };
+  return snap;
+}
+
 async function syncLive() {
-  clearTimeout(state.liveTimer);
   const m = state.matches.find(x => x.status === 'live');
-  if (!m) { if (state.live) { state.live = null; renderHero(); } return; }
-  if (!document.hidden) {
+  if (!m) { clearTimeout(state.liveTimer); if (state.live) { state.live = null; renderHero(); renderPlayersLive(); } return; }
+  // The first poll of a game can take a few seconds (finding past objective
+  // kills), so don't start a second one alongside it.
+  if (!document.hidden && !state.liveBusy) {
+    state.liveBusy = true;
     try { state.live = await fetchLive(m); } catch { state.live = { matchId: m.id, noStats: true }; }
+    state.liveBusy = false;
     renderHero();
+    renderPlayersLive();
   }
   // Land just after each 10s boundary, when the feed has a fresh chunk.
+  clearTimeout(state.liveTimer);
   state.liveTimer = setTimeout(syncLive, LIVE_POLL - (Date.now() % LIVE_POLL) + 1e3);
 }
 
@@ -678,9 +1009,11 @@ function upcomingList(ms, emptyText) {
 function liveStats(m) {
   const L = state.live;
   if (!L || L.matchId !== m.id) return `<div class="ls"><div class="ls-note">Loading live game stats…</div></div>`;
-  if (L.between) return `<div class="ls"><div class="ls-note">Between games · Game ${L.gameNo} up next</div></div>`;
-  if (L.finished) return `<div class="ls"><div class="ls-note">Game ${L.gameNo} just ended · updating series score…</div></div>`;
-  if (L.noStats) return `<div class="ls"><div class="ls-note">Game ${L.gameNo || ''} in progress · live stats unavailable right now</div></div>`;
+  const note = L.between ? `Between games · Game ${L.nextNo || L.gameNo} up next`
+    : L.finished ? `Game ${L.gameNo} just ended · updating series score…` : '';
+  if (!L.players) {
+    return `<div class="ls"><div class="ls-note">${note || `Game ${L.gameNo || ''} in progress · live stats unavailable right now`}</div></div>`;
+  }
   const a = L.t1, b = L.t2;
   const stat = (label, x, y, fmt = v => v) => `<div class="ls-row">
       <span class="v ${x > y ? 'lead' : ''}">${fmt(x)}</span><span class="k">${label}</span><span class="v r ${y > x ? 'lead' : ''}">${fmt(y)}</span></div>`;
@@ -688,19 +1021,66 @@ function liveStats(m) {
   const total = a.totalGold + b.totalGold || 1;
   const diff = a.totalGold - b.totalGold;
   const [s1, s2] = L.t1Blue ? ['blue', 'red'] : ['red', 'blue'];
+  const run = L.gameState === 'in_game' ? 1 : 0;
+  const objs = L.objs.map(o => `<span class="oc ${o.side || ''} ${o.left <= 0 ? 'up' : ''}">${esc(o.label)}
+      <b data-cd="${o.left}" data-at="${L.at}" data-run="${run}" data-zero="${o.zero || ''}">${o.left > 0 ? clock(o.left) : o.zero}</b></span>`).join('');
+  const when = L.final ? ` · final${L.clock != null ? ` ${clock(L.clock)}` : ''}`
+    : L.loading ? ' · loading in'
+    : L.clock != null ? ` · <span data-clock="${L.clock}" data-at="${L.at}" data-run="${run}">${clock(L.clock)}</span>` : '';
   return `<div class="ls">
+    ${note ? `<div class="ls-note">${note}</div>` : ''}
     <div class="ls-row"><span class="v">${esc(m.t1?.short)}<span class="side ${s1}">${s1.toUpperCase()}</span></span>
-      <span class="k">Game ${L.gameNo}${L.clock != null ? ` · <span data-clock="${L.clock}" data-at="${L.at}" data-run="${L.gameState === 'in_game' ? 1 : 0}">${clock(L.clock)}</span>` : ''}${L.gameState === 'paused' ? ' · paused' : ''}</span>
+      <span class="k">Game ${L.gameNo}${when}${L.gameState === 'paused' ? ' · paused' : ''}</span>
       <span class="v r"><span class="side ${s2}">${s2.toUpperCase()}</span>${esc(m.t2?.short)}</span></div>
-    <div class="goldbar" title="Gold share"><div style="width:${(a.totalGold / total * 100).toFixed(1)}%;background:var(--${s1})"></div></div>
+    <div class="goldbar" title="Gold share" style="background:var(--${s2})"><div style="width:${(a.totalGold / total * 100).toFixed(1)}%;background:var(--${s1})"></div></div>
     <div class="ls-row"><span></span><span class="k">${diff === 0 ? 'Even gold' : `${diff > 0 ? esc(m.t1?.short) : esc(m.t2?.short)} +${kGold(Math.abs(diff))}`}</span><span></span></div>
-    ${stat('Gold', a.totalGold, b.totalGold, kGold)}
-    ${stat('Kills', a.totalKills, b.totalKills)}
-    ${stat('Towers', a.towers, b.towers)}
-    <div class="ls-row"><span class="v">${drakes(a.dragons)}</span><span class="k">Dragons</span><span class="v r">${drakes(b.dragons, true)}</span></div>
-    ${stat('Barons', a.barons, b.barons)}
-    ${stat('Inhibs', a.inhibitors, b.inhibitors)}
+    <div class="ls-grid">
+      <div>
+        ${stat('Gold', a.totalGold, b.totalGold, kGold)}
+        ${stat('Kills', a.totalKills, b.totalKills)}
+        ${stat('Towers', a.towers, b.towers)}
+        <div class="ls-row"><span class="v">${drakes(a.dragons)}</span><span class="k">Dragons</span><span class="v r">${drakes(b.dragons, true)}</span></div>
+        ${stat('Barons', a.barons, b.barons)}
+        ${stat('Inhibs', a.inhibitors, b.inhibitors)}
+        ${objs && !L.loading ? `<div class="ls-h">Objective timers</div><div class="objs">${objs}</div>` : ''}
+      </div>
+      <div>
+        <div class="ls-h">${L.loading ? 'Draft' : L.final ? 'Draft · final lane gold' : 'Draft · lane gold'}<small>Bans aren't in Riot's live feed</small></div>
+        ${lanes(L)}
+      </div>
+    </div>
   </div>`;
+}
+
+const champName = id => state.dd.names[id] || id || '?';
+const champImg = (id, cls = '') => id
+  ? `<img class="ch ${cls}" src="${DD}/cdn/${state.dd.ver}/img/champion/${encodeURIComponent(id)}.png" alt="${esc(champName(id))}" title="${esc(champName(id))}" loading="lazy" onerror="this.style.visibility='hidden'">`
+  : `<span class="ch ${cls}"></span>`;
+
+// One row per role: the two laners facing each other with their gold gap.
+function lanes(L) {
+  const [s1, s2] = L.t1Blue ? ['blue', 'red'] : ['red', 'blue'];
+  const laner = (p, r) => {
+    const hp = p.maxHealth ? Math.round(p.currentHealth / p.maxHealth * 100) : 100;
+    const line = L.loading ? esc(champName(p.champ))
+      : `<i class="xs">${esc(champName(p.champ))} · Lv ${p.level} · </i>${p.kills}/${p.deaths}/${p.assists} · ${p.creepScore} CS`;
+    return `<div class="lp ${r ? 'r' : ''} ${!L.loading && p.maxHealth && !p.currentHealth ? 'dead' : ''}">
+      <span class="chw">${champImg(p.champ)}${L.loading ? '' : `<span class="hp"><i style="width:${hp}%"></i></span>`}</span>
+      <span class="lp-t"><b>${esc(p.name)}</b><span>${line}</span></span>
+      ${L.loading ? '' : `<span class="lp-g">${kGold(p.totalGold || 0)}</span>`}</div>`;
+  };
+  return ROLES.map(role => {
+    const a = L.players.find(p => p.side === s1 && p.role === role), b = L.players.find(p => p.side === s2 && p.role === role);
+    if (!a || !b) return '';
+    const diff = (a.totalGold || 0) - (b.totalGold || 0);
+    const lead = diff > 0 ? s1 : diff < 0 ? s2 : '';
+    // Bar grows out from the middle toward the leader; full at 3k.
+    const w = Math.min(50, Math.abs(diff) / 3000 * 50);
+    const mid = L.loading ? `<span class="ln-role">${ROLE_LABEL[role]}</span>` : `<span class="ln-role">${ROLE_LABEL[role]}</span>
+      <span class="ln-diff ${lead}">${diff ? `${diff > 0 ? '◂' : ''} +${kGold(Math.abs(diff))} ${diff < 0 ? '▸' : ''}` : 'even'}</span>
+      <span class="ln-bar"><i style="${diff > 0 ? 'right' : 'left'}:50%;width:${w}%;background:var(--${lead || 'line'})"></i></span>`;
+    return `<div class="ln">${laner(a)}<div class="ln-mid">${mid}</div>${laner(b, true)}</div>`;
+  }).join('');
 }
 
 function heroCard(m, kind) {
@@ -709,7 +1089,7 @@ function heroCard(m, kind) {
   const side = (t, r) => `<div class="hero-team ${r ? 'r' : ''}">${t?.image ? `<img src="${esc(t.image)}" alt="" onerror="this.remove()">` : ''}
       <div class="nm">${esc(t?.short || 'TBD')}<span class="full">${t && t.name !== t.short ? esc(t.name) : ''}</span></div></div>`;
   const meta = live
-    ? `<span>${esc(stageLabel(m))} · Bo${m.bo}</span><a class="watch" href="https://lolesports.com/live/worlds" target="_blank" rel="noopener">Watch live ↗</a>`
+    ? `<span>${esc(stageLabel(m))} · Bo${m.bo}</span><span class="tag"><button class="more-btn" data-goto="players">More info · player stats</button><a class="watch" href="https://lolesports.com/live/worlds" target="_blank" rel="noopener">Watch live ↗</a></span>`
     : `<span>${esc(stageLabel(m))} · Bo${m.bo}</span>`;
   return `<div class="hero-card ${live ? 'live' : ''}">
     <div class="hero-label">${live ? '<span class="live-pip"></span>Live now' : `Up next · <span class="when">${whenLabel(m.time)}</span>`}</div>
@@ -751,27 +1131,42 @@ function stageStatus(key) {
   return { text: `Starts ${fmtRange.format(ms[0].time)}` };
 }
 
-function renderTabs() {
+function activeTab() {
   if (!state.tab) {
     const h = location.hash.slice(1);
-    state.tab = STAGES.some(s => s.key === h) ? h : null;
+    state.tab = TABS.some(s => s.key === h) ? h : null;
   }
-  const active = state.tab || currentStage();
-  $('tabs').innerHTML = STAGES.map(s => {
-    const st = stageStatus(s.key);
+  return state.tab || currentStage();
+}
+
+function renderTabs() {
+  const active = activeTab();
+  $('tabs').innerHTML = TABS.map(s => {
+    const st = s.key === 'players'
+      ? (state.matches.some(m => m.status === 'live') ? { text: 'Live game', live: true } : { text: 'Stats & champions' })
+      : stageStatus(s.key);
     return `<button class="tab ${s.key === active ? 'on' : ''}" role="tab" aria-selected="${s.key === active}" data-tab="${s.key}">
       ${s.name}<span class="ts ${st.live ? 'live' : ''}">${st.live ? '<span class="live-pip"></span>' : ''}${st.text}</span></button>`;
   }).join('');
-  for (const s of STAGES) $(`panel-${s.key}`).hidden = s.key !== active;
+  for (const s of TABS) $(`panel-${s.key}`).hidden = s.key !== active;
+  if (active === 'players') loadHistory();
 }
 
-$('tabs').addEventListener('click', e => {
-  const b = e.target.closest('[data-tab]');
-  if (!b) return;
-  state.tab = b.dataset.tab;
-  history.replaceState(null, '', `#${state.tab}`);
+function showTab(key) {
+  const was = activeTab();
+  state.tab = key;
+  history.replaceState(null, '', `#${key}`);
   renderTabs();
   drawAll();
+  // The live scoreboard there needs the details feed, so poll it now rather than in 10s.
+  if (key === 'players' && was !== 'players') syncLive();
+}
+
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-tab], [data-goto]');
+  if (!b) return;
+  showTab(b.dataset.tab || b.dataset.goto);
+  if (b.dataset.goto) $('tabs').scrollIntoView({ behavior: 'smooth' });
 });
 
 /* ---------- Play-In (double elimination) ---------- */
@@ -981,6 +1376,332 @@ function renderKnockout() {
   $('koSched').innerHTML = upcomingList(ko, ko.every(m => m.status === 'done') ? 'All knockout matches are complete.' : '');
 }
 
+/* ---------- Players: tournament stats ---------- */
+
+// Champion names and portraits from Data Dragon's latest patch.
+async function loadDD() {
+  try {
+    const ver = (await (await fetch(`${DD}/api/versions.json`)).json())[0];
+    const c = await (await fetch(`${DD}/cdn/${ver}/data/en_US/champion.json`)).json();
+    state.dd = { ver, names: Object.fromEntries(Object.values(c.data).map(x => [x.id, x.name])) };
+    render();
+  } catch {}
+}
+
+function loadHistCache() {
+  try {
+    const c = JSON.parse(localStorage.getItem(HIST_KEY));
+    if (c?.games) { state.hist.games = c.games; state.hist.matches = c.matches || {}; }
+  } catch {}
+}
+function saveHist() {
+  try { localStorage.setItem(HIST_KEY, JSON.stringify({ games: state.hist.games, matches: state.hist.matches })); } catch {}
+}
+
+async function pool(items, n, fn) {
+  let i = 0;
+  await Promise.all(Array.from({ length: n }, async () => { while (i < items.length) await fn(items[i++]); }));
+}
+
+// Final scoreboard of a finished game. Any startingTime after the game ended
+// returns its last frames. Returns null if the feed has nothing for the game,
+// undefined if it hasn't finished there yet (try again later).
+async function gameSummary(g, m, info) {
+  const t = feedTime(60e3);
+  const [w, d] = await Promise.all([feedJson(`${FEED}/window/${g.id}?startingTime=${t}`), feedJson(`${FEED}/details/${g.id}?startingTime=${t}`)]);
+  const f = w?.frames?.at(-1);
+  if (!f) return null;
+  if (f.gameState !== 'finished') return undefined;
+  const start = await gameStart(g.id);
+  const det = d?.frames?.at(-1)?.participants || [];
+  const code = {};
+  for (const side of ['blue', 'red']) code[side] = info.teams[w.gameMetadata?.[`${side}TeamMetadata`]?.esportsTeamId] || '?';
+  const p = gamePlayers(w.gameMetadata, f, code, det).map(x => ({
+    id: x.id, name: x.name, side: x.side, role: x.role, champ: x.champ,
+    k: x.kills || 0, d: x.deaths || 0, a: x.assists || 0, cs: x.creepScore || 0,
+    gold: x.totalGoldEarned || x.totalGold || 0, dmg: x.championDamageShare ?? null, kp: x.killParticipation ?? null,
+  }));
+  const B = f.blueTeam, R = f.redTeam;
+  return {
+    id: g.id, match: m.id, n: g.n, at: start || Date.parse(f.rfc460Timestamp),
+    dur: start ? Date.parse(f.rfc460Timestamp) - start : null, blue: code.blue, red: code.red,
+    // > 0 leans blue. The feed has no winner; whoever took more towers almost always won.
+    edge: (B.towers - R.towers) * 10 + (B.inhibitors - R.inhibitors) * 3 + (B.totalGold - R.totalGold) / 1e3,
+    p,
+  };
+}
+
+// Fetches every finished Worlds game not already cached. Finished games never
+// change, so they're kept in localStorage and only new ones are fetched.
+async function loadHistory() {
+  const H = state.hist;
+  if (H.busy || !state.matches.length || Date.now() - H.at < 60e3) return;
+  H.busy = true; H.at = Date.now();
+  try {
+    const ms = state.matches.filter(m => m.status !== 'upcoming' && m.t1 && m.t2);
+    const todo = [];
+    await pool(ms, 4, async m => {
+      let info = H.matches[m.id];
+      if (!info || info.open) {
+        try {
+          const d = await api('getEventDetails', { id: m.id });
+          info = H.matches[m.id] = {
+            open: m.status !== 'done',
+            teams: Object.fromEntries(d.event.match.teams.map(t => [t.id, t.code])),
+            games: d.event.match.games.filter(g => g.state === 'completed').map(g => ({ id: g.id, n: g.number })),
+          };
+        } catch { return; }
+      }
+      for (const g of info.games) if (!(g.id in H.games)) todo.push({ g, m, info });
+    });
+    H.total = todo.length; H.done = 0;
+    renderPlayersBody();
+    await pool(todo, 4, async ({ g, m, info }) => {
+      try {
+        const s = await gameSummary(g, m, info);
+        if (s !== undefined) H.games[g.id] = s;
+      } catch {}
+      H.done++;
+      renderPlayersBody();
+    });
+    saveHist();
+  } finally {
+    H.busy = false;
+    renderPlayers();
+  }
+}
+
+const blank = () => ({ gp: 0, w: 0, k: 0, d: 0, a: 0, cs: 0, gold: 0, min: 0, dmg: 0, dn: 0, kp: 0, kn: 0 });
+function addGame(o, p, won, min) {
+  o.gp++; o.w += won; o.k += p.k; o.d += p.d; o.a += p.a; o.cs += p.cs; o.gold += p.gold; o.min += min;
+  if (p.dmg != null) { o.dmg += p.dmg; o.dn++; }
+  if (p.kp != null) { o.kp += p.kp; o.kn++; }
+}
+
+// Per-player and per-champion totals across every cached game.
+function aggregate() {
+  const H = state.hist;
+  const list = Object.values(H.games).filter(Boolean).sort((a, b) => a.at - b.at);
+  const key = `${list.length}:${state.fetchedAt}`;
+  if (H.agg?.key === key) return H.agg;
+
+  // Game winners: the tower read, then nudged until each series' game count
+  // matches its official score, flipping the closest games first.
+  const byMatch = new Map();
+  for (const g of list) {
+    g.win = g.edge >= 0 ? 'blue' : 'red';
+    if (!byMatch.has(g.match)) byMatch.set(g.match, []);
+    byMatch.get(g.match).push(g);
+  }
+  for (const [id, gs] of byMatch) {
+    const m = state.matches.find(x => x.id === id);
+    if (!m?.t1 || m.s1 == null || gs.length !== m.s1 + m.s2) continue;
+    const t1Won = g => g[g.win] === m.t1.short;
+    let off = gs.filter(t1Won).length - m.s1;
+    while (off) {
+      const g = gs.filter(x => t1Won(x) === off > 0).sort((a, b) => Math.abs(a.edge) - Math.abs(b.edge))[0];
+      if (!g) break;
+      g.win = g.win === 'blue' ? 'red' : 'blue';
+      off += off > 0 ? -1 : 1;
+    }
+  }
+
+  const players = new Map(), champs = new Map();
+  for (const g of list) {
+    const min = (g.dur || 30 * MIN) / MIN;
+    for (const p of g.p) {
+      const won = p.side === g.win ? 1 : 0;
+      let P = players.get(p.id);
+      if (!P) players.set(p.id, P = { id: p.id, ...blank(), champs: new Map(), log: [] });
+      Object.assign(P, { name: p.name, team: g[p.side], role: p.role });
+      addGame(P, p, won, min);
+      if (!P.champs.has(p.champ)) P.champs.set(p.champ, { champ: p.champ, ...blank() });
+      addGame(P.champs.get(p.champ), p, won, min);
+      P.log.push({ g, p, won, opp: g[p.side === 'blue' ? 'red' : 'blue'] });
+      if (!champs.has(p.champ)) champs.set(p.champ, { champ: p.champ, ...blank(), by: new Map(), roles: new Set() });
+      const C = champs.get(p.champ);
+      addGame(C, p, won, min);
+      C.by.set(P.id, (C.by.get(P.id) || 0) + 1);
+      C.roles.add(p.role);
+    }
+  }
+  return H.agg = { key, games: list.length, players, champs };
+}
+
+const kda = o => o.d ? ((o.k + o.a) / o.d).toFixed(1) : o.k + o.a ? 'Perfect' : '–';
+const avg = (x, n) => n ? (x / n).toFixed(1) : '–';
+const pct = (x, n) => n ? `${Math.round(x / n * 100)}%` : '–';
+const perMin = (x, o, dp = 1) => o.min ? (x / o.min).toFixed(dp) : '–';
+const wl = o => `<span class="rw">${o.w}</span>–<span class="rl">${o.gp - o.w}</span>`;
+const teamByCode = code => {
+  for (const m of state.matches) for (const t of [m.t1, m.t2]) if (t?.short === code) return t;
+  return { short: code };
+};
+const roleIdx = r => { const i = ROLES.indexOf(r); return i < 0 ? 9 : i; };
+
+function renderPlayers() {
+  renderPlayersLive();
+  renderPlayersBody();
+}
+
+// Live scoreboard: every player in the current game with their Worlds record on that champion.
+function renderPlayersLive() {
+  const L = state.live, m = state.matches.find(x => x.status === 'live');
+  if (!m || !L?.players?.length || L.matchId !== m.id) { $('plLive').innerHTML = ''; return; }
+  const A = aggregate();
+  const rows = side => {
+    const code = L.code[side], t = teamByCode(code);
+    const ps = L.players.filter(p => p.side === side);
+    return `<tr class="grp"><td colspan="11"><span class="tag">${logo(t)}${esc(code)}<span class="side ${side}">${side.toUpperCase()}</span></span></td></tr>`
+      + ps.map(p => {
+        const P = A.players.get(p.id), C = P?.champs.get(p.champ);
+        const items = (p.items || []).filter(i => i && i !== 3340 && i !== 3363 && i !== 3364)
+          .map(i => `<img src="${DD}/cdn/${state.dd.ver}/img/item/${i}.png" alt="" loading="lazy" onerror="this.remove()">`).join('');
+        return `<tr class="click" data-player="${esc(p.id)}">
+          <td><span class="pc">${champImg(p.champ, 'sm')}${esc(p.name)} <small>${esc(champName(p.champ))}</small></span></td>
+          <td class="dim">${ROLE_LABEL[p.role] || ''}</td>
+          <td class="n">${L.loading ? '' : p.level}</td>
+          <td class="n">${L.loading ? '' : `${p.kills}/${p.deaths}/${p.assists}`}</td>
+          <td class="n">${L.loading ? '' : p.creepScore}</td>
+          <td class="n">${L.loading ? '' : kGold(p.totalGold || 0)}</td>
+          <td class="n">${p.killParticipation != null ? `${Math.round(p.killParticipation * 100)}%` : '–'}</td>
+          <td class="n">${p.championDamageShare != null ? `${Math.round(p.championDamageShare * 100)}%` : '–'}</td>
+          <td><span class="items">${items}</span></td>
+          <td>${C ? `${C.gp} GP · ${wl(C)} · ${kda(C)} KDA` : '<span class="dim">First Worlds game on it</span>'}</td>
+          <td class="dim">${P ? `${P.gp} GP · ${wl(P)} · ${kda(P)} KDA` : '–'}</td></tr>`;
+      }).join('');
+  };
+  const [s1, s2] = L.t1Blue ? ['blue', 'red'] : ['red', 'blue'];
+  $('plLive').innerHTML = `<h3 class="sub" style="margin-top:0">${L.final ? 'Final' : 'Live'} · Game ${L.gameNo} ·${esc(m.t1?.short)} vs ${esc(m.t2?.short)}</h3>
+    <div class="tbl"><table>
+      <tr><th>Player</th><th>Role</th><th class="n">Lv</th><th class="n">K/D/A</th><th class="n">CS</th><th class="n">Gold</th><th class="n">KP</th><th class="n">Dmg</th><th>Items</th><th>On this champ at Worlds</th><th>Worlds overall</th></tr>
+      ${rows(s1)}${rows(s2)}</table></div>
+    <p class="note">Click a player for their full champion pool. ${L.players.some(p => p.items) ? '' : 'Items, KP and damage share load on the next refresh.'}</p>`;
+}
+
+function renderPlayersBody() {
+  if (activeTab() !== 'players') return;
+  const H = state.hist, A = aggregate();
+
+  $('plStatus').textContent = H.busy && H.total
+    ? `Loading games… ${H.done}/${H.total}`
+    : A.games ? `${A.games} games · ${A.players.size} players` : H.busy ? 'Loading games…' : 'No finished games yet';
+
+  // Team filter options, kept in place so the selection survives re-renders.
+  const teams = [...new Set([...A.players.values()].map(p => p.team))].sort();
+  const opts = `<option value="">All teams</option>` + teams.map(t => `<option value="${esc(t)}">${esc(t)}</option>`).join('');
+  if ($('plTeam').dataset.opts !== opts) { $('plTeam').innerHTML = opts; $('plTeam').dataset.opts = opts; }
+  $('plTeam').value = state.plTeam;
+  for (const b of $('plView').children) b.classList.toggle('on', b.dataset.view === state.plView);
+
+  const q = state.plQ.trim().toLowerCase();
+  const has = s => String(s || '').toLowerCase().includes(q);
+  $('plBody').innerHTML = state.plView === 'champs' ? champTable(A, q, has) : playerTable(A, q, has);
+}
+
+function playerTable(A, q, has) {
+  const list = [...A.players.values()]
+    .filter(P => (!state.plTeam || P.team === state.plTeam)
+      && (!q || has(P.name) || has(P.team) || [...P.champs.keys()].some(c => has(champName(c)))))
+    .sort((a, b) => a.team.localeCompare(b.team) || roleIdx(a.role) - roleIdx(b.role));
+  if (!list.length) return `<p class="note">${A.games ? 'No players match.' : ''}</p>`;
+  const rows = list.map(P => {
+    const top = [...P.champs.values()].sort((a, b) => b.gp - a.gp).slice(0, 5)
+      .map(c => `<span>${champImg(c.champ, 'sm')}${c.gp > 1 ? `<sup>${c.gp}</sup>` : ''}</span>`).join('');
+    const open = state.plOpen === P.id;
+    return `<tr class="click ${open ? 'open' : ''}" data-player="${esc(P.id)}">
+      <td><span class="pc">${logo(teamByCode(P.team))}${esc(P.name)} <small>${esc(P.team)}</small></span></td>
+      <td class="dim">${ROLE_LABEL[P.role] || ''}</td>
+      <td class="n">${P.gp}</td><td class="n">${wl(P)}</td><td class="n">${kda(P)}</td>
+      <td class="n dim">${avg(P.k, P.gp)} / ${avg(P.d, P.gp)} / ${avg(P.a, P.gp)}</td>
+      <td class="n">${perMin(P.cs, P)}</td><td class="n">${perMin(P.gold, P, 0)}</td>
+      <td class="n">${pct(P.dmg, P.dn)}</td><td class="n">${pct(P.kp, P.kn)}</td>
+      <td><span class="cpool">${top}</span></td></tr>`
+      + (open ? `<tr><td class="detail" colspan="11">${playerDetail(P)}</td></tr>` : '');
+  }).join('');
+  return `<div class="tbl"><table>
+    <tr><th>Player</th><th>Role</th><th class="n">GP</th><th class="n">W–L</th><th class="n">KDA</th><th class="n">K / D / A</th><th class="n">CS/m</th><th class="n">Gold/m</th><th class="n">Dmg</th><th class="n">KP</th><th>Champions</th></tr>
+    ${rows}</table></div>`;
+}
+
+function playerDetail(P) {
+  const champs = [...P.champs.values()].sort((a, b) => b.gp - a.gp || b.w - a.w).map(c => `<tr>
+      <td><span class="pc">${champImg(c.champ, 'sm')}${esc(champName(c.champ))}</span></td>
+      <td class="n">${c.gp}</td><td class="n">${wl(c)}</td><td class="n">${pct(c.w, c.gp)}</td><td class="n">${kda(c)}</td>
+      <td class="n dim">${avg(c.k, c.gp)} / ${avg(c.d, c.gp)} / ${avg(c.a, c.gp)}</td>
+      <td class="n">${perMin(c.cs, c)}</td><td class="n">${pct(c.dmg, c.dn)}</td><td class="n">${pct(c.kp, c.kn)}</td></tr>`).join('');
+  const games = P.log.slice().reverse().map(({ g, p, won, opp }) => {
+    const m = state.matches.find(x => x.id === g.match);
+    return `<tr>
+      <td class="dim">${fmtDate.format(new Date(g.at))}</td>
+      <td class="dim">${m ? esc(stageLabel(m)) : ''}${m?.bo > 1 ? ` · G${g.n}` : ''}</td>
+      <td><span class="tag">vs ${logo(teamByCode(opp))}${esc(opp)}</span></td>
+      <td><span class="pc">${champImg(p.champ, 'sm')}${esc(champName(p.champ))}</span></td>
+      <td class="${won ? 'rw' : 'rl'}">${won ? 'W' : 'L'}</td>
+      <td class="n">${p.k}/${p.d}/${p.a}</td><td class="n">${p.cs}</td>
+      <td class="n">${p.dmg != null ? `${Math.round(p.dmg * 100)}%` : '–'}</td>
+      <td class="n dim">${g.dur ? clock(g.dur) : '–'}</td></tr>`;
+  }).join('');
+  return `<div class="pd">
+    <div class="pd-h">${logo(teamByCode(P.team))}<b>${esc(P.name)}</b><span>${esc(P.team)} · ${ROLE_LABEL[P.role] || ''} · ${P.gp} games · ${P.champs.size} champions</span></div>
+    <div class="tbl"><table>
+      <tr><th>Champion</th><th class="n">GP</th><th class="n">W–L</th><th class="n">Win</th><th class="n">KDA</th><th class="n">K / D / A</th><th class="n">CS/m</th><th class="n">Dmg</th><th class="n">KP</th></tr>
+      ${champs}</table></div>
+    <h4>Game log</h4>
+    <div class="tbl"><table>
+      <tr><th>Date</th><th>Stage</th><th>Opponent</th><th>Champion</th><th>Result</th><th class="n">K/D/A</th><th class="n">CS</th><th class="n">Dmg</th><th class="n">Length</th></tr>
+      ${games}</table></div></div>`;
+}
+
+function champTable(A, q, has) {
+  const list = [...A.champs.values()]
+    .filter(C => {
+      const by = [...C.by.keys()].map(id => A.players.get(id));
+      return (!state.plTeam || by.some(P => P.team === state.plTeam))
+        && (!q || has(champName(C.champ)) || by.some(P => has(P.name)));
+    })
+    .sort((a, b) => b.gp - a.gp || b.w - a.w);
+  if (!list.length) return `<p class="note">${A.games ? 'No champions match.' : ''}</p>`;
+  const rows = list.map(C => {
+    const by = [...C.by.entries()].sort((a, b) => b[1] - a[1]).map(([id, n]) => {
+      const P = A.players.get(id);
+      return `<span class="click" data-player="${esc(id)}" title="${esc(P.team)}">${esc(P.name)}${n > 1 ? ` ×${n}` : ''}</span>`;
+    }).join(', ');
+    return `<tr>
+      <td><span class="pc">${champImg(C.champ, 'sm')}${esc(champName(C.champ))}</span></td>
+      <td class="dim">${[...C.roles].sort((a, b) => roleIdx(a) - roleIdx(b)).map(r => ROLE_LABEL[r]).join(', ')}</td>
+      <td class="n">${C.gp}</td><td class="n">${wl(C)}</td><td class="n">${pct(C.w, C.gp)}</td><td class="n">${kda(C)}</td>
+      <td style="white-space:normal">${by}</td></tr>`;
+  }).join('');
+  return `<div class="tbl"><table>
+    <tr><th>Champion</th><th>Roles</th><th class="n">Picks</th><th class="n">W–L</th><th class="n">Win</th><th class="n">KDA</th><th>Played by</th></tr>
+    ${rows}</table></div>`;
+}
+
+// Open a player's breakdown in the Players list, clearing filters that would hide it.
+function openPlayer(id, scroll) {
+  state.plOpen = state.plOpen === id && !scroll ? null : id;
+  if (scroll) {
+    state.plView = 'players'; state.plTeam = ''; state.plQ = ''; $('plQ').value = '';
+  }
+  renderPlayersBody();
+  if (scroll) document.querySelector(`#plBody tr[data-player="${CSS.escape(id)}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+$('plBody').addEventListener('click', e => {
+  const r = e.target.closest('[data-player]');
+  if (r) openPlayer(r.dataset.player, r.tagName !== 'TR');
+});
+$('plLive').addEventListener('click', e => {
+  const r = e.target.closest('[data-player]');
+  if (r) openPlayer(r.dataset.player, true);
+});
+$('plView').addEventListener('click', e => {
+  const b = e.target.closest('[data-view]');
+  if (b) { state.plView = b.dataset.view; renderPlayersBody(); }
+});
+$('plTeam').addEventListener('change', e => { state.plTeam = e.target.value; renderPlayersBody(); });
+$('plQ').addEventListener('input', e => { state.plQ = e.target.value; renderPlayersBody(); });
+
 /* ---------- render loop ---------- */
 
 function render() {
@@ -991,6 +1712,7 @@ function render() {
   renderPlayin();
   renderSwiss();
   renderKnockout();
+  renderPlayers();
   requestAnimationFrame(drawAll);
   tick();
 }
@@ -1003,6 +1725,13 @@ function tick() {
   for (const el of document.querySelectorAll('[data-clock]')) {
     el.textContent = clock(+el.dataset.clock + (el.dataset.run === '1' ? Date.now() - +el.dataset.at : 0));
   }
+  // Objective countdowns: spawns flip to "Up", buffs and respawns disappear.
+  for (const el of document.querySelectorAll('[data-cd]')) {
+    const left = +el.dataset.cd - (el.dataset.run === '1' ? Date.now() - +el.dataset.at : 0);
+    el.textContent = left > 0 ? clock(left) : el.dataset.zero;
+    el.parentElement.classList.toggle('up', left <= 0);
+    el.parentElement.hidden = left <= 0 && !el.dataset.zero;
+  }
   if (state.fetchedAt) setStatus(state.failures ? 'err' : 'ok', `Updated ${ago(state.fetchedAt)}`);
 }
 setInterval(() => {
@@ -1014,8 +1743,10 @@ setInterval(() => {
 $('refresh').onclick = () => load();
 
 loadCache();
+loadHistCache();
 render();
 load();
+loadDD();
 </script>
 </body>
 </html>
