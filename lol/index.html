@@ -1,0 +1,2071 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Worlds 2026 Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0d14;
+    --panel: #121722;
+    --panel-2: #181f2d;
+    --line: #263043;
+    --line-2: #34405a;
+    --text: #e8ecf3;
+    --muted: #8b95a8;
+    --gold: #c8aa6e;
+    --gold-soft: rgba(200,170,110,.14);
+    --blue: #4f8cff;
+    --red: #ef4444;
+    --win: #4ade80;
+    --loss: #f87171;
+    --live: #ff4655;
+    --radius: 10px;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  .scroll { scrollbar-width: thin; scrollbar-color: var(--line-2) transparent; }
+  html, body { margin: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font: 14px/1.45 Inter, system-ui, -apple-system, Segoe UI, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1320px; margin: 0 auto; padding: 0 16px 64px; }
+
+  /* Header */
+  header {
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+    gap: 12px; padding: 22px 0 18px; border-bottom: 1px solid var(--line); margin-bottom: 22px;
+  }
+  .brand h1 { margin: 0; font-size: 22px; font-weight: 800; letter-spacing: -.01em; }
+  .brand h1 span { color: var(--gold); }
+  .brand p { margin: 2px 0 0; color: var(--muted); font-size: 13px; }
+  .status { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 13px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); display: inline-block; }
+  .dot.ok { background: var(--win); }
+  .dot.err { background: var(--loss); }
+  .dot.busy { background: var(--gold); animation: pulse 1s infinite; }
+  button {
+    font: inherit; color: var(--text); background: var(--panel-2); border: 1px solid var(--line);
+    border-radius: 8px; padding: 6px 12px; cursor: pointer;
+  }
+  button:hover { border-color: var(--gold); }
+
+  section { margin-bottom: 30px; }
+  h2 {
+    font-size: 13px; text-transform: uppercase; letter-spacing: .12em; color: var(--gold);
+    margin: 0 0 12px; display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
+  }
+  h2 small { color: var(--muted); text-transform: none; letter-spacing: 0; font-weight: 500; font-size: 12px; }
+  h3.sub { font-size: 12px; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); margin: 28px 0 10px; }
+
+  .lg { width: 18px; height: 18px; object-fit: contain; flex: none; }
+
+  /* Hero: live / next */
+  .hero { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); gap: 14px; }
+  .hero-card {
+    background: linear-gradient(160deg, var(--panel-2), var(--panel));
+    border: 1px solid var(--line); border-radius: var(--radius); padding: 18px 20px;
+  }
+  .hero-card.live { border-color: rgba(255,70,85,.55); box-shadow: 0 0 0 1px rgba(255,70,85,.15), 0 8px 30px rgba(255,70,85,.08); grid-column: 1 / -1; }
+  .hero-label { font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .hero-card.live .hero-label { color: var(--live); }
+  .hero-card { min-width: 0; }
+  .hero-teams { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 12px; margin: 14px 0 10px; }
+  .hero-team { display: flex; align-items: center; gap: 12px; font-size: 22px; font-weight: 800; min-width: 0; }
+  .hero-team.r { flex-direction: row-reverse; text-align: right; }
+  .hero-team img { width: 44px; height: 44px; object-fit: contain; flex: none; }
+  .hero-team .nm { min-width: 0; }
+  .hero-team .full { display: block; font-size: 12px; font-weight: 500; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .hero-score { font-size: 30px; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--gold); white-space: nowrap; }
+  .hero-meta { color: var(--muted); font-size: 13px; display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+  .hero-label .when { text-transform: none; letter-spacing: 0; font-size: 13px; color: var(--gold); font-weight: 700; }
+  .hero-empty { color: var(--muted); padding: 8px 0; }
+  .watch { color: var(--gold); text-decoration: none; font-weight: 600; }
+  .watch:hover { text-decoration: underline; }
+
+  /* Live game stats */
+  .ls { margin: 6px 0 12px; border-top: 1px solid var(--line); padding-top: 12px; }
+  .side { font-size: 10px; font-weight: 700; letter-spacing: .08em; padding: 1px 6px; border-radius: 4px; margin: 0 6px; }
+  .side.blue { background: rgba(79,140,255,.18); color: var(--blue); }
+  .side.red { background: rgba(239,68,68,.18); color: var(--red); }
+  .ls-note { color: var(--muted); font-size: 12px; text-align: center; padding: 6px 0; }
+  .ico { width: 16px; height: 16px; flex: none; fill: currentColor; display: block; }
+
+  /* Broadcast-style scoreboard */
+  .bc {
+    display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 18px;
+    background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 10px 16px;
+    font-variant-numeric: tabular-nums;
+  }
+  .bc.blue-l { box-shadow: inset 3px 0 0 var(--blue), inset -3px 0 0 var(--red); }
+  .bc.red-l { box-shadow: inset 3px 0 0 var(--red), inset -3px 0 0 var(--blue); }
+  .bc-side { display: flex; align-items: center; justify-content: flex-end; gap: 16px; flex-wrap: wrap; min-width: 0; }
+  .bc-side.r { flex-direction: row-reverse; }
+  .bc-st { display: inline-flex; align-items: center; gap: 5px; font-weight: 700; font-size: 16px; color: var(--muted); }
+  .bc-st b { color: var(--text); }
+  .bc-st.gold b { color: var(--gold); }
+  .bc-st.baron { color: #b48cff; }
+  .bc-code { font-weight: 800; font-size: 15px; display: inline-flex; align-items: center; margin-right: auto; }
+  .bc-side.r .bc-code { margin-right: 0; margin-left: auto; }
+  .bc-mid { text-align: center; }
+  .bc-k { font-size: 26px; font-weight: 800; line-height: 1.1; display: flex; align-items: center; gap: 10px; justify-content: center; }
+  .bc-k .ico { width: 18px; height: 18px; color: var(--muted); }
+  .bc-clock { font-size: 12px; color: var(--muted); font-weight: 600; letter-spacing: .04em; }
+  .drakes { display: inline-flex; gap: 3px; align-items: center; }
+  .drakes .ico { width: 15px; height: 15px; }
+  .soul { font-size: 10px; font-weight: 800; letter-spacing: .06em; color: var(--gold); border: 1px solid var(--gold); border-radius: 4px; padding: 0 4px; margin-left: 3px; }
+  .ls-h { font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin: 14px 0 6px; display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+  .ls-h small { text-transform: none; letter-spacing: 0; font-weight: 500; }
+
+  /* Objective timers */
+  .objs { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin-top: 10px; }
+  .oc { display: inline-flex; align-items: center; gap: 6px; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 4px 9px; font-size: 12px; color: var(--muted); }
+  .oc .ico { width: 14px; height: 14px; }
+  .oc.dragon .ico { color: var(--gold); }
+  .oc.baron .ico, .oc.herald .ico, .oc.grubs .ico { color: #b48cff; }
+  .oc b { color: var(--text); font-variant-numeric: tabular-nums; }
+  .oc.up b { color: var(--gold); }
+  .oc[hidden] { display: none; }
+  .oc.blue { border-color: rgba(79,140,255,.5); }
+  .oc.blue b { color: var(--blue); }
+  .oc.red { border-color: rgba(239,68,68,.5); }
+  .oc.red b { color: var(--red); }
+
+  /* Draft + lane gold */
+  .ln { display: grid; grid-template-columns: minmax(0, 1fr) 78px minmax(0, 1fr); align-items: center; gap: 10px; padding: 6px 0; }
+  .ln + .ln { border-top: 1px solid var(--line); }
+  .lp { display: flex; align-items: center; gap: 9px; min-width: 0; }
+  .lp.r { flex-direction: row-reverse; text-align: right; }
+  .ch { width: 34px; height: 34px; border-radius: 6px; flex: none; display: block; background: var(--panel-2); }
+  .ch.sm { width: 24px; height: 24px; border-radius: 4px; }
+  .chw { position: relative; flex: none; }
+  .chw .hp { position: absolute; left: 1px; right: 1px; bottom: -4px; height: 3px; background: var(--line); border-radius: 2px; overflow: hidden; }
+  .chw .hp > i { display: block; height: 100%; background: var(--win); }
+  .lp.dead .ch { filter: grayscale(1); opacity: .4; }
+  .lp-t { min-width: 0; display: flex; flex-direction: column; line-height: 1.25; }
+  .lp-t b { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .lp-t span { font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
+  .lp-t i { font-style: normal; }
+  .lp-items { display: flex; gap: 2px; flex: none; }
+  .lp-items img, .lp-items span { width: 22px; height: 22px; border-radius: 3px; background: var(--panel-2); display: block; }
+  .lp.r .lp-items { flex-direction: row-reverse; }
+
+  /* Gold difference graph */
+  .gd { margin-top: 4px; }
+  .gd-plot { position: relative; height: 150px; margin: 0 48px 0 58px; }
+  .gd-plot svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+  .gd-y { position: absolute; left: -58px; width: 52px; text-align: right; font-size: 10px; font-weight: 700; line-height: 1.2; font-variant-numeric: tabular-nums; }
+  .gd-y.top { top: 0; }
+  .gd-y.bot { bottom: 0; }
+  .gd-y.mid { top: 50%; transform: translateY(-50%); color: var(--muted); font-weight: 500; }
+  .gd-x { position: relative; height: 16px; margin: 0 48px 0 58px; font-size: 10px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .gd-x span { position: absolute; top: 2px; transform: translateX(-50%); }
+  .gd-now { position: absolute; transform: translate(6px, -50%); font-size: 11px; font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; pointer-events: none; }
+  .gd-cur { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--muted); pointer-events: none; }
+  .gd-tip {
+    position: absolute; top: -6px; transform: translate(-50%, -100%); background: var(--panel-2); border: 1px solid var(--line-2);
+    border-radius: 6px; padding: 3px 8px; font-size: 11px; font-weight: 700; white-space: nowrap; pointer-events: none; font-variant-numeric: tabular-nums;
+  }
+  .lp-g { margin-left: auto; font-weight: 700; font-size: 13px; font-variant-numeric: tabular-nums; }
+  .lp.r .lp-g { margin-left: 0; margin-right: auto; }
+  .ln-mid { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+  .ln-role { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
+  .ln-diff { font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--muted); }
+  .ln-diff.blue { color: var(--blue); }
+  .ln-diff.red { color: var(--red); }
+  .ln-bar { position: relative; width: 100%; height: 4px; background: var(--line); border-radius: 2px; }
+  .ln-bar > i { position: absolute; top: 0; bottom: 0; border-radius: 2px; transition: width .6s ease; }
+
+  .live-pip { width: 8px; height: 8px; border-radius: 50%; background: var(--live); display: inline-block; animation: pulse 1.4s infinite; flex: none; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .3; } }
+
+  /* Stage tabs */
+  .tabs {
+    display: flex; gap: 6px; margin-bottom: 22px; box-shadow: inset 0 -1px 0 var(--line);
+    overflow-x: auto; overflow-y: hidden; scrollbar-width: none;
+  }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab {
+    background: none; border: 0; border-radius: 0;
+    padding: 10px 16px 12px; color: var(--muted); font-weight: 700; font-size: 15px;
+    display: flex; flex-direction: column; align-items: flex-start; gap: 1px; white-space: nowrap;
+  }
+  .tab:hover { color: var(--text); }
+  .tab.on { color: var(--text); box-shadow: inset 0 -2px 0 var(--gold); }
+  .tab .ts { font-size: 11px; font-weight: 500; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+  .tab .ts.live { color: var(--live); font-weight: 700; }
+  .panel[hidden] { display: none; }
+
+  .scroll { overflow-x: auto; padding-bottom: 8px; }
+  .board { position: relative; }
+  .board > svg.links { position: absolute; inset: 0; pointer-events: none; overflow: visible; z-index: 0; }
+  .board .node { position: relative; z-index: 1; }
+
+  /* Full match card (Play-In + Knockout) */
+  .mc { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; min-width: 0; }
+  .mc.live { border-color: rgba(255,70,85,.6); }
+  .mc-cap { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin: 0 0 6px 2px; }
+  .mc-row { display: flex; align-items: center; gap: 8px; padding: 7px 10px; }
+  .mc-row + .mc-row { border-top: 1px solid var(--line); }
+  .mc-row .tn { flex: 1; min-width: 0; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .mc-row .sc { font-weight: 700; font-variant-numeric: tabular-nums; min-width: 14px; text-align: right; color: var(--muted); }
+  .mc-row.w .sc { color: var(--gold); }
+  .mc-row.l .tn, .mc-row.l .sc, .mc-row.l .lg { opacity: .5; }
+  .mc-row.tbd .tn { color: var(--muted); font-weight: 500; font-style: italic; }
+  .mc-foot { display: flex; justify-content: space-between; gap: 6px; padding: 4px 10px; background: rgba(255,255,255,.02); border-top: 1px solid var(--line); font-size: 11px; color: var(--muted); }
+  .mc.live .mc-foot { color: var(--live); font-weight: 600; }
+
+  /* Swiss flowchart */
+  .sw { display: grid; grid-template-columns: repeat(6, minmax(198px, 1fr)); column-gap: 36px; min-width: 1370px; }
+  .sw-col { display: flex; flex-direction: column; }
+  .sw-col h4 { margin: 0 0 10px; font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; text-align: center; }
+  .sw-stack { flex: 1; display: flex; flex-direction: column; justify-content: space-around; gap: 22px; }
+  .pool { background: var(--panel); border: 1px solid var(--line-2); border-radius: var(--radius); overflow: hidden; }
+  .pool-h { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; padding: 7px 10px; background: var(--panel-2); border-bottom: 1px solid var(--line); }
+  .pool-h b { font-size: 15px; font-variant-numeric: tabular-nums; }
+  .pool-h span { color: var(--muted); font-size: 11px; text-align: right; }
+  .pool.decider .pool-h span { color: var(--gold); }
+  .mm { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 4px; padding: 6px 8px; font-size: 13px; }
+  .mm + .mm { border-top: 1px solid var(--line); }
+  .mm .mt { display: flex; align-items: center; gap: 5px; font-weight: 700; min-width: 0; white-space: nowrap; overflow: hidden; }
+  .mm .mt > span { flex: none; }
+  .mm .lg { width: 16px; height: 16px; }
+  .mm .mw { grid-column: 1 / -1; text-align: center; font-size: 11px; color: var(--muted); margin-top: -1px; }
+  .mm .mt.a { justify-content: flex-end; }
+  .mm .mt.l { opacity: .42; font-weight: 500; }
+  .mm .mt.tbd { color: var(--muted); font-weight: 500; font-style: italic; }
+  .mm .ms { font-variant-numeric: tabular-nums; font-weight: 700; color: var(--gold); text-align: center; min-width: 30px; display: flex; align-items: center; justify-content: center; gap: 4px; }
+  .mm .ms.up { color: var(--muted); font-weight: 500; font-size: 12px; }
+  .mm.live { background: rgba(255,70,85,.08); }
+  .mm.live .ms { color: var(--live); }
+  .out { border-radius: var(--radius); padding: 0; overflow: hidden; border: 1px solid; }
+  .out .pool-h { background: transparent; border: 0; }
+  .out.q { border-color: rgba(74,222,128,.45); background: rgba(74,222,128,.06); }
+  .out.q .pool-h b { color: var(--win); }
+  .out.e { border-color: rgba(248,113,113,.4); background: rgba(248,113,113,.05); }
+  .out.e .pool-h b { color: var(--loss); }
+  .out-teams { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 10px 10px; }
+  .tchip { display: inline-flex; align-items: center; gap: 6px; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; font-weight: 700; font-size: 13px; }
+  .tchip.tbd { color: var(--muted); font-weight: 500; border-style: dashed; background: transparent; }
+  .out.e .tchip:not(.tbd) { opacity: .7; }
+  .legend { display: flex; gap: 18px; flex-wrap: wrap; color: var(--muted); font-size: 12px; margin: -4px 0 14px; }
+  .legend i { display: inline-block; width: 22px; height: 0; border-top: 2px solid; vertical-align: middle; margin-right: 6px; }
+  /* Hover/tap a team to trace its path through the Swiss chart */
+  .mm .mt[data-team], .tchip[data-team] { cursor: pointer; }
+  .sw.focus .mm:not(.hl), .sw.focus .tchip:not(.hl) { opacity: .22; }
+  .sw.focus .mt.me { color: var(--gold); opacity: 1; }
+  .sw .mm, .sw .tchip { transition: opacity .15s; }
+
+  /* Stage header + "how it works" */
+  .stage-h { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+  .stage-h h2 { margin: 0; }
+  .info-btn { font-size: 12px; padding: 3px 10px; border-radius: 999px; color: var(--muted); }
+  .info-btn[aria-expanded="true"] { color: var(--gold); border-color: var(--gold); }
+  .info { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 18px; margin: 0 0 16px; color: #c3cad6; font-size: 13px; max-width: 760px; }
+  .info ul { margin: 0; padding-left: 18px; }
+  .info li + li { margin-top: 4px; }
+  .info b { color: var(--text); }
+
+  /* Play-In double elimination */
+  .pi { display: grid; grid-template-columns: repeat(4, minmax(200px, 1fr)); column-gap: 52px; row-gap: 18px; min-width: 940px; align-items: center; }
+  .pi-label { font-size: 11px; font-weight: 700; color: var(--gold); text-transform: uppercase; letter-spacing: .1em; }
+
+  /* Knockout bracket */
+  .ko { display: grid; grid-template-columns: repeat(3, minmax(220px, 1fr)); gap: 0 48px; min-width: 760px; }
+  .ko-col { display: flex; flex-direction: column; }
+  .ko-col h4 { margin: 0 0 10px; font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; display: flex; justify-content: space-between; }
+  .ko-col h4 span { font-weight: 500; text-transform: none; letter-spacing: 0; }
+  .ko-body { flex: 1; display: flex; flex-direction: column; justify-content: space-around; gap: 18px; min-height: 440px; }
+  .ko-pair { display: flex; flex-direction: column; justify-content: space-around; gap: 18px; flex: 1; }
+  .ko-col.final .mc { border-color: rgba(200,170,110,.5); }
+  .champion { margin-top: 10px; text-align: center; color: var(--gold); font-weight: 800; font-size: 16px; }
+
+  /* Upcoming schedule */
+  .day { margin-bottom: 14px; }
+  .day-h { font-size: 12px; font-weight: 700; color: var(--muted); margin: 0 0 6px; }
+  .day-h.today { color: var(--gold); }
+  .rows { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+  .srow { display: grid; grid-template-columns: 78px 140px 1fr auto 1fr minmax(96px, auto); align-items: center; gap: 10px; padding: 9px 14px; }
+  .srow + .srow { border-top: 1px solid var(--line); }
+  .srow .t { font-variant-numeric: tabular-nums; font-weight: 600; }
+  .srow .stg { color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .srow .a, .srow .b { display: flex; align-items: center; gap: 8px; font-weight: 600; min-width: 0; white-space: nowrap; overflow: hidden; }
+  .srow .a { justify-content: flex-end; }
+  .srow .tbd { color: var(--muted); font-weight: 500; font-style: italic; }
+  .srow .vs { font-variant-numeric: tabular-nums; font-weight: 700; color: var(--gold); min-width: 46px; text-align: center; }
+  .srow .vs.up { color: var(--muted); font-weight: 500; }
+  .srow .st { text-align: right; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .srow.live { background: rgba(255,70,85,.06); }
+  .srow.live .st { color: var(--live); font-weight: 700; }
+  .tag { display: inline-flex; align-items: center; gap: 6px; }
+
+  /* Header: back link + no-spoilers switch */
+  .back { color: var(--muted); text-decoration: none; font-size: 12px; font-weight: 600; display: inline-block; margin-bottom: 4px; }
+  .back:hover { color: var(--gold); }
+  .switch { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text); font-weight: 600; user-select: none; }
+  .switch input { position: absolute; opacity: 0; pointer-events: none; }
+  .switch i { width: 34px; height: 20px; border-radius: 999px; background: var(--line-2); position: relative; transition: background .15s; flex: none; }
+  .switch i::after { content: ''; position: absolute; top: 3px; left: 3px; width: 14px; height: 14px; border-radius: 50%; background: var(--text); transition: transform .15s; }
+  .switch input:checked + i { background: var(--gold); }
+  .switch input:checked + i::after { transform: translateX(14px); background: var(--bg); }
+  .switch input:focus-visible + i { outline: 2px solid var(--gold); outline-offset: 2px; }
+
+  /* No-spoilers bar and hidden results */
+  .spoil-bar {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin: -8px 0 22px;
+    background: var(--gold-soft); border: 1px solid rgba(200,170,110,.35); border-radius: var(--radius); padding: 10px 14px; font-size: 13px;
+  }
+  .spoil-bar[hidden] { display: none; }
+  .spoil-bar b { color: var(--gold); }
+  .spoil-bar .sp-text { flex: 1; min-width: 220px; color: #d8cfbd; }
+  .spoil-bar .sp-acts { display: flex; flex-wrap: wrap; gap: 6px; }
+  .spoil-bar button { font-size: 12px; padding: 4px 10px; }
+  .spoil-bar button.main { border-color: var(--gold); color: var(--gold); }
+  .linkish { background: none; border: 0; padding: 0; color: var(--muted); text-decoration: underline; font-size: 12px; }
+  .linkish:hover { color: var(--gold); }
+  .reveal {
+    font: inherit; font-size: 11px; font-weight: 700; color: var(--gold); background: var(--gold-soft);
+    border: 1px dashed rgba(200,170,110,.5); border-radius: 5px; padding: 0 6px; line-height: 18px; cursor: pointer;
+  }
+  .reveal:hover { border-style: solid; }
+  .wbtn {
+    font: inherit; font-size: 10px; line-height: 16px; padding: 0 5px; border-radius: 4px; cursor: pointer;
+    color: var(--muted); background: transparent; border: 1px solid var(--line-2);
+  }
+  .wbtn:hover { color: var(--gold); border-color: var(--gold); }
+  .mc-foot .tag { gap: 6px; }
+  .hero-hidden { text-align: center; padding: 14px 0 6px; border-top: 1px solid var(--line); margin-top: 6px; color: var(--muted); font-size: 13px; }
+  .hero-hidden .acts { display: flex; gap: 8px; justify-content: center; margin-top: 8px; flex-wrap: wrap; }
+
+  /* Watch-back player */
+  .wb { position: fixed; inset: 0; z-index: 50; background: rgba(4,6,10,.88); display: flex; align-items: center; justify-content: center; padding: 16px; }
+  .wb[hidden] { display: none; }
+  .wb-box { width: min(1100px, 100%); max-height: 100%; display: flex; flex-direction: column; gap: 10px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; }
+  .wb-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .wb-head b { font-size: 16px; }
+  .wb-head .wb-x { margin-left: auto; }
+  .wb-games { display: inline-flex; gap: 4px; flex-wrap: wrap; }
+  .wb-games button { font-size: 12px; padding: 3px 9px; }
+  .wb-games button.on { border-color: var(--gold); color: var(--gold); }
+  .wb-stage { position: relative; aspect-ratio: 16 / 9; background: #000; border-radius: 6px; overflow: hidden; }
+  .wb-stage iframe, .wb-stage > div:first-child { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+  /* Sits over the video so YouTube's own hover UI (and its end screen) never shows. */
+  .wb-cover { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; text-align: center; cursor: pointer; padding: 20px; }
+  /* Opaque: YouTube's pause screen shows "More videos" thumbnails, which can spoil other matches. */
+  .wb-cover.paused { background: #05070b; }
+  .wb-cover.paused::before { content: '▶'; font-size: 54px; color: var(--text); opacity: .9; }
+  .wb-cover.solid { background: #05070b; cursor: default; }
+  .wb-cover p { margin: 0; color: var(--muted); max-width: 460px; }
+  .wb-cover h3 { margin: 0; font-size: 18px; }
+  .wb-cover .acts { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+  .wb-ctrl { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .wb-ctrl button { padding: 5px 10px; font-variant-numeric: tabular-nums; }
+  .wb-ctrl .play { min-width: 64px; font-weight: 700; border-color: var(--gold); color: var(--gold); }
+  .wb-time { font-variant-numeric: tabular-nums; font-weight: 700; margin: 0 6px; }
+  .wb-ctrl .sp { flex: 1; }
+  .wb-ctrl select { font: inherit; color: var(--text); background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 5px 8px; }
+  .wb-ctrl input[type=range] { width: 90px; accent-color: var(--gold); }
+  .wb-lang { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .wb-lang:empty { display: none; }
+  .wb-lang select { font: inherit; font-size: 12px; color: var(--text); background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 4px 8px; }
+  .wb-lang a { color: var(--gold); }
+  .wb-box:fullscreen { width: 100%; height: 100%; max-height: none; border-radius: 0; border: 0; justify-content: center; }
+  .wb-box:fullscreen .wb-stage { aspect-ratio: auto; flex: 1; }
+  .wb-box:fullscreen .note { display: none; }
+
+  .note { color: var(--muted); font-size: 12px; }
+  .err-box { background: rgba(248,113,113,.08); border: 1px solid rgba(248,113,113,.35); color: #fecaca; border-radius: var(--radius); padding: 10px 14px; margin-bottom: 18px; display: none; }
+  .err-box.show { display: block; }
+  footer { color: var(--muted); font-size: 12px; border-top: 1px solid var(--line); padding-top: 16px; margin-top: 30px; }
+  footer a { color: var(--muted); }
+
+  /* Narrower: items drop to their own line under each laner. */
+  @media (max-width: 1000px) {
+    .lp { flex-wrap: wrap; row-gap: 5px; }
+    .lp-t { flex: 1; }
+    .lp-items { order: 5; flex-basis: 100%; padding-left: 43px; }
+    .lp.r .lp-items { padding: 0 43px 0 0; }
+  }
+  @media (max-width: 720px) {
+    .ln { grid-template-columns: minmax(0, 1fr) 58px minmax(0, 1fr); gap: 6px; }
+    .lp { gap: 6px; }
+    .ch { width: 28px; height: 28px; }
+    .lp-g, .lp-t .xs { display: none; }
+    .lp-items { padding-left: 0; }
+    .lp.r .lp-items { padding: 0; }
+    .lp-items { gap: 1px; }
+    .lp-items img, .lp-items span { width: 15px; height: 15px; border-radius: 2px; }
+    /* Kills and clock on top, each team's objectives in a row beneath. */
+    .bc { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px 10px; padding: 8px 12px; }
+    .bc-mid { grid-column: 1 / -1; order: -1; }
+    .bc-side { justify-content: flex-start; gap: 4px 10px; }
+    .bc-st { font-size: 13px; }
+    .bc-st .ico { width: 13px; height: 13px; }
+    .drakes .ico { width: 12px; height: 12px; }
+    .bc-code { display: none; }
+    .bc-k { font-size: 20px; gap: 6px; }
+    .gd-plot { height: 110px; margin: 0 42px 0 40px; }
+    .gd-x { margin: 0 42px 0 40px; }
+    .gd-y { left: -40px; width: 36px; }
+    .srow { grid-template-columns: 58px 1fr auto 1fr; row-gap: 2px; }
+    .srow .stg { grid-column: 1 / -1; order: -1; }
+    .srow .st { grid-column: 1 / -1; justify-self: end; }
+    .srow .st:empty { display: none; }
+    .hero-team { font-size: 18px; gap: 8px; }
+    .hero-team img { width: 32px; height: 32px; }
+    .hero-team .full { display: none; }
+    .tab { padding: 10px 12px 11px; font-size: 14px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <a class="back" href="../">← All games</a>
+      <h1>Worlds <span>2026</span> Tracker</h1>
+      <p>Play-In, Los Angeles · Oct 15–18 &nbsp;·&nbsp; Swiss, Allen TX · Oct 23–31 &nbsp;·&nbsp; Knockouts Nov 3–14</p>
+    </div>
+    <div class="status">
+      <label class="switch" title="Hide results until you reveal them"><input type="checkbox" id="nospoil"><i></i>No spoilers</label>
+      <span class="dot" id="dot"></span>
+      <span id="updated">Loading…</span>
+      <button id="refresh" title="Refresh now">Refresh</button>
+    </div>
+  </header>
+
+  <div class="spoil-bar" id="spoilBar" hidden></div>
+  <div class="err-box" id="err"></div>
+
+  <section>
+    <h2>Now <small id="tzLabel"></small></h2>
+    <div class="hero" id="hero"></div>
+  </section>
+
+  <nav class="tabs" id="tabs" role="tablist"></nav>
+
+  <div class="panel" id="panel-playin" hidden>
+    <div class="stage-h">
+      <h2>Play-In <small>Los Angeles · Oct 15–18</small></h2>
+      <button class="info-btn" aria-expanded="false" aria-controls="info-playin">How it works</button>
+    </div>
+    <div class="info" id="info-playin" hidden><ul>
+      <li><b>4 teams</b> (the lowest seeds from LEC, LCS, LCP and CBLOL) play for <b>one spot</b> in the Swiss Stage.</li>
+      <li><b>Double elimination:</b> lose once and you drop to the lower bracket; lose twice and you're out.</li>
+      <li>Every series is <b>best of 5</b>. The upper-bracket winner meets the lower-bracket winner in the qualifier final.</li>
+    </ul></div>
+    <div class="scroll"><div class="board pi" id="piBoard"></div></div>
+    <div id="piSched"></div>
+  </div>
+
+  <div class="panel" id="panel-swiss" hidden>
+    <div class="stage-h">
+      <h2>Swiss Stage <small>Allen, TX · Oct 23–31</small></h2>
+      <button class="info-btn" aria-expanded="false" aria-controls="info-swiss">How it works</button>
+    </div>
+    <div class="info" id="info-swiss" hidden><ul>
+      <li><b>16 teams</b>: 15 qualified through their leagues plus the Play-In winner.</li>
+      <li>Every round, teams play an opponent with the <b>same record</b> (1–0 vs 1–0, 0–2 vs 0–2…), drawn at random. Round 1 is drawn from seeding pots with no same-region matchups, and no one plays the same team twice.</li>
+      <li><b>3 wins advances</b> to the Knockout Stage; <b>3 losses eliminates</b>. That takes at most 5 rounds, and 8 teams go through.</li>
+      <li>Matches are <b>best of 1</b>, except when a team can qualify or be eliminated (any 2–x or x–2 record), which are <b>best of 3</b>.</li>
+      <li>Your record seeds the quarterfinal draw: the two <b>3–0</b> teams each face a <b>3–2</b> team; the remaining four are drawn at random.</li>
+      <li>Tip: hover or tap a team to trace its path through the chart.</li>
+    </ul></div>
+    <div class="legend"><span><i style="border-color:var(--win)"></i>Winners move up</span><span><i style="border-color:var(--loss)"></i>Losers move down</span></div>
+    <div class="scroll"><div class="board sw" id="swBoard"></div></div>
+    <div id="swSched"></div>
+  </div>
+
+  <div class="panel" id="panel-ko" hidden>
+    <div class="stage-h">
+      <h2>Knockout Stage <small>Allen, TX · Nov 3–8 &nbsp;·&nbsp; Final: Brooklyn, NY · Nov 14</small></h2>
+      <button class="info-btn" aria-expanded="false" aria-controls="info-ko">How it works</button>
+    </div>
+    <div class="info" id="info-ko" hidden><ul>
+      <li>The <b>8 teams</b> that reached 3 Swiss wins play a <b>single-elimination</b> bracket. Every series is <b>best of 5</b>.</li>
+      <li>Quarterfinal draw: the two 3–0 teams each get a 3–2 team; the other four are paired at random.</li>
+      <li>Quarterfinals and semifinals are in Allen, TX; the Grand Final is at Barclays Center in Brooklyn.</li>
+    </ul></div>
+    <div class="scroll"><div class="board ko" id="koBoard"></div></div>
+    <div id="koSched"></div>
+  </div>
+
+  <footer>
+    Data from the official <a href="https://lolesports.com" target="_blank" rel="noopener">LoL Esports</a> schedule and live stats feeds; champion art from Riot's Data Dragon.
+    During live matches, game stats refresh every 10s and the schedule every 30s; every few minutes otherwise.
+    Objective timers use 2026 rules (Dragon 5:00, Grubs 8:00, Herald 15:00, Baron 20:00) and don't account for pauses that happened before you opened the page.
+    Watch at <a href="https://lolesports.com/live/worlds" target="_blank" rel="noopener">lolesports.com</a>; ▶ rewatches use the official LoL Esports YouTube videos.
+  </footer>
+</div>
+
+<div class="wb" id="wb" hidden role="dialog" aria-modal="true" aria-labelledby="wbTitle">
+  <div class="wb-box" id="wbBox">
+    <div class="wb-head">
+      <b id="wbTitle"></b>
+      <span class="wb-games" id="wbGames"></span>
+      <button class="wb-x" id="wbClose" aria-label="Close">✕ Close</button>
+    </div>
+    <div class="wb-stage">
+      <div id="wbPlayer"></div>
+      <div class="wb-cover solid" id="wbCover"><p>Loading…</p></div>
+    </div>
+    <div class="wb-ctrl">
+      <button data-wb="-30" title="Back 30s">−30s</button>
+      <button data-wb="-10" title="Back 10s (←)">−10s</button>
+      <button data-wb="play" class="play" id="wbPlay" title="Play / pause (space)">Play</button>
+      <button data-wb="10" title="Forward 10s (→)">+10s</button>
+      <button data-wb="30" title="Forward 30s">+30s</button>
+      <span class="wb-time" id="wbTime" title="Time watched in this video">0:00</span>
+      <button class="linkish" data-wb="restart" id="wbRestart" hidden>Start over</button>
+      <span class="sp"></span>
+      <select id="wbRate" aria-label="Speed"><option value="1">1×</option><option value="1.25">1.25×</option><option value="1.5">1.5×</option><option value="2">2×</option></select>
+      <button data-wb="mute" id="wbMute" title="Mute (M)">Mute</button>
+      <input type="range" id="wbVol" min="0" max="100" value="100" aria-label="Volume">
+      <button data-wb="fs" title="Fullscreen (F)">Fullscreen</button>
+    </div>
+    <div class="wb-lang" id="wbLang"></div>
+    <p class="note">No progress bar or video length, so you can't tell how long a game goes. Keys: space play/pause · ←/→ 10s · F fullscreen · M mute · Esc close.</p>
+  </div>
+</div>
+
+<script>
+const API = 'https://esports-api.lolesports.com/persisted/gw';
+const FEED = 'https://feed.lolesports.com/livestats/v1';
+const API_KEY = '0TvQnueqKa5mxJntVWt0w4LpLfEkrV1Ta8rQBb9Z'; // public key the lolesports.com site itself uses
+const WORLDS_LEAGUE = '98767975604431411';
+const TOURNAMENT_SLUG = 'worlds_2026';
+const CACHE_KEY = 'worlds2026.events.v2';
+
+const DRAKE_COLOR = {
+  infernal: '#f97316', ocean: '#38bdf8', mountain: '#a16207', cloud: '#cbd5e1',
+  hextech: '#22d3ee', chemtech: '#84cc16', elder: '#e9d5ff',
+};
+const STAGES = [
+  { key: 'playin', name: 'Play-In' },
+  { key: 'swiss', name: 'Swiss' },
+  { key: 'ko', name: 'Knockout' },
+];
+
+const DD = 'https://ddragon.leagueoflegends.com';
+const ROLES = ['top', 'jungle', 'mid', 'bottom', 'support'];
+const ROLE_LABEL = { top: 'Top', jungle: 'Jungle', mid: 'Mid', bottom: 'Bot', support: 'Support' };
+
+// Summoner's Rift timings for the 2026 season (Atakhan removed, Baron back to 20:00).
+const MIN = 60e3;
+const OBJ = {
+  dragonFirst: 5 * MIN, dragonRespawn: 5 * MIN, elderRespawn: 6 * MIN, elderBuff: 2.5 * MIN,
+  baronFirst: 20 * MIN, baronRespawn: 6 * MIN, baronBuff: 3 * MIN,
+  grubs: 8 * MIN, herald: 15 * MIN, inhib: 5 * MIN,
+};
+
+const state = {
+  tournament: null, events: [], matches: [], fetchedAt: 0, failures: 0,
+  timer: null, live: null, liveTimer: null, track: null, tab: null, feedLag: 30e3, gold: {}, gdHover: null, view: [],
+  dd: { ver: '16.20.1', names: {} },
+};
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+/* ---------- data ---------- */
+
+async function api(path, params = {}) {
+  const qs = new URLSearchParams({ hl: 'en-US', ...params });
+  const res = await fetch(`${API}/${path}?${qs}`, { headers: { 'x-api-key': API_KEY } });
+  if (!res.ok) throw new Error(`${path} returned HTTP ${res.status}`);
+  return (await res.json()).data;
+}
+
+async function getTournament() {
+  if (state.tournament) return state.tournament;
+  const d = await api('getTournamentsForLeague', { leagueId: WORLDS_LEAGUE });
+  const ts = d.leagues[0].tournaments;
+  state.tournament = ts.find(t => t.slug === TOURNAMENT_SLUG)
+    || ts.slice().sort((a, b) => b.startDate.localeCompare(a.startDate))[0];
+  return state.tournament;
+}
+
+// The league schedule spans every Worlds, newest page first; walk back until
+// this tournament's start is covered, then keep only its matches.
+async function getEvents() {
+  const t = await getTournament();
+  const from = Date.parse(t.startDate) - 864e5, to = Date.parse(t.endDate) + 2 * 864e5;
+  let d = await api('getSchedule', { leagueId: WORLDS_LEAGUE });
+  let events = d.schedule.events, older = d.schedule.pages?.older;
+  for (let i = 0; i < 4 && older && !(events.length && Date.parse(events[0].startTime) < from); i++) {
+    d = await api('getSchedule', { leagueId: WORLDS_LEAGUE, pageToken: older });
+    events = [...d.schedule.events, ...events];
+    older = d.schedule.pages?.older;
+  }
+  const seen = new Set();
+  return events.filter(e => {
+    const at = Date.parse(e.startTime);
+    if (e.type !== 'match' || !e.match || at < from || at > to || seen.has(e.match.id)) return false;
+    seen.add(e.match.id);
+    return true;
+  });
+}
+
+function team(t) {
+  if (!t || !t.code || /^tbd$/i.test(t.code)) return null;
+  // getSchedule doesn't include team ids, so the code is the key.
+  return {
+    id: t.code, name: t.name, short: t.code,
+    image: t.image ? t.image.replace(/^http:/, 'https:') : '',
+  };
+}
+
+function toMatch(e) {
+  const [a, b] = e.match.teams;
+  const block = e.blockName || '';
+  const stage = /play/i.test(block) ? 'playin' : /swiss/i.test(block) ? 'swiss' : 'ko';
+  const winner = a?.result?.outcome === 'win' ? 1 : b?.result?.outcome === 'win' ? 2 : 0;
+  return {
+    id: e.match.id, block, stage,
+    koRound: stage !== 'ko' ? null : /quarter/i.test(block) ? 'qf' : /semi/i.test(block) ? 'sf' : 'f',
+    time: new Date(e.startTime),
+    bo: e.match.strategy?.count || 1,
+    status: e.state === 'completed' ? 'done' : e.state === 'inProgress' ? 'live' : 'upcoming',
+    s1: a?.result?.gameWins ?? null, s2: b?.result?.gameWins ?? null, winner,
+    t1: team(a), t2: team(b),
+  };
+}
+
+async function load() {
+  setStatus('busy', 'Updating…');
+  try {
+    state.events = await getEvents();
+    state.matches = state.events.map(toMatch).sort((x, y) => x.time - y.time);
+    state.fetchedAt = Date.now();
+    state.failures = 0;
+    try { localStorage.setItem(CACHE_KEY, JSON.stringify({ at: state.fetchedAt, events: state.events })); } catch {}
+    $('err').classList.remove('show');
+  } catch (e) {
+    state.failures++;
+    $('err').textContent = `Couldn't refresh (${e.message}). Showing the last data I have; retrying automatically.`;
+    $('err').classList.add('show');
+  }
+  render();
+  schedule();
+  syncLive();
+}
+
+function loadCache() {
+  try {
+    const c = JSON.parse(localStorage.getItem(CACHE_KEY));
+    if (c && c.events) {
+      state.events = c.events;
+      state.matches = c.events.map(toMatch).sort((x, y) => x.time - y.time);
+      state.fetchedAt = c.at;
+    }
+  } catch {}
+}
+
+// Poll fast around matches, slowly otherwise; back off on failures. The
+// schedule is CDN-cached for 60s, so 30s while live catches each refresh
+// within half a minute; polling faster gets nothing new.
+function nextDelay() {
+  const now = Date.now();
+  const live = state.matches.some(m => m.status === 'live');
+  const next = state.matches.find(m => m.status === 'upcoming' && m.time > now);
+  let d = live ? 30e3 : next && next.time - now < 60 * 60e3 ? 60e3 : 3 * 60e3;
+  if (state.failures) d = Math.min(10 * 60e3, Math.max(d, 30e3 * 2 ** state.failures));
+  return d;
+}
+
+function schedule() {
+  clearTimeout(state.timer);
+  state.timer = setTimeout(() => {
+    if (document.hidden) { schedule(); return; }
+    load();
+  }, nextDelay());
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && Date.now() - state.fetchedAt > 60e3) load();
+});
+
+/* ---------- live game stats ---------- */
+
+// The feed rejects a startingTime newer than ~30s and serves a new chunk of
+// frames each time the 10s boundary advances, so 10s is the useful poll rate.
+const LIVE_POLL = 10e3;
+const feedTime = (ago = 30e3) => new Date(Math.floor((Date.now() - ago) / 10e3) * 10e3).toISOString();
+
+// The feed answers 204 with no body for games it has nothing on yet.
+async function feedJson(url) {
+  const res = await fetch(url);
+  return res.status === 200 ? res.json() : null;
+}
+
+// The feed refuses windows ending under 20s ago by *its* clock. If this
+// device's clock runs ahead, 30s back isn't enough, so step further back on
+// each refusal and stay there.
+async function liveFeed(kind, gameId) {
+  for (;;) {
+    const res = await fetch(`${FEED}/${kind}/${gameId}?startingTime=${feedTime(state.feedLag)}`);
+    if (res.status === 400 && state.feedLag < 90e3) { state.feedLag += 10e3; continue; }
+    return res.status === 200 ? res.json() : null;
+  }
+}
+
+async function gameWindow(gameId) {
+  const w = await liveFeed('window', gameId);
+  return w?.frames?.length ? w : null;
+}
+
+// The feed opens a few seconds before the game does; 0:00 is the first frame
+// where the players have their starting gold.
+async function gameStart(gameId) {
+  const w = await feedJson(`${FEED}/window/${gameId}`);
+  const first = w?.frames?.[0];
+  if (!first) return null;
+  const t0 = Date.parse(first.rfc460Timestamp);
+  try {
+    const w2 = await feedJson(`${FEED}/window/${gameId}?startingTime=${new Date(Math.floor(t0 / 10e3) * 10e3).toISOString()}`);
+    const f = w2?.frames?.find(f => f.blueTeam.totalGold > 0);
+    if (f) return Date.parse(f.rfc460Timestamp);
+  } catch {}
+  return t0;
+}
+
+// Feed names carry a team prefix ("GEN Chovy").
+function playerName(name, code) {
+  const s = String(name || '').trim(), i = s.indexOf(' ');
+  return i > 0 && (s.slice(0, i) === code || /^[A-Z0-9]{2,5}$/.test(s.slice(0, i))) ? s.slice(i + 1) : s;
+}
+
+/* Objective timers. The feed only has running totals (dragons, barons,
+   inhibitors per team), so a kill's time is the frame where a total ticks up.
+   While polling, consecutive frames catch that directly; for anything that
+   happened before the page was open (or while the tab was hidden), binary
+   search the feed's 10s chunks for the frame where the total was reached. */
+const elders = t => t.dragons.filter(d => d === 'elder').length;
+const COUNTERS = [
+  { key: 'dragon', get: f => f.blueTeam.dragons.length + f.redTeam.dragons.length },
+  { key: 'baron', get: f => f.blueTeam.barons + f.redTeam.barons },
+  { key: 'baronBlue', get: f => f.blueTeam.barons, within: OBJ.baronBuff },
+  { key: 'baronRed', get: f => f.redTeam.barons, within: OBJ.baronBuff },
+  { key: 'elderBlue', get: f => elders(f.blueTeam), within: OBJ.elderBuff },
+  { key: 'elderRed', get: f => elders(f.redTeam), within: OBJ.elderBuff },
+  // inhibBlue = inhibitors blue has destroyed, i.e. red's.
+  { key: 'inhibBlue', get: f => f.blueTeam.inhibitors, within: OBJ.inhib, all: true },
+  { key: 'inhibRed', get: f => f.redTeam.inhibitors, within: OBJ.inhib, all: true },
+];
+
+async function tracker(gameId) {
+  if (state.track?.id !== gameId) state.track = { id: gameId, start: null, paused: 0, lastTs: 0, lastF: null, ev: {}, chunks: new Map() };
+  const T = state.track;
+  if (!T.start) T.start = await gameStart(gameId);
+  return T;
+}
+
+// Game clock at a feed timestamp, minus pauses seen while watching.
+const gameMs = (T, ts) => ts - T.start - T.paused;
+
+function chunk(T, ts) {
+  const t = Math.floor(ts / 10e3) * 10e3;
+  if (!T.chunks.has(t)) {
+    T.chunks.set(t, feedJson(`${FEED}/window/${T.id}?startingTime=${new Date(t).toISOString()}`).then(w => w?.frames || [], () => []));
+  }
+  return T.chunks.get(t);
+}
+
+// Timestamp of the first frame in (lo, hi] where get(frame) >= target,
+// to within a second or so.
+async function whenReached(T, get, target, lo, hi) {
+  while (hi - lo > 10e3) {
+    const mid = lo + (hi - lo) / 2;
+    const fr = await chunk(T, mid);
+    const i = fr.findIndex(f => get(f) >= target);
+    if (i > 0) return Date.parse(fr[i].rfc460Timestamp);
+    if (i === 0) hi = Math.floor(mid / 10e3) * 10e3; // reached at (or just before) this chunk's start
+    else lo = Math.max(mid, fr.length ? Date.parse(fr.at(-1).rfc460Timestamp) : 0);
+  }
+  const hit = (await chunk(T, lo)).find(f => get(f) >= target && Date.parse(f.rfc460Timestamp) <= hi);
+  return hit ? Date.parse(hit.rfc460Timestamp) : hi;
+}
+
+async function backfill(T, { c, was, n, lo, hi }) {
+  // Buffs and inhibitor respawns only matter for a few minutes.
+  if (c.within && hi - c.within > lo) {
+    const fr = await chunk(T, hi - c.within);
+    if (fr.length) { lo = Date.parse(fr[0].rfc460Timestamp); was = Math.max(was, c.get(fr[0])); }
+    if (was >= n) return;
+  }
+  for (let k = c.all ? was + 1 : n; k <= n; k++) {
+    lo = await whenReached(T, c.get, k, lo, hi);
+    (T.ev[c.key] ||= []).push(gameMs(T, lo));
+  }
+}
+
+async function trackObjectives(T, frames) {
+  // The newest chunk is too fresh to request again, so searches read it from here.
+  T.chunks.set(Math.floor(Date.parse(frames[0].rfc460Timestamp) / 10e3) * 10e3, Promise.resolve(frames));
+  const gaps = [];
+  for (const f of frames) {
+    const ts = Date.parse(f.rfc460Timestamp), prev = T.lastF;
+    if (ts <= T.lastTs) continue;
+    if (prev?.gameState === 'paused') T.paused += ts - T.lastTs;
+    const watched = prev && ts - T.lastTs < 15e3;
+    for (const c of COUNTERS) {
+      const was = prev ? c.get(prev) : 0, n = c.get(f);
+      if (n <= was) continue;
+      if (watched) for (let k = was; k < n; k++) (T.ev[c.key] ||= []).push(gameMs(T, ts));
+      else gaps.push({ c, was, n, lo: prev ? T.lastTs : T.start, hi: ts });
+    }
+    T.lastTs = ts; T.lastF = f;
+  }
+  if (gaps.length) {
+    await Promise.all(gaps.map(g => backfill(T, g)));
+    T.chunks.clear();
+    for (const list of Object.values(T.ev)) list.sort((a, b) => a - b);
+  }
+}
+
+// Countdown chips at game time `now`. `zero` is what a chip shows once its
+// timer runs out: 'Up' for spawns, nothing (hidden) for buffs and respawns.
+function objTimers(T, f, now, code) {
+  const ev = k => T.ev[k] || [];
+  const out = [];
+  const soul = [f.blueTeam, f.redTeam].some(t => t.dragons.length - elders(t) >= 4);
+  const lastD = ev('dragon').at(-1), lastB = ev('baron').at(-1);
+  out.push({ icon: 'dragon', label: soul ? 'Elder' : 'Dragon', left: (lastD == null ? OBJ.dragonFirst : lastD + (soul ? OBJ.elderRespawn : OBJ.dragonRespawn)) - now, zero: 'Up' });
+  out.push({ icon: 'baron', label: 'Baron', left: (lastB == null ? OBJ.baronFirst : lastB + OBJ.baronRespawn) - now, zero: 'Up' });
+  if (now < OBJ.grubs) out.push({ icon: 'grubs', label: 'Grubs', left: OBJ.grubs - now });
+  if (now < OBJ.herald) out.push({ icon: 'herald', label: 'Herald', left: OBJ.herald - now });
+  for (const side of ['blue', 'red']) {
+    const S = side === 'blue' ? 'Blue' : 'Red', other = side === 'blue' ? 'red' : 'blue';
+    const b = ev(`baron${S}`).at(-1), e = ev(`elder${S}`).at(-1);
+    if (b != null && b + OBJ.baronBuff > now) out.push({ icon: 'baron', label: `${code[side]} Baron buff`, left: b + OBJ.baronBuff - now, side });
+    if (e != null && e + OBJ.elderBuff > now) out.push({ icon: 'dragon', label: `${code[side]} Elder buff`, left: e + OBJ.elderBuff - now, side });
+    for (const t of ev(`inhib${S}`)) {
+      if (t + OBJ.inhib > now) out.push({ icon: 'inhib', label: `${code[other]} inhib back`, left: t + OBJ.inhib - now, side: other });
+    }
+  }
+  return out;
+}
+
+// Ten players in feed order (blue 1–5, red 6–10), merged with the details
+// feed (items, damage share…) when we have it.
+function gamePlayers(meta, f, code, details) {
+  const out = [];
+  for (const side of ['blue', 'red']) {
+    for (const pm of meta?.[`${side}TeamMetadata`]?.participantMetadata || []) {
+      const p = f[`${side}Team`].participants.find(x => x.participantId === pm.participantId) || {};
+      const x = details?.find(x => x.participantId === pm.participantId) || {};
+      out.push({
+        ...x, ...p, side, role: pm.role, champ: pm.championId, id: pm.esportsPlayerId,
+        team: code[side], name: playerName(pm.summonerName, code[side]),
+      });
+    }
+  }
+  return out;
+}
+
+async function liveDetails(gameId) {
+  try { return (await liveFeed('details', gameId))?.frames?.at(-1)?.participants || null; }
+  catch { return null; }
+}
+
+async function fetchLive(match) {
+  const d = await api('getLive');
+  const ev = (d.schedule?.events || []).find(e => e.match?.id === match.id);
+  const games = ev?.match?.games || [];
+  // getLive is CDN-cached for a minute, so ask the stats feed directly whether
+  // the current game has ended and the next one has started.
+  const open = games.filter(g => g.state !== 'completed' && g.state !== 'unneeded');
+  let game = null, w = null;
+  for (const g of open.slice(0, 2)) {
+    const win = await gameWindow(g.id);
+    if (!win) break;
+    game = g; w = win;
+    if (win.frames.at(-1).gameState !== 'finished') break;
+  }
+  if (!w) {
+    // Between games: keep the last game's final scoreboard up until the next one loads.
+    const gameNo = open[0]?.number || games.filter(g => g.state === 'completed').length + 1;
+    const prev = games.filter(g => g.state === 'completed').at(-1);
+    const snap = prev && await finalSnapshot(match, ev, prev);
+    return snap ? { ...snap, between: true, nextNo: gameNo } : { matchId: match.id, between: true, gameNo };
+  }
+  const f = w.frames.at(-1);
+  if (f.gameState === 'finished') {
+    // Pull the series score as soon as a game ends instead of waiting for the next scheduled refresh.
+    if (state.reloadedFor !== game.id) { state.reloadedFor = game.id; load(); }
+    return { ...await finalSnapshot(match, ev, game, w), finished: true };
+  }
+
+  const T = await tracker(game.id);
+  let now = null;
+  if (T.start) {
+    await trackObjectives(T, w.frames);
+    now = gameMs(T, Date.parse(f.rfc460Timestamp));
+    const G = goldHist(game.id);
+    goldPoints(G, w.frames, ts => gameMs(T, ts));
+    fillGold(G, game.id, T.start, Date.parse(w.frames[0].rfc460Timestamp));
+  }
+  // Items come from the details feed, ~250 KB a poll, so refresh them every 30s.
+  const D = state.details;
+  if (D?.id !== game.id || Date.now() - D.at > 25e3) {
+    const parts = await liveDetails(game.id);
+    if (parts) state.details = { id: game.id, at: Date.now(), parts };
+  }
+  const L = snapshot(match, ev, game, w, state.details?.id === game.id ? state.details.parts : null, now);
+  if (now != null) L.objs = objTimers(T, f, now, L.code);
+  return L;
+}
+
+// Everything the live card draws for one window of a game.
+function snapshot(match, ev, game, w, details, clockMs) {
+  const f = w.frames.at(-1);
+  const blueId = w.gameMetadata?.blueTeamMetadata?.esportsTeamId;
+  const t1Id = ev.match.teams?.find(t => t.code === match.t1?.short)?.id;
+  const t1Blue = t1Id ? t1Id === blueId : true;
+  const code = t1Blue ? { blue: match.t1?.short, red: match.t2?.short } : { blue: match.t2?.short, red: match.t1?.short };
+  return {
+    matchId: match.id, gameId: game.id, gameNo: game.number, t1Blue, code,
+    t1: t1Blue ? f.blueTeam : f.redTeam,
+    t2: t1Blue ? f.redTeam : f.blueTeam,
+    players: gamePlayers(w.gameMetadata, f, code, details),
+    loading: f.blueTeam.totalGold === 0, // in the feed but not yet at 0:00
+    gameState: f.gameState, objs: [],
+    clock: clockMs,
+    at: Date.now(),
+  };
+}
+
+// A finished game's last frame (any startingTime after it ended returns it),
+// fetched once per game.
+async function finalSnapshot(match, ev, game, w) {
+  if (state.finalSnap?.id === game.id) return state.finalSnap.snap;
+  w ||= await feedJson(`${FEED}/window/${game.id}?startingTime=${feedTime(state.feedLag + 60e3)}`);
+  const f = w?.frames?.at(-1);
+  if (!f) return null;
+  const T = state.track;
+  const start = T?.id === game.id && T.start ? T.start + T.paused : await gameStart(game.id);
+  const snap = { ...snapshot(match, ev, game, w, await liveDetails(game.id), start ? Date.parse(f.rfc460Timestamp) - start : null), final: true };
+  if (start) {
+    const G = goldHist(game.id);
+    goldPoints(G, [f], ts => ts - start);
+    fillGold(G, game.id, start, Date.parse(f.rfc460Timestamp));
+  }
+  if (f.gameState === 'finished') state.finalSnap = { id: game.id, snap };
+  return snap;
+}
+
+// Gold difference (blue − red) through a game as [game ms, diff] points: one
+// every ~10s while watching, plus one a minute fetched once for the part of
+// the game before the page was open.
+function goldHist(gameId) {
+  return state.gold[gameId] ||= { pts: [], filled: false };
+}
+
+// Points stay ~10s apart, except the last one, which tracks the newest frame
+// so the graph's end matches the scoreboard.
+function goldPoints(G, frames, toMs) {
+  for (const f of frames) {
+    const ms = toMs(Date.parse(f.rfc460Timestamp));
+    if (!f.blueTeam.totalGold || (G.pts.length && ms <= G.pts.at(-1)[0])) continue;
+    const pt = [ms, f.blueTeam.totalGold - f.redTeam.totalGold];
+    if (G.pts.length >= 2 && ms - G.pts.at(-2)[0] < 10e3) G.pts[G.pts.length - 1] = pt;
+    else G.pts.push(pt);
+  }
+}
+
+async function fillGold(G, gameId, start, until) {
+  if (G.filled) return;
+  G.filled = true;
+  const times = [];
+  for (let t = start + MIN; t < until - 30e3; t += MIN) times.push(t);
+  const got = [[0, 0]];
+  await pool(times, 4, async t => {
+    try {
+      const f = (await feedJson(`${FEED}/window/${gameId}?startingTime=${new Date(Math.floor(t / 10e3) * 10e3).toISOString()}`))?.frames?.[0];
+      if (f) got.push([Date.parse(f.rfc460Timestamp) - start, f.blueTeam.totalGold - f.redTeam.totalGold]);
+    } catch {}
+  });
+  G.pts = [...got, ...G.pts].sort((a, b) => a[0] - b[0]);
+  renderHero();
+}
+
+async function syncLive() {
+  const m = state.matches.find(x => x.status === 'live');
+  if (!m) { clearTimeout(state.liveTimer); if (state.live) { state.live = null; renderHero(); } return; }
+  // The first poll of a game can take a few seconds (finding past objective
+  // kills), so don't start a second one alongside it.
+  if (!document.hidden && !state.liveBusy) {
+    state.liveBusy = true;
+    try { state.live = await fetchLive(m); } catch { state.live = { matchId: m.id, noStats: true }; }
+    state.liveBusy = false;
+    renderHero();
+  }
+  // Land just after each 10s boundary, when the feed has a fresh chunk.
+  clearTimeout(state.liveTimer);
+  state.liveTimer = setTimeout(syncLive, LIVE_POLL - (Date.now() % LIVE_POLL) + 1e3);
+}
+
+/* ---------- formatting ---------- */
+
+const fmtTime = new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit' });
+const fmtDay = new Intl.DateTimeFormat(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
+const fmtShort = new Intl.DateTimeFormat(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+const fmtWhen = new Intl.DateTimeFormat(undefined, { weekday: 'short', hour: 'numeric', minute: '2-digit' });
+const fmtRange = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' });
+const dayKey = d => `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+
+const fmtDate = new Intl.DateTimeFormat(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+
+// "Today 2:00 PM", "Tomorrow 1:00 PM", else "Wed, Oct 28 · 4:00 PM".
+function whenLabel(t) {
+  const now = new Date(), tom = new Date(now);
+  tom.setDate(now.getDate() + 1);
+  const day = dayKey(t) === dayKey(now) ? 'Today' : dayKey(t) === dayKey(tom) ? 'Tomorrow' : `${fmtDate.format(t)} ·`;
+  return `${day} ${fmtTime.format(t)}`;
+}
+
+function ago(t) {
+  const s = Math.round((Date.now() - t) / 1000);
+  if (s < 60) return `${s}s ago`;
+  if (s < 3600) return `${Math.floor(s / 60)}m ago`;
+  return `${Math.floor(s / 3600)}h ago`;
+}
+
+const clock = ms => `${Math.floor(ms / 60e3)}:${String(Math.floor(ms / 1e3) % 60).padStart(2, '0')}`;
+const kGold = g => `${(g / 1000).toFixed(1)}k`;
+
+function setStatus(kind, text) {
+  $('dot').className = `dot ${kind}`;
+  $('updated').textContent = text;
+}
+
+function stageLabel(m) {
+  if (m.stage === 'playin') return { ub1: 'Upper R1', ub2: 'Upper R1', ubf: 'Upper Final', lb1: 'Lower R1', lbf: 'Lower Final', f: 'Qualifier Final' }[m.piSlot] || 'Play-In';
+  if (m.stage === 'ko') return { qf: 'Quarterfinal', sf: 'Semifinal', f: 'Grand Final' }[m.koRound];
+  return `Swiss R${m.swissRound || '?'}${m.pool ? ' · ' + m.pool : ''}`;
+}
+
+const logo = t => t?.image ? `<img class="lg" src="${esc(t.image)}" alt="" loading="lazy" onerror="this.remove()">` : '';
+
+/* ---------- connectors ---------- */
+
+// Draws curved arrows between [data-node] elements inside a board. A link
+// leaves the middle of the source box's right edge and lands on the target's
+// header (its record label, or the match card), so it points at the pool or
+// match, never at one team's row. The curve ends level, and the fixed-size
+// arrowhead sits on the very end of the line with its tip touching the box.
+function drawLinks(board, links) {
+  board.querySelector(':scope > svg.links')?.remove();
+  if (!board.offsetParent) return; // hidden tab: drawn when shown
+  const base = board.getBoundingClientRect();
+  const node = id => board.querySelector(`[data-node="${id}"]`);
+  const color = { win: '#4ade80', loss: '#f87171', path: '#4a5878' };
+  const HEAD = 7;
+  let paths = '';
+  for (const { from, to, kind, dashed } of links) {
+    const a = node(from), b = node(to);
+    if (!a || !b) continue;
+    const ra = (a.querySelector('.mc') || a).getBoundingClientRect();
+    const rb = (b.querySelector('.pool-h') || b.querySelector('.mc') || b).getBoundingClientRect();
+    const x1 = ra.right - base.left, y1 = ra.top + ra.height / 2 - base.top;
+    const tipX = b.getBoundingClientRect().left - base.left, y2 = rb.top + rb.height / 2 - base.top;
+    const x2 = tipX - HEAD; // line stops where the arrowhead's base begins
+    const dx = Math.max(12, (x2 - x1) * .55);
+    const c = color[kind];
+    paths += `<path d="M${x1},${y1} C${x1 + dx},${y1} ${x2 - dx},${y2} ${x2},${y2}" fill="none" stroke="${c}" stroke-opacity=".65" stroke-width="1.5" stroke-linecap="round" ${dashed ? 'stroke-dasharray="4 4"' : ''}/>`
+      + `<path d="M${x2 - .5},${y2 - HEAD / 2 - .5} L${tipX},${y2} L${x2 - .5},${y2 + HEAD / 2 + .5} z" fill="${c}" fill-opacity=".9"/>`;
+  }
+  board.insertAdjacentHTML('afterbegin', `<svg class="links" width="${board.scrollWidth}" height="${board.scrollHeight}">${paths}</svg>`);
+}
+
+const boardLinks = {};
+function drawAll() {
+  for (const [id, links] of Object.entries(boardLinks)) drawLinks($(id), links);
+}
+window.addEventListener('resize', () => requestAnimationFrame(drawAll));
+document.fonts?.ready.then(drawAll);
+
+/* ---------- shared components ---------- */
+
+// Full two-row card used by the Play-In and Knockout brackets. Finished
+// matches show no date; upcoming ones show their start time.
+function matchCard(m, placeholder) {
+  if (!m) {
+    return `<div class="mc">
+      <div class="mc-row tbd"><span class="tn">TBD</span><span class="sc"></span></div>
+      <div class="mc-row tbd"><span class="tn">TBD</span><span class="sc"></span></div>
+      <div class="mc-foot"><span>${esc(placeholder || '')}</span><span></span></div></div>`;
+  }
+  const row = (t, s, side) => {
+    const cls = !t ? 'tbd' : m.winner === side ? 'w' : m.winner ? 'l' : '';
+    const sc = m.status === 'upcoming' || m.status === 'hidden' ? '' : s ?? '';
+    return `<div class="mc-row ${cls}">${logo(t)}<span class="tn" title="${esc(t?.name || 'TBD')}">${esc(t?.short || 'TBD')}</span><span class="sc">${sc}</span></div>`;
+  };
+  const live = m.status === 'live' || m.liveNow;
+  const bo = `<span class="tag">${canWatch(m) ? watchBtn(m, '▶ Watch') : ''}Bo${m.bo}</span>`;
+  const foot = m.status === 'hidden' ? `<span class="tag">${live ? '<span class="live-pip"></span>' : ''}<button class="reveal" data-reveal="${esc(m.id)}">Reveal result</button></span>${bo}`
+    : live ? `<span class="tag"><span class="live-pip"></span>LIVE</span>${bo}`
+    : m.status === 'done' ? `<span>Final</span>${bo}`
+    : `<span>${fmtShort.format(m.time)}</span>${bo}`;
+  return `<div class="mc ${live ? 'live' : ''}">${row(m.t1, m.s1, 1)}${row(m.t2, m.s2, 2)}<div class="mc-foot">${foot}</div></div>`;
+}
+
+// Upcoming (and live) matches for one stage, grouped by local day.
+function upcomingList(ms, emptyText) {
+  const now = new Date();
+  const today = dayKey(now);
+  const list = ms.filter(m => m.status !== 'done');
+  if (!list.length) return emptyText ? `<h3 class="sub">Schedule</h3><p class="note">${emptyText}</p>` : '';
+  const days = new Map();
+  for (const m of list) {
+    const k = dayKey(m.time);
+    if (!days.has(k)) days.set(k, []);
+    days.get(k).push(m);
+  }
+  const cell = (t, side) => {
+    const name = `<span title="${esc(t?.name || 'TBD')}">${esc(t?.short || 'TBD')}</span>`;
+    return `<span class="${side === 1 ? 'a' : 'b'} ${t ? '' : 'tbd'}">${side === 1 ? name + logo(t) : logo(t) + name}</span>`;
+  };
+  let html = `<h3 class="sub">${state.spoil.on ? 'Still to watch & upcoming' : 'Upcoming schedule'} · your local time</h3>`;
+  for (const [k, day] of days) {
+    html += `<div class="day"><div class="day-h ${k === today ? 'today' : ''}">${fmtDay.format(day[0].time)}${k === today ? ' · Today' : ''}</div><div class="rows">`;
+    for (const m of day) {
+      const live = m.status === 'live' || m.liveNow, hidden = m.status === 'hidden';
+      const pip = live ? '<span class="live-pip"></span>LIVE' : '';
+      const st = hidden ? `<span class="tag">${pip}<button class="reveal" data-reveal="${esc(m.id)}">Reveal</button>${watchBtn(m, '▶ Watch')}</span>`
+        : live ? `<span class="tag">${pip}${watchBtn(m, '▶ Watch')}</span>` : '';
+      html += `<div class="srow ${live ? 'live' : ''}">
+        <span class="t">${fmtTime.format(m.time)}</span>
+        <span class="stg">${esc(stageLabel(m))} · Bo${m.bo}</span>
+        ${cell(m.t1, 1)}
+        <span class="vs ${live && !hidden ? '' : 'up'}">${hidden ? '?' : live ? `${m.s1 ?? 0} – ${m.s2 ?? 0}` : 'vs'}</span>
+        ${cell(m.t2, 2)}
+        <span class="st">${st}</span>
+      </div>`;
+    }
+    html += `</div></div>`;
+  }
+  return html + `<p class="note">After a day's first match, start times are estimates; each match starts when the previous one ends.</p>`;
+}
+
+/* ---------- hero ---------- */
+
+// Small broadcast-style glyphs, drawn in currentColor.
+const ICON = {
+  tower: '<path d="M3 1h2.5v2h1.75V1h1.5v2h1.75V1H13v4.5l-1.5 1.5v5.5H13V15H3v-2.5h1.5V7L3 5.5z"/>',
+  kills: '<path d="M2 1.5 8 7.5l-1.2 1.2L1.5 3.4V1.5zM14 1.5v1.9L9.9 7.5l-.6-.6-.6-.6 4.1-4.8zM3.2 9.6l3.2 3.2-1 1-1.1-1.1-1.6 1.6-1-1 1.6-1.6-1.1-1.1zm9.6 0 1 1-1.1 1.1 1.6 1.6-1 1-1.6-1.6-1.1 1.1-1-1 3.2-3.2zM8 9.1l1.2-1.2 2 2-1.2 1.2z"/>',
+  gold: '<path fill-rule="evenodd" d="M8 1.5a6.5 6.5 0 1 1 0 13 6.5 6.5 0 0 1 0-13zm0 3a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7z"/>',
+  dragon: '<path d="M1 7.5 4 6l1.5-3.5L7.5 5 10 1l1 4 3.5-1-2 3.5 2.5 2-3.5.5L12 14l-3-2.5L7 15l-.5-3.5L3 12l1.5-2.5z"/>',
+  baron: '<path fill-rule="evenodd" d="M8 1c3.2 2.2 5 5 5 8a5 5 0 0 1-10 0c0-3 1.8-5.8 5-8zM6 8.2a1 1 0 1 0 0 2 1 1 0 0 0 0-2zm4 0a1 1 0 1 0 0 2 1 1 0 0 0 0-2z"/>',
+  inhib: '<path d="M8 1l5 7-5 7-5-7z"/>',
+  grubs: '<circle cx="5" cy="10.5" r="3"/><circle cx="11" cy="10.5" r="3"/><circle cx="8" cy="5" r="3"/>',
+  herald: '<path fill-rule="evenodd" d="M1 8c2.2-4.5 11.8-4.5 14 0-2.2 4.5-11.8 4.5-14 0zm7-2.2a2.2 2.2 0 1 0 0 4.4 2.2 2.2 0 0 0 0-4.4z"/>',
+};
+const icon = (k, style = '') => `<svg class="ico" viewBox="0 0 16 16" aria-hidden="true"${style ? ` style="${style}"` : ''}>${ICON[k]}</svg>`;
+
+function liveStats(m) {
+  const L = state.live;
+  if (!L || L.matchId !== m.id) return `<div class="ls"><div class="ls-note">Loading live game stats…</div></div>`;
+  const note = L.between ? `Between games · Game ${L.nextNo || L.gameNo} up next`
+    : L.finished ? `Game ${L.gameNo} just ended · updating series score…` : '';
+  if (!L.players) {
+    return `<div class="ls"><div class="ls-note">${note || `Game ${L.gameNo || ''} in progress · live stats unavailable right now`}</div></div>`;
+  }
+  const [s1, s2] = L.t1Blue ? ['blue', 'red'] : ['red', 'blue'];
+  const run = L.gameState === 'in_game' ? 1 : 0;
+  const diff = L.t1.totalGold - L.t2.totalGold;
+  const when = L.final ? `Final${L.clock != null ? ` · ${clock(L.clock)}` : ''}`
+    : L.loading ? 'Loading in'
+    : L.clock != null ? `<span data-clock="${L.clock}" data-at="${L.at}" data-run="${run}">${clock(L.clock)}</span>` : 'Live';
+
+  // One half of the scoreboard; the right half is the same list mirrored.
+  const half = (t, code, side, lead, r) => {
+    const drakes = t.dragons.map(d => icon('dragon', `color:${DRAKE_COLOR[d] || '#94a3b8'}`)).join('');
+    const soul = t.dragons.length - elders(t) >= 4;
+    return `<div class="bc-side ${r ? 'r' : ''}">
+      <span class="bc-code">${esc(code)}<span class="side ${side}">${side.toUpperCase()}</span></span>
+      ${t.dragons.length ? `<span class="drakes" title="${esc(t.dragons.join(', '))}">${drakes}${soul ? '<span class="soul">SOUL</span>' : ''}</span>` : ''}
+      <span class="bc-st baron" title="Barons">${icon('baron')}<b>${t.barons}</b></span>
+      ${t.inhibitors ? `<span class="bc-st" title="Inhibitors destroyed">${icon('inhib')}<b>${t.inhibitors}</b></span>` : ''}
+      <span class="bc-st" title="Towers destroyed">${icon('tower')}<b>${t.towers}</b></span>
+      <span class="bc-st gold" title="Gold lead" ${lead > 0 ? '' : 'style="visibility:hidden"'}>${icon('gold')}<b>+${kGold(Math.abs(lead))}</b></span>
+    </div>`;
+  };
+  const objs = (L.loading || L.final) ? '' : L.objs.map(o => `<span class="oc ${o.icon || ''} ${o.side || ''} ${o.left <= 0 ? 'up' : ''}">${icon(o.icon)}${esc(o.label)}
+      <b data-cd="${o.left}" data-at="${L.at}" data-run="${run}" data-zero="${o.zero || ''}">${o.left > 0 ? clock(o.left) : o.zero}</b></span>`).join('');
+  return `<div class="ls">
+    ${note ? `<div class="ls-note">${note}</div>` : ''}
+    <div class="bc ${s1}-l">
+      ${half(L.t1, m.t1?.short, s1, diff)}
+      <div class="bc-mid">
+        <div class="bc-k" title="Kills">${L.t1.totalKills}${icon('kills')}${L.t2.totalKills}</div>
+        <div class="bc-clock">Game ${L.gameNo} · ${when}${L.gameState === 'paused' ? ' · paused' : ''}</div>
+      </div>
+      ${half(L.t2, m.t2?.short, s2, -diff, true)}
+    </div>
+    ${state.lsOpen ? `
+    ${objs ? `<div class="objs">${objs}</div>` : ''}
+    ${L.loading ? '' : goldChart(L, m)}
+    <div class="ls-h">${L.loading ? 'Draft' : L.final ? 'Draft · final lane gold' : 'Draft · lane gold'}<small>Bans aren't in Riot's live feed</small></div>
+    ${lanes(L)}` : ''}
+  </div>`;
+}
+
+// Collapsed, the live card keeps just the scoreboard bar. Remembered per browser.
+const LS_OPEN_KEY = 'worlds2026.liveOpen';
+state.lsOpen = (() => { try { return localStorage.getItem(LS_OPEN_KEY) !== '0'; } catch { return true; } })();
+$('hero').addEventListener('click', e => {
+  if (!e.target.closest('[data-ls-toggle]')) return;
+  state.lsOpen = !state.lsOpen;
+  try { localStorage.setItem(LS_OPEN_KEY, state.lsOpen ? '1' : '0'); } catch {}
+  renderHero();
+});
+
+// Gold difference over the game, from team 1's side: above the line is team 1
+// ahead. The time axis ends at the next 5-minute mark, so the line grows
+// rightward and the axis steps out 5 minutes each time the line reaches it.
+function goldChart(L, m) {
+  const G = state.gold[L.gameId];
+  if (!G || G.pts.length < 2) return '';
+  const [s1, s2] = L.t1Blue ? ['blue', 'red'] : ['red', 'blue'];
+  const sign = L.t1Blue ? 1 : -1;
+  const pts = G.pts.map(([t, d]) => [t, d * sign]);
+  const end = pts.at(-1)[0];
+  const X = Math.max(1, Math.ceil(end / (5 * MIN))) * 5 * MIN;
+  const tick = X > 40 * MIN ? 10 * MIN : 5 * MIN;
+  const peak = Math.max(2000, ...pts.map(p => Math.abs(p[1])));
+  const step = peak > 8000 ? 2000 : 1000;
+  const Y = Math.ceil(peak * 1.1 / step) * step;
+  const W = 1000, H = 100;
+  const x = t => (t / X * W).toFixed(1), y = d => (H / 2 - d / Y * H / 2).toFixed(2);
+  const line = pts.map((p, i) => `${i ? 'L' : 'M'}${x(p[0])},${y(p[1])}`).join('');
+  const area = `${line}L${x(end)},${H / 2}L0,${H / 2}Z`;
+  const grid = [];
+  for (let t = tick; t < X; t += tick) grid.push(`<path d="M${x(t)},0V${H}" stroke="var(--line)" stroke-width="1" vector-effect="non-scaling-stroke"/>`);
+  const ticks = [];
+  for (let t = 0; t <= X; t += tick) ticks.push(`<span style="left:${t / X * 100}%">${t / MIN}:00</span>`);
+  const last = pts.at(-1)[1];
+  state.gdView = { pts, X, t1: m.t1?.short, t2: m.t2?.short, s1, s2 };
+  return `<div class="gd">
+    <div class="ls-h">Gold difference</div>
+    <div class="gd-plot">
+      <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
+        <defs><clipPath id="gd-top"><rect width="${W}" height="${H / 2}"/></clipPath><clipPath id="gd-bot"><rect y="${H / 2}" width="${W}" height="${H / 2}"/></clipPath></defs>
+        ${grid.join('')}
+        <path d="M0,${H / 2}H${W}" stroke="var(--line-2)" stroke-width="1" vector-effect="non-scaling-stroke"/>
+        <path d="${area}" style="fill:var(--${s1})" fill-opacity=".28" clip-path="url(#gd-top)"/>
+        <path d="${area}" style="fill:var(--${s2})" fill-opacity=".28" clip-path="url(#gd-bot)"/>
+        <path d="${line}" fill="none" stroke="var(--text)" stroke-width="1.6" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
+      </svg>
+      <span class="gd-y top" style="color:var(--${s1})">+${kGold(Y)}<br>${esc(m.t1?.short)}</span>
+      <span class="gd-y mid">0</span>
+      <span class="gd-y bot" style="color:var(--${s2})">${esc(m.t2?.short)}<br>+${kGold(Y)}</span>
+      <span class="gd-now" style="left:${end / X * 100}%;top:${y(last)}%;color:var(--${last >= 0 ? s1 : s2})">${last ? `+${kGold(Math.abs(last))}` : 'even'}</span>
+      <span class="gd-hover"></span>
+    </div>
+    <div class="gd-x">${ticks.join('')}</div>
+  </div>`;
+}
+
+// Hovering the graph shows the gold lead at that minute. Kept across the
+// 10s re-renders by remembering where the pointer is.
+function drawGoldHover() {
+  const box = document.querySelector('.gd-hover'), V = state.gdView;
+  if (!box || !V) return;
+  const f = state.gdHover;
+  if (f == null) { box.innerHTML = ''; return; }
+  const t = f * V.X;
+  let p = V.pts[0];
+  for (const q of V.pts) if (Math.abs(q[0] - t) < Math.abs(p[0] - t)) p = q;
+  const left = p[0] / V.X * 100;
+  const who = p[1] > 0 ? V.t1 : p[1] < 0 ? V.t2 : '';
+  box.innerHTML = `<span class="gd-cur" style="left:${left}%"></span>
+    <span class="gd-tip" style="left:${left}%">${clock(p[0])} · ${who ? `${esc(who)} <span style="color:var(--${p[1] > 0 ? V.s1 : V.s2})">+${kGold(Math.abs(p[1]))}</span>` : 'even'}</span>`;
+}
+$('hero').addEventListener('pointermove', e => {
+  const plot = e.target.closest('.gd-plot');
+  if (!plot && state.gdHover == null) return;
+  const r = plot?.getBoundingClientRect();
+  state.gdHover = plot ? Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)) : null;
+  drawGoldHover();
+});
+$('hero').addEventListener('pointerleave', () => { state.gdHover = null; drawGoldHover(); });
+
+const champName = id => state.dd.names[id] || id || '?';
+const champImg = (id, cls = '') => id
+  ? `<img class="ch ${cls}" src="${DD}/cdn/${state.dd.ver}/img/champion/${encodeURIComponent(id)}.png" alt="${esc(champName(id))}" title="${esc(champName(id))}" loading="lazy" onerror="this.style.visibility='hidden'">`
+  : `<span class="ch ${cls}"></span>`;
+
+// The feed lists items in no fixed order; put the trinket last like the
+// in-game bar, with empty slots (when `pad`) before it so rows line up.
+const TRINKETS = new Set([3340, 3363, 3364, 3330]);
+function itemIcons(items, pad) {
+  const img = i => `<img src="${DD}/cdn/${state.dd.ver}/img/item/${i}.png" alt="" loading="lazy" onerror="this.style.visibility='hidden'">`;
+  const core = items.filter(i => i && !TRINKETS.has(i)), trinket = items.filter(i => TRINKETS.has(i));
+  return core.map(img).join('') + (pad ? '<span></span>'.repeat(Math.max(0, 6 - core.length)) : '') + trinket.map(img).join('');
+}
+
+// One row per role: the two laners facing each other with their gold gap.
+function lanes(L) {
+  const [s1, s2] = L.t1Blue ? ['blue', 'red'] : ['red', 'blue'];
+  const laner = (p, r) => {
+    const hp = p.maxHealth ? Math.round(p.currentHealth / p.maxHealth * 100) : 100;
+    const line = L.loading ? esc(champName(p.champ))
+      : `<i class="xs">${esc(champName(p.champ))} · Lv ${p.level} · </i>${p.kills}/${p.deaths}/${p.assists} · ${p.creepScore} CS`;
+    return `<div class="lp ${r ? 'r' : ''} ${!L.loading && p.maxHealth && !p.currentHealth ? 'dead' : ''}">
+      <span class="chw">${champImg(p.champ)}${L.loading ? '' : `<span class="hp"><i style="width:${hp}%"></i></span>`}</span>
+      <span class="lp-t"><b>${esc(p.name)}</b><span>${line}</span></span>
+      ${L.loading || !p.items ? '' : `<span class="lp-items">${itemIcons(p.items, true)}</span>`}
+      ${L.loading ? '' : `<span class="lp-g">${kGold(p.totalGold || 0)}</span>`}</div>`;
+  };
+  return ROLES.map(role => {
+    const a = L.players.find(p => p.side === s1 && p.role === role), b = L.players.find(p => p.side === s2 && p.role === role);
+    if (!a || !b) return '';
+    const diff = (a.totalGold || 0) - (b.totalGold || 0);
+    const lead = diff > 0 ? s1 : diff < 0 ? s2 : '';
+    // Bar grows out from the middle toward the leader; full at 3k.
+    const w = Math.min(50, Math.abs(diff) / 3000 * 50);
+    const mid = L.loading ? `<span class="ln-role">${ROLE_LABEL[role]}</span>` : `<span class="ln-role">${ROLE_LABEL[role]}</span>
+      <span class="ln-diff ${lead}">${diff ? `${diff > 0 ? '◂' : ''} +${kGold(Math.abs(diff))} ${diff < 0 ? '▸' : ''}` : 'even'}</span>
+      <span class="ln-bar"><i style="${diff > 0 ? 'right' : 'left'}:50%;width:${w}%;background:var(--${lead || 'line'})"></i></span>`;
+    return `<div class="ln">${laner(a)}<div class="ln-mid">${mid}</div>${laner(b, true)}</div>`;
+  }).join('');
+}
+
+// kind: 'live', 'next' (upcoming) or 'watch' (the next hidden result, in no-spoilers mode).
+function heroCard(m, kind) {
+  const live = kind === 'live', hidden = m.status === 'hidden';
+  const score = hidden ? '? – ?' : live ? `${m.s1 ?? 0} – ${m.s2 ?? 0}` : 'vs';
+  const side = (t, r) => `<div class="hero-team ${r ? 'r' : ''}">${t?.image ? `<img src="${esc(t.image)}" alt="" onerror="this.remove()">` : ''}
+      <div class="nm">${esc(t?.short || 'TBD')}<span class="full">${t && t.name !== t.short ? esc(t.name) : ''}</span></div></div>`;
+  const liveLink = '<a class="watch" href="https://lolesports.com/live/worlds" target="_blank" rel="noopener">Watch live ↗</a>';
+  const meta = live && !hidden
+    ? `<span>${esc(stageLabel(m))} · Bo${m.bo}</span><span class="tag">${state.live?.players
+        ? `<button class="info-btn" data-ls-toggle aria-expanded="${state.lsOpen}">${state.lsOpen ? 'Hide game stats ▴' : 'Show game stats ▾'}</button>` : ''}
+      ${liveLink}</span>`
+    : `<span>${esc(stageLabel(m))} · Bo${m.bo}</span>${live ? liveLink : ''}`;
+  const body = hidden
+    ? `<div class="hero-hidden">${live ? 'Series score and game stats are hidden.' : 'Result hidden.'}
+        <div class="acts"><button class="reveal" data-reveal="${esc(m.id)}">${live ? 'Reveal live score & stats' : 'Reveal result'}</button>${watchBtn(m, live ? '▶ Watch finished games' : '▶ Watch')}</div></div>`
+    : live ? liveStats(m) : '';
+  const label = live ? '<span class="live-pip"></span>Live now'
+    : kind === 'watch' ? `Next to watch · <span class="when">${fmtDate.format(m.time)}</span>`
+    : `Up next · <span class="when">${whenLabel(m.time)}</span>`;
+  return `<div class="hero-card ${live ? 'live' : ''}">
+    <div class="hero-label">${label}</div>
+    <div class="hero-teams">${side(m.t1)}<div class="hero-score">${score}</div>${side(m.t2, true)}</div>
+    ${body}
+    <div class="hero-meta">${meta}</div></div>`;
+}
+
+function renderHero() {
+  const V = state.view;
+  const live = V.find(m => m.status === 'live' || m.liveNow);
+  const toWatch = state.spoil.on && V.find(m => m.status === 'hidden' && !m.liveNow);
+  const upcoming = V.filter(m => m.status === 'upcoming').slice(0, 2);
+  let html = (toWatch ? heroCard(toWatch, 'watch') : '') + (live ? heroCard(live, 'live') : '') + upcoming.map(m => heroCard(m, 'next')).join('');
+  if (!html) {
+    html = V.length
+      ? `<div class="hero-card"><div class="hero-label">Tournament over</div><div class="hero-empty">No more matches scheduled.</div></div>`
+      : `<div class="hero-card"><div class="hero-empty">Loading matches…</div></div>`;
+  }
+  $('hero').innerHTML = html;
+  $('tzLabel').textContent = `Times shown in ${Intl.DateTimeFormat().resolvedOptions().timeZone}`;
+  drawGoldHover();
+  tick();
+}
+
+/* ---------- tabs ---------- */
+
+// Default tab: the stage of the next hidden result (no-spoilers mode), else
+// the stage with a live match, else the next match's stage, else the last stage.
+function currentStage() {
+  const V = state.view;
+  const watch = V.find(m => m.status === 'hidden');
+  if (watch) return watch.stage;
+  const live = V.find(m => m.status === 'live');
+  if (live) return live.stage;
+  const next = V.find(m => m.status === 'upcoming');
+  return next ? next.stage : 'ko';
+}
+
+function stageStatus(key) {
+  const ms = state.view.filter(m => m.stage === key);
+  if (!ms.length) return { text: 'Not scheduled' };
+  if (ms.some(m => m.status === 'live' || m.liveNow)) return { text: 'Live now', live: true };
+  if (ms.some(m => m.status === 'hidden')) return { text: 'Results hidden' };
+  if (ms.every(m => m.status === 'done')) return { text: 'Complete' };
+  if (ms.some(m => m.status === 'done')) return { text: 'In progress' };
+  return { text: `Starts ${fmtRange.format(ms[0].time)}` };
+}
+
+function activeTab() {
+  if (!state.tab) {
+    const h = location.hash.slice(1);
+    state.tab = STAGES.some(s => s.key === h) ? h : null;
+  }
+  return state.tab || currentStage();
+}
+
+function renderTabs() {
+  const active = activeTab();
+  $('tabs').innerHTML = STAGES.map(s => {
+    const st = stageStatus(s.key);
+    return `<button class="tab ${s.key === active ? 'on' : ''}" role="tab" aria-selected="${s.key === active}" data-tab="${s.key}">
+      ${s.name}<span class="ts ${st.live ? 'live' : ''}">${st.live ? '<span class="live-pip"></span>' : ''}${st.text}</span></button>`;
+  }).join('');
+  for (const s of STAGES) $(`panel-${s.key}`).hidden = s.key !== active;
+}
+
+$('tabs').addEventListener('click', e => {
+  const b = e.target.closest('[data-tab]');
+  if (!b) return;
+  state.tab = b.dataset.tab;
+  history.replaceState(null, '', `#${state.tab}`);
+  renderTabs();
+  drawAll();
+});
+
+/* ---------- Play-In (double elimination) ---------- */
+
+// Slots are inferred from each team's record going into the match:
+// 0-0 → upper R1, both 1-0 → upper final, both 0-1 → lower R1, both 1-1 → lower final, else qualifier final.
+function playinSlots(list) {
+  const ms = list.filter(m => m.stage === 'playin');
+  const rec = new Map();
+  const get = t => rec.get(t.id) || rec.set(t.id, { w: 0, l: 0 }).get(t.id);
+  const slots = {};
+  for (const m of ms) {
+    if (!m.t1 || !m.t2) continue;
+    const a = get(m.t1), b = get(m.t2);
+    const is = (r, w, l) => r.w === w && r.l === l;
+    let k = is(a, 0, 0) && is(b, 0, 0) ? (slots.ub1 ? 'ub2' : 'ub1')
+      : is(a, 1, 0) && is(b, 1, 0) ? 'ubf'
+      : is(a, 0, 1) && is(b, 0, 1) ? 'lb1'
+      : is(a, 1, 1) && is(b, 1, 1) ? 'lbf' : 'f';
+    if (slots[k]) k = null;
+    if (k) { slots[k] = m; m.piSlot = k; }
+    if (m.winner === 1) { a.w++; b.l++; } else if (m.winner === 2) { b.w++; a.l++; }
+  }
+  const order = ['ub1', 'ub2', 'ubf', 'lb1', 'lbf', 'f'];
+  for (const m of ms) {
+    if (m.piSlot) continue;
+    const k = order.find(s => !slots[s]);
+    if (k) { slots[k] = m; m.piSlot = k; }
+  }
+  return { ms, slots };
+}
+
+// Slots come from the real results (stamped in render()), so a hidden result
+// doesn't move matches around the bracket.
+function renderPlayin() {
+  const ms = state.view.filter(m => m.stage === 'playin');
+  const slots = {};
+  for (const m of ms) if (m.piSlot) slots[m.piSlot] = m;
+  const cell = (k, cap, col, row) => `<div class="node" data-node="pi-${k}" style="grid-column:${col};grid-row:${row}">
+      <div class="mc-cap">${cap}</div>${matchCard(slots[k], cap)}</div>`;
+  const fin = slots.f;
+  const champ = fin?.winner ? (fin.winner === 1 ? fin.t1 : fin.t2) : null;
+  $('piBoard').innerHTML = `
+    <div class="pi-label" style="grid-column:1/4;grid-row:1">Upper bracket</div>
+    ${cell('ub1', 'Upper R1', 1, 2)}
+    ${cell('ub2', 'Upper R1', 1, 3)}
+    ${cell('ubf', 'Upper Final', 2, '2/4')}
+    <div class="pi-label" style="grid-column:1/4;grid-row:4;margin-top:14px">Lower bracket</div>
+    ${cell('lb1', 'Lower R1', 2, 5)}
+    ${cell('lbf', 'Lower Final', 3, 5)}
+    <div class="node" data-node="pi-f" style="grid-column:4;grid-row:2/6">
+      <div class="mc-cap">Qualifier Final</div>${matchCard(fin, 'Qualifier Final')}
+      ${champ ? `<div class="champion">${esc(champ.short)} advances to Swiss</div>` : ''}</div>`;
+  boardLinks.piBoard = [
+    { from: 'pi-ub1', to: 'pi-ubf', kind: 'win' }, { from: 'pi-ub2', to: 'pi-ubf', kind: 'win' },
+    { from: 'pi-ub1', to: 'pi-lb1', kind: 'loss', dashed: true }, { from: 'pi-ub2', to: 'pi-lb1', kind: 'loss', dashed: true },
+    { from: 'pi-ubf', to: 'pi-f', kind: 'win' }, { from: 'pi-ubf', to: 'pi-lbf', kind: 'loss', dashed: true },
+    { from: 'pi-lb1', to: 'pi-lbf', kind: 'win' }, { from: 'pi-lbf', to: 'pi-f', kind: 'win' },
+  ];
+  $('piSched').innerHTML = upcomingList(ms);
+}
+
+/* ---------- Swiss ---------- */
+
+// 8 + 8 + 8 + 6 + 3 matches. Replaying results in order puts each match in
+// the record pool its teams held when it was played; undrawn (TBD) matches
+// then fill whichever round still has open slots.
+const SWISS_ROUND_SIZE = [0, 8, 8, 8, 6, 3];
+function computeSwiss(list) {
+  const rec = new Map();
+  const get = t => rec.get(t.id) || rec.set(t.id, { team: t, w: 0, l: 0 }).get(t.id);
+  const swiss = list.filter(m => m.stage === 'swiss');
+  const count = [0, 0, 0, 0, 0, 0];
+  for (const m of swiss) {
+    if (!m.t1 || !m.t2) continue;
+    const a = get(m.t1), b = get(m.t2);
+    m.swissRound = Math.min(5, a.w + a.l + 1);
+    m.pool = `${a.w}–${a.l}`;
+    count[m.swissRound]++;
+    if (m.winner === 1) { a.w++; b.l++; }
+    else if (m.winner === 2) { b.w++; a.l++; }
+  }
+  for (const m of swiss) {
+    if (m.t1 && m.t2) continue;
+    let r = 1;
+    while (r < 5 && count[r] >= SWISS_ROUND_SIZE[r]) r++;
+    m.swissRound = r; m.pool = null; count[r]++;
+  }
+  return { swiss, records: [...rec.values()] };
+}
+
+// Matches per pool and teams per final record, for drawing empty slots.
+const POOL_SIZE = { '0–0': 8, '1–0': 4, '0–1': 4, '2–0': 2, '1–1': 4, '0–2': 2, '2–1': 3, '1–2': 3, '2–2': 3 };
+const OUT_SIZE = { '3–0': 2, '3–1': 3, '3–2': 3, '0–3': 2, '1–3': 3, '2–3': 3 };
+// Column layout, top to bottom, mirroring the official Swiss chart.
+const SWISS_COLS = [
+  { title: 'Round 1', nodes: ['0–0'] },
+  { title: 'Round 2', nodes: ['1–0', '0–1'] },
+  { title: 'Round 3', nodes: ['2–0', '1–1', '0–2'] },
+  { title: 'Round 4', nodes: ['3–0', '2–1', '1–2', '0–3'] },
+  { title: 'Round 5', nodes: ['3–1', '2–2', '1–3'] },
+  { title: '&nbsp;', nodes: ['3–2', '2–3'] },
+];
+
+function miniMatch(m) {
+  const side = (t, s) => {
+    const cls = !t ? 'tbd' : m.winner && m.winner !== s ? 'l' : '';
+    const name = `<span title="${esc(t?.name || 'TBD')}">${esc(t?.short || 'TBD')}</span>`;
+    return `<span class="mt ${s === 1 ? 'a' : 'b'} ${cls}" ${t ? `data-team="${esc(t.id)}"` : ''}>${s === 1 ? name + logo(t) : logo(t) + name}</span>`;
+  };
+  const live = m.status === 'live' || m.liveNow;
+  const wb = canWatch(m) ? watchBtn(m) : '';
+  const mid = m.status === 'hidden' ? `<span class="ms">${live ? '<span class="live-pip"></span>' : ''}<button class="reveal" data-reveal="${esc(m.id)}" title="Reveal result">?</button>${wb}</span>`
+    : m.status === 'done' ? `<span class="ms">${m.s1 ?? 0}–${m.s2 ?? 0}${wb}</span>`
+    : live ? `<span class="ms"><span class="live-pip"></span>${m.s1 ?? 0}–${m.s2 ?? 0}${wb}</span>`
+    : `<span class="ms up">vs</span>`;
+  const when = m.status === 'upcoming' && m.t1 && m.t2 ? `<span class="mw">${fmtWhen.format(m.time)}</span>` : '';
+  return `<div class="mm ${live ? 'live' : ''}">${side(m.t1, 1)}${mid}${side(m.t2, 2)}${when}</div>`;
+}
+
+function renderSwiss() {
+  // Re-run on the spoiler-free view so records and outcome boxes only count revealed results.
+  const { swiss, records } = computeSwiss(state.view);
+  const poolBox = key => {
+    const [w, l] = key.split('–').map(Number);
+    const ms = swiss.filter(m => m.pool === key);
+    const bo = ms[0]?.bo || (w === 2 || l === 2 ? 3 : 1);
+    const what = w === 2 && l === 2 ? 'Bo3 · win or go home' : w === 2 && l === 0 ? 'Bo3 · win = 3–0' : w === 2 ? 'Bo3 · win to advance' : l === 2 ? 'Bo3 · lose = out' : `Bo${bo}`;
+    const empty = Math.max(0, POOL_SIZE[key] - ms.length);
+    const rows = ms.map(miniMatch).join('') + `<div class="mm"><span class="mt a tbd">TBD</span><span class="ms up">vs</span><span class="mt b tbd">TBD</span></div>`.repeat(empty);
+    return `<div class="node pool ${w === 2 || l === 2 ? 'decider' : ''}" data-node="sw-${key}"><div class="pool-h"><b>${key}</b><span>${what}</span></div>${rows}</div>`;
+  };
+  const outBox = key => {
+    const [w, l] = key.split('–').map(Number);
+    const q = w === 3;
+    const teams = records.filter(r => r.w === w && r.l === l);
+    const chips = teams.map(r => `<span class="tchip" data-team="${esc(r.team.id)}" title="${esc(r.team.name)}">${logo(r.team)}${esc(r.team.short)}</span>`).join('')
+      + '<span class="tchip tbd">TBD</span>'.repeat(Math.max(0, OUT_SIZE[key] - teams.length));
+    return `<div class="node out ${q ? 'q' : 'e'}" data-node="sw-${key}"><div class="pool-h"><b>${key}</b><span>${q ? 'Qualified' : 'Eliminated'}</span></div><div class="out-teams">${chips}</div></div>`;
+  };
+  $('swBoard').innerHTML = SWISS_COLS.map(c => `<div class="sw-col"><h4>${c.title}</h4><div class="sw-stack">
+    ${c.nodes.map(k => /3/.test(k) ? outBox(k) : poolBox(k)).join('')}</div></div>`).join('');
+
+  const links = [];
+  for (const key of Object.keys(POOL_SIZE)) {
+    const [w, l] = key.split('–').map(Number);
+    links.push({ from: `sw-${key}`, to: `sw-${w + 1}–${l}`, kind: 'win' });
+    links.push({ from: `sw-${key}`, to: `sw-${w}–${l + 1}`, kind: 'loss' });
+  }
+  boardLinks.swBoard = links;
+  focusTeam(state.focus);
+  $('swSched').innerHTML = upcomingList(swiss);
+}
+
+// Highlights every match and result chip for one team, dimming the rest.
+function focusTeam(id) {
+  state.focus = id || null;
+  const board = $('swBoard');
+  board.classList.toggle('focus', !!state.focus);
+  for (const el of board.querySelectorAll('.mm, .tchip')) {
+    el.classList.toggle('hl', !!state.focus && (el.dataset.team === state.focus || !!el.querySelector(`[data-team="${CSS.escape(state.focus)}"]`)));
+  }
+  for (const el of board.querySelectorAll('.mt[data-team]')) el.classList.toggle('me', el.dataset.team === state.focus);
+}
+const swBoardEl = $('swBoard');
+swBoardEl.addEventListener('mouseover', e => {
+  const t = e.target.closest('[data-team]');
+  if (t && t.dataset.team !== state.focus) focusTeam(t.dataset.team);
+});
+swBoardEl.addEventListener('mouseleave', () => focusTeam(state.pinned));
+// Touch: tap a team to pin its path, tap it again or anywhere else to clear.
+swBoardEl.addEventListener('click', e => {
+  const t = e.target.closest('[data-team]');
+  focusTeam(t && t.dataset.team !== state.pinned ? (state.pinned = t.dataset.team) : (state.pinned = null));
+});
+
+for (const btn of document.querySelectorAll('.info-btn')) {
+  btn.addEventListener('click', () => {
+    const box = $(btn.getAttribute('aria-controls'));
+    box.hidden = !box.hidden;
+    btn.setAttribute('aria-expanded', String(!box.hidden));
+    drawAll(); // the board below moved
+  });
+}
+
+/* ---------- Knockout ---------- */
+
+function renderKnockout() {
+  const ko = state.view.filter(m => m.stage === 'ko');
+  let qf = ko.filter(m => m.koRound === 'qf');
+  const sf = ko.filter(m => m.koRound === 'sf');
+  const fin = ko.find(m => m.koRound === 'f');
+
+  // Order quarterfinals so each semifinal sits between the two QFs that feed it.
+  if (sf.some(s => s.t1 || s.t2)) {
+    const ids = m => [m.t1?.id, m.t2?.id].filter(Boolean);
+    const ordered = [];
+    for (const s of sf) for (const q of qf) if (!ordered.includes(q) && ids(q).some(id => ids(s).includes(id))) ordered.push(q);
+    qf = [...ordered, ...qf.filter(q => !ordered.includes(q))];
+  }
+  const slot = (id, m, ph) => `<div class="node" data-node="${id}">${matchCard(m, ph)}</div>`;
+  const champ = fin && fin.winner ? (fin.winner === 1 ? fin.t1 : fin.t2) : null;
+  $('koBoard').innerHTML = `
+    <div class="ko-col"><h4>Quarterfinals <span>Nov 3–6</span></h4><div class="ko-body">
+      ${[0, 2].map(i => `<div class="ko-pair">${slot(`qf${i}`, qf[i], 'Quarterfinal')}${slot(`qf${i + 1}`, qf[i + 1], 'Quarterfinal')}</div>`).join('')}</div></div>
+    <div class="ko-col"><h4>Semifinals <span>Nov 7–8</span></h4><div class="ko-body"><div class="ko-pair">
+      ${slot('sf0', sf[0], 'Semifinal')}${slot('sf1', sf[1], 'Semifinal')}</div></div></div>
+    <div class="ko-col final"><h4>Final <span>Nov 14 · Brooklyn</span></h4><div class="ko-body">
+      <div>${slot('f', fin, 'Grand Final')}${champ ? `<div class="champion">🏆 ${esc(champ.name)}</div>` : ''}</div></div></div>`;
+  boardLinks.koBoard = [
+    { from: 'qf0', to: 'sf0', kind: 'path' }, { from: 'qf1', to: 'sf0', kind: 'path' },
+    { from: 'qf2', to: 'sf1', kind: 'path' }, { from: 'qf3', to: 'sf1', kind: 'path' },
+    { from: 'sf0', to: 'f', kind: 'path' }, { from: 'sf1', to: 'f', kind: 'path' },
+  ];
+  $('koSched').innerHTML = upcomingList(ko, ko.every(m => m.status === 'done') ? 'All knockout matches are complete.' : '');
+}
+
+/* ---------- no spoilers ---------- */
+
+// Results are revealed in schedule order: `through` is the last revealed
+// match, and everything started after it stays hidden.
+const SPOIL_KEY = 'worlds2026.nospoil.v1';
+state.spoil = (() => {
+  try { return { on: false, through: null, ...JSON.parse(localStorage.getItem(SPOIL_KEY)) }; }
+  catch { return { on: false, through: null }; }
+})();
+function saveSpoil() {
+  try { localStorage.setItem(SPOIL_KEY, JSON.stringify(state.spoil)); } catch {}
+}
+
+const started = m => m.status !== 'upcoming';
+const revealIdx = () => state.spoil.through ? state.matches.findIndex(m => m.id === state.spoil.through) : -1;
+const isRevealed = m => !state.spoil.on || state.matches.findIndex(x => x.id === m.id) <= revealIdx();
+
+// Bracket depth: who plays in a round depends on every earlier round's results.
+function roundOf(m) {
+  if (m.stage === 'playin') return { ub1: 1, ub2: 1, ubf: 2, lb1: 2, lbf: 3, f: 4 }[m.piSlot] || 1;
+  if (m.stage === 'swiss') return 4 + (m.swissRound || 1);
+  return { qf: 10, sf: 11, f: 12 }[m.koRound];
+}
+
+// The matches as a spoiler-free viewer should see them: hidden results look
+// unplayed (status 'hidden'), and a matchup is shown only if no earlier
+// round still has a hidden result, since the pairing itself would give that
+// result away (Swiss round 2 pairs the round 1 winners, and so on).
+function spoilerView() {
+  if (!state.spoil.on) return state.matches;
+  const ri = revealIdx();
+  const hiddenRounds = state.matches.filter((m, i) => i > ri && started(m)).map(roundOf);
+  const minHidden = Math.min(Infinity, ...hiddenRounds);
+  return state.matches.map((m, i) => {
+    if (i <= ri) return m;
+    const teams = roundOf(m) <= minHidden ? {} : { t1: null, t2: null, pool: null };
+    if (!started(m)) return { ...m, ...teams };
+    return { ...m, ...teams, status: 'hidden', liveNow: m.status === 'live', s1: null, s2: null, winner: 0 };
+  });
+}
+
+const matchName = v => `${v.t1?.short || 'TBD'} vs ${v.t2?.short || 'TBD'} (${stageLabel(v)})`;
+
+function renderSpoilBar() {
+  $('nospoil').checked = state.spoil.on;
+  const bar = $('spoilBar');
+  bar.hidden = !state.spoil.on;
+  if (!state.spoil.on) return;
+  const ri = revealIdx();
+  const hidden = state.matches.filter((m, i) => i > ri && started(m));
+  const next = hidden[0] && state.view[state.matches.indexOf(hidden[0])];
+  const last = ri >= 0 ? state.view[ri] : null;
+  const text = hidden.length
+    ? `<b>No spoilers.</b> ${hidden.length} result${hidden.length > 1 ? 's' : ''} hidden. ${last ? `Revealed through ${esc(matchName(last))}.` : 'Nothing revealed yet.'}`
+    : `<b>No spoilers.</b> You're caught up; new results stay hidden until you reveal them.`;
+  bar.innerHTML = `<span class="sp-text">${text}</span><span class="sp-acts">
+    ${next ? `<button class="main" data-reveal="${esc(next.id)}">Reveal next: ${esc(matchName(next))}</button>` : ''}
+    ${hidden.length > 1 ? '<button data-reveal-all>Reveal all</button>' : ''}
+    ${ri >= 0 ? '<button class="linkish" data-hide-all>Hide everything again</button>' : ''}</span>`;
+}
+
+function revealThrough(id) {
+  const i = state.matches.findIndex(m => m.id === id), ri = revealIdx();
+  if (i <= ri) return;
+  const skipped = state.matches.slice(ri + 1, i).filter(started).length;
+  if (skipped && !confirm(`This also reveals ${skipped} earlier result${skipped > 1 ? 's' : ''} you haven't revealed yet. Continue?`)) return;
+  state.spoil.through = id;
+  saveSpoil();
+  render();
+}
+
+$('nospoil').addEventListener('change', e => {
+  state.spoil.on = e.target.checked;
+  saveSpoil();
+  render();
+});
+
+document.addEventListener('click', e => {
+  const r = e.target.closest('[data-reveal]');
+  if (r) { revealThrough(r.dataset.reveal); return; }
+  if (e.target.closest('[data-reveal-all]')) {
+    const last = state.matches.filter(started).at(-1);
+    if (last) { state.spoil.through = last.id; saveSpoil(); render(); }
+    return;
+  }
+  if (e.target.closest('[data-hide-all]')) { state.spoil.through = null; saveSpoil(); render(); return; }
+  const w = e.target.closest('[data-watch]');
+  if (w) openWatch(w.dataset.watch);
+});
+
+const watchBtn = (m, label = '▶') => `<button class="wbtn" data-watch="${esc(m.id)}" title="Rewatch without spoilers">${label}</button>`;
+const canWatch = m => m.status === 'done' || m.status === 'hidden' || m.status === 'live';
+
+/* ---------- watch-back ---------- */
+
+// Rewatch a series from the official YouTube videos as if it were live: no
+// progress bar or length, and the next game is offered without saying
+// whether the series went that far.
+const WB_KEY = 'worlds2026.watch.v1';
+const W = { player: null, match: null, games: [], gameNo: 1, vod: null, timer: null, cover: 'solid', savedAt: 0 };
+
+function wbStore() {
+  try { return { pos: {}, games: {}, ...JSON.parse(localStorage.getItem(WB_KEY)) }; } catch { return { pos: {}, games: {} }; }
+}
+function wbSave(fn) {
+  const s = wbStore();
+  fn(s);
+  try { localStorage.setItem(WB_KEY, JSON.stringify(s)); } catch {}
+}
+
+let ytReady = null;
+function loadYT() {
+  return ytReady ||= new Promise(res => {
+    window.onYouTubeIframeAPIReady = res;
+    const s = document.createElement('script');
+    s.src = 'https://www.youtube.com/iframe_api';
+    document.head.append(s);
+  });
+}
+
+// Every YouTube upload of a game, best first: English, then other
+// languages, per-game uploads before whole-day streams (those are cut down
+// to the game by start/end times). LoL Esports' own English uploads only play
+// embedded on lolesports.com, so playback falls through to the first
+// language that will play here.
+const langName = new Intl.DisplayNames(['en'], { type: 'language' });
+function vodsFor(game) {
+  const yt = (game?.vods || []).filter(v => v.provider === 'youtube');
+  const rank = v => (v.locale === 'en-US' ? 0 : 2) + (v.startMillis == null ? 0 : 1);
+  return yt.sort((a, b) => rank(a) - rank(b)).map(v => ({
+    // The feed tags Serbian as sr-SR (SR is Suriname), so name it by language alone.
+    id: v.parameter, locale: v.locale, lang: langName.of(v.locale === 'sr-SR' ? 'sr' : v.locale) || v.locale, day: v.startMillis != null,
+    start: v.startMillis != null ? v.startMillis / 1000 : v.offset || 0, end: v.endMillis != null ? v.endMillis / 1000 : null,
+  }));
+}
+
+const hms = ms => {
+  const s = Math.floor(ms / 1000);
+  return s >= 3600 ? `${Math.floor(s / 3600)}:${String(Math.floor(s / 60) % 60).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}` : clock(ms);
+};
+
+function cover(kind, html = '') {
+  W.cover = kind;
+  $('wbCover').className = `wb-cover ${kind === 'play' ? '' : kind}`;
+  $('wbCover').innerHTML = html;
+}
+
+async function openWatch(matchId) {
+  const m = state.matches.find(x => x.id === matchId);
+  if (!m) return;
+  W.match = m;
+  const v = state.view[state.matches.indexOf(m)] || m;
+  $('wbTitle').textContent = `${v.t1?.short || m.t1?.short || 'TBD'} vs ${v.t2?.short || m.t2?.short || 'TBD'} · ${stageLabel(m)}`;
+  $('wbGames').innerHTML = '';
+  $('wb').hidden = false;
+  document.body.style.overflow = 'hidden';
+  cover('solid', '<p>Loading…</p>');
+  try {
+    W.games = (await api('getEventDetails', { id: matchId })).event.match.games || [];
+  } catch {
+    cover('solid', "<p>Couldn't load this match's videos. Try again in a minute.</p>");
+    return;
+  }
+  playGame(wbStore().games[m.id]?.n || 1);
+}
+
+function closeWatch() {
+  try { W.player?.pauseVideo?.(); } catch {}
+  clearInterval(W.timer);
+  if (document.fullscreenElement) document.exitFullscreen();
+  $('wb').hidden = true;
+  document.body.style.overflow = '';
+}
+
+// Game buttons: every game once the result is revealed, otherwise only the
+// games already reached, so the count doesn't give away the series length.
+function renderWbGames() {
+  const m = W.match;
+  const played = W.games.filter(g => g.state === 'completed').map(g => g.number);
+  const max = Math.min(m.bo, isRevealed(m)
+    ? Math.max(W.gameNo, ...played)
+    : Math.max(W.gameNo, wbStore().games[m.id]?.max || 1));
+  $('wbGames').innerHTML = m.bo > 1 ? Array.from({ length: max }, (_, i) =>
+    `<button class="${i + 1 === W.gameNo ? 'on' : ''}" data-wb-game="${i + 1}">Game ${i + 1}</button>`).join('') : '';
+}
+
+async function playGame(n) {
+  const m = W.match, g = W.games.find(x => x.number === n);
+  W.gameNo = n;
+  W.vod = null;
+  clearInterval(W.timer);
+  try { W.player?.pauseVideo?.(); } catch {}
+  wbSave(s => { const r = s.games[m.id] ||= { n: 1, max: 1 }; r.n = n; r.max = Math.max(r.max, n); });
+  renderWbGames();
+  $('wbTime').textContent = '0:00';
+  $('wbRestart').hidden = true;
+  const reveal = isRevealed(m) ? '' : `<button class="reveal" data-reveal="${esc(m.id)}">Reveal result</button>`;
+  if (!g || g.state === 'unneeded') {
+    return cover('solid', `<h3>No game ${n}</h3><p>The series was over after game ${n - 1}.</p><div class="acts">${reveal}<button data-wb="close">Close</button></div>`);
+  }
+  if (g.state === 'inProgress') {
+    return cover('solid', `<h3>Game ${n} is live right now</h3><p>The video comes after it ends.</p>
+      <div class="acts"><a class="watch" href="https://lolesports.com/live/worlds" target="_blank" rel="noopener">Watch live ↗</a></div>`);
+  }
+  if (g.state !== 'completed') return cover('solid', `<h3>Game ${n} hasn't started yet</h3>`);
+  W.cands = vodsFor(g);
+  W.failed = new Set();
+  if (!W.cands.length) return cover('solid', `<h3>Game ${n}</h3><p>No video for this game yet. LoL Esports usually uploads it within a few hours.</p>`);
+  // Start with the language picked last time, if this game has it.
+  const pref = wbStore().lang;
+  W.cand = Math.max(0, W.cands.findIndex(c => c.locale === pref && !c.day));
+  startVod();
+}
+
+async function startVod() {
+  const vod = W.cands[W.cand];
+  W.vod = vod;
+  renderWbLang();
+  cover('solid', '<p>Loading video…</p>');
+  await loadYT();
+  if (W.vod !== vod) return; // switched games while the player loaded
+  const pos = wbStore().pos[vod.id];
+  const at = pos && pos > vod.start + 15 ? pos - 3 : vod.start;
+  $('wbRestart').hidden = at <= vod.start;
+  const end = vod.end ? { end: Math.floor(vod.end) } : {};
+  if (!W.player) {
+    W.player = new YT.Player('wbPlayer', {
+      videoId: vod.id,
+      playerVars: { controls: 0, disablekb: 1, rel: 0, modestbranding: 1, iv_load_policy: 3, playsinline: 1, fs: 0, autoplay: 1, start: Math.floor(at), ...end },
+      events: {
+        onReady: e => {
+          e.target.setVolume(+$('wbVol').value);
+          e.target.setPlaybackRate(+$('wbRate').value);
+          if (W.muted) e.target.mute();
+          e.target.playVideo();
+          // Autoplay can be blocked; offer a click to start instead of a blank screen.
+          setTimeout(() => { if (W.cover === 'solid' && W.vod) cover('paused'); }, 1500);
+        },
+        onStateChange: e => wbState(e.data),
+        onError: wbError,
+      },
+    });
+  } else {
+    W.player.loadVideoById({ videoId: vod.id, startSeconds: at, ...(vod.end ? { endSeconds: vod.end } : {}) });
+    W.player.setPlaybackRate(+$('wbRate').value);
+  }
+  clearInterval(W.timer);
+  W.timer = setInterval(wbTick, 500);
+}
+
+// A video that won't play here (101/150: embedding blocked, 100: removed):
+// move on to the next upload of the same game.
+function wbError() {
+  if (!W.vod) return;
+  W.failed.add(W.cand);
+  const next = W.cands.findIndex((c, i) => !W.failed.has(i));
+  if (next >= 0) { W.cand = next; startVod(); return; }
+  const en = W.cands.find(c => c.locale === 'en-US');
+  W.vod = null;
+  renderWbLang();
+  cover('solid', `<h3>This game can't be played here</h3>
+    <p>LoL Esports only allows these videos to play on its own site.</p>
+    ${en ? `<div class="acts"><a class="watch" href="https://www.youtube.com/watch?v=${esc(en.id)}" target="_blank" rel="noopener">Open on YouTube ↗</a></div><p>YouTube shows the video length.</p>` : ''}`);
+}
+
+// Which broadcast is playing, and a picker for the others that play here.
+function renderWbLang() {
+  const box = $('wbLang'), v = W.vod;
+  if (!W.cands?.length) { box.innerHTML = ''; return; }
+  const en = W.cands.find(c => c.locale === 'en-US');
+  const opts = W.cands.map((c, i) => W.failed.has(i) ? '' : `<option value="${i}" ${i === W.cand ? 'selected' : ''}>${esc(c.lang)}${c.day ? ' (full-day stream)' : ''}</option>`).join('');
+  box.innerHTML = `<select id="wbLangSel" aria-label="Broadcast language">${opts}</select>
+    ${v && en && v.locale !== 'en-US' && W.failed.has(W.cands.indexOf(en))
+      ? `<span class="note">English only plays on lolesports.com · <a href="https://www.youtube.com/watch?v=${esc(en.id)}" target="_blank" rel="noopener" title="YouTube shows the video length">English on YouTube ↗</a></span>` : ''}`;
+}
+$('wbLang').addEventListener('change', e => {
+  if (e.target.id !== 'wbLangSel') return;
+  W.cand = +e.target.value;
+  wbSave(s => { s.lang = W.cands[W.cand].locale; });
+  startVod();
+});
+
+function wbState(s) {
+  if (!W.vod) return;
+  if (s === YT.PlayerState.PLAYING) { cover('play'); $('wbPlay').textContent = 'Pause'; }
+  else if (s === YT.PlayerState.PAUSED || s === YT.PlayerState.CUED) { cover('paused'); $('wbPlay').textContent = 'Play'; }
+  else if (s === YT.PlayerState.ENDED) wbEnded();
+}
+
+function wbEnded() {
+  const m = W.match, n = W.gameNo;
+  if (!W.vod) return;
+  wbSave(s => { delete s.pos[W.vod.id]; }); // watched to the end: start fresh next time
+  W.vod = null;
+  clearInterval(W.timer);
+  $('wbPlay').textContent = 'Play';
+  const more = n < m.bo;
+  cover('solid', `<h3>End of game ${n}</h3>
+    <p>${more ? `Game ${n + 1} is next, if the series went that far.` : 'That was the last possible game of the series.'}</p>
+    <div class="acts">${more ? `<button class="main" data-wb-game="${n + 1}">▶ Game ${n + 1}</button>` : ''}
+      ${isRevealed(m) ? '' : `<button class="reveal" data-reveal="${esc(m.id)}">Reveal result</button>`}
+      <button data-wb="close">Close</button></div>`);
+}
+
+function wbTick() {
+  const p = W.player, v = W.vod;
+  if (!v || !p?.getCurrentTime) return;
+  const t = p.getCurrentTime();
+  $('wbTime').textContent = hms(Math.max(0, t - v.start) * 1000);
+  if (v.end && t >= v.end - .5) { p.pauseVideo(); wbEnded(); return; }
+  if (p.getPlayerState() === YT.PlayerState.PLAYING && Date.now() - W.savedAt > 5e3) {
+    W.savedAt = Date.now();
+    wbSave(s => { s.pos[v.id] = t; });
+  }
+}
+
+function wbAction(a) {
+  const p = W.player;
+  if (a === 'close') return closeWatch();
+  if (a === 'fs') return document.fullscreenElement ? document.exitFullscreen() : $('wbBox').requestFullscreen?.();
+  if (!p?.getCurrentTime || !W.vod) return;
+  if (a === 'play') return p.getPlayerState() === YT.PlayerState.PLAYING ? p.pauseVideo() : p.playVideo();
+  if (a === 'mute') return setMuted(!W.muted);
+  if (a === 'restart') { p.seekTo(W.vod.start, true); $('wbRestart').hidden = true; return; }
+  const to = p.getCurrentTime() + Number(a);
+  p.seekTo(Math.max(W.vod.start, W.vod.end ? Math.min(W.vod.end, to) : to), true);
+}
+
+$('wb').addEventListener('click', e => {
+  const g = e.target.closest('[data-wb-game]');
+  if (g) return playGame(+g.dataset.wbGame);
+  const b = e.target.closest('[data-wb]');
+  if (b) return wbAction(b.dataset.wb);
+  // Clicking the video itself plays/pauses, like a normal player.
+  if (e.target.closest('#wbCover') && (W.cover === 'play' || W.cover === 'paused')) wbAction('play');
+});
+$('wbClose').onclick = closeWatch;
+$('wbRate').onchange = e => W.player?.setPlaybackRate?.(+e.target.value);
+// isMuted() lags behind mute()/unMute(), so track it here.
+function setMuted(on) {
+  W.muted = on;
+  W.player?.[on ? 'mute' : 'unMute']?.();
+  $('wbMute').textContent = on ? 'Unmute' : 'Mute';
+}
+$('wbVol').oninput = e => {
+  W.player?.setVolume?.(+e.target.value);
+  if (+e.target.value > 0 && W.muted) setMuted(false);
+};
+document.addEventListener('keydown', e => {
+  if ($('wb').hidden || e.target.closest('select, input')) return;
+  const k = e.key.toLowerCase();
+  const act = { ' ': 'play', k: 'play', arrowleft: '-10', j: '-10', arrowright: '10', l: '10', f: 'fs', m: 'mute' }[k];
+  if (act) { e.preventDefault(); wbAction(act); }
+  else if (k === 'escape' && !document.fullscreenElement) closeWatch();
+});
+
+/* ---------- Data Dragon ---------- */
+
+// Champion names and portraits from Data Dragon's latest patch.
+async function loadDD() {
+  try {
+    const ver = (await (await fetch(`${DD}/api/versions.json`)).json())[0];
+    const c = await (await fetch(`${DD}/cdn/${ver}/data/en_US/champion.json`)).json();
+    state.dd = { ver, names: Object.fromEntries(Object.values(c.data).map(x => [x.id, x.name])) };
+    render();
+  } catch {}
+}
+
+async function pool(items, n, fn) {
+  let i = 0;
+  await Promise.all(Array.from({ length: n }, async () => { while (i < items.length) await fn(items[i++]); }));
+}
+
+/* ---------- render loop ---------- */
+
+function render() {
+  // Stamp rounds and slots from the real results first; the spoiler-free
+  // view copies them, and roundOf() needs them.
+  computeSwiss(state.matches);
+  playinSlots(state.matches);
+  state.view = spoilerView();
+  renderSpoilBar();
+  renderHero();
+  renderTabs();
+  renderPlayin();
+  renderSwiss();
+  renderKnockout();
+  requestAnimationFrame(drawAll);
+  tick();
+}
+
+// Once a second: countdowns, the game clock and "updated Xs ago". Re-render
+// each minute so "Today" and countdown-to-live transitions stay right.
+let lastMinute = 0;
+function tick() {
+  // Run the game clock forward between 10s stat polls.
+  for (const el of document.querySelectorAll('[data-clock]')) {
+    el.textContent = clock(+el.dataset.clock + (el.dataset.run === '1' ? Date.now() - +el.dataset.at : 0));
+  }
+  // Objective countdowns: spawns flip to "Up", buffs and respawns disappear.
+  for (const el of document.querySelectorAll('[data-cd]')) {
+    const left = +el.dataset.cd - (el.dataset.run === '1' ? Date.now() - +el.dataset.at : 0);
+    el.textContent = left > 0 ? clock(left) : el.dataset.zero;
+    el.parentElement.classList.toggle('up', left <= 0);
+    el.parentElement.hidden = left <= 0 && !el.dataset.zero;
+  }
+  if (state.fetchedAt) setStatus(state.failures ? 'err' : 'ok', `Updated ${ago(state.fetchedAt)}`);
+}
+setInterval(() => {
+  tick();
+  const minute = Math.floor(Date.now() / 60e3);
+  if (minute !== lastMinute) { lastMinute = minute; if (state.matches.length) render(); }
+}, 1000);
+
+$('refresh').onclick = () => load();
+
+loadCache();
+render();
+load();
+loadDD();
+</script>
+</body>
+</html>
