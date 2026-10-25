@@ -1768,9 +1768,9 @@ function loadYT() {
 
 // Every YouTube upload of a game, best first: English, then other
 // languages, per-game uploads before whole-day streams (those are cut down
-// to the game by start/end times). LoL Esports' own English uploads only play
-// embedded on lolesports.com, so playback falls through to the first
-// language that will play here.
+// to the game by start/end times). If an upload won't play embedded (some
+// block embedding, or block certain sites), playback falls through to the
+// next one that does.
 const langName = new Intl.DisplayNames(['en'], { type: 'language' });
 function vodsFor(game) {
   const yt = (game?.vods || []).filter(v => v.provider === 'youtube');
@@ -1907,7 +1907,7 @@ function wbError() {
   W.vod = null;
   renderWbLang();
   cover('solid', `<h3>This game can't be played here</h3>
-    <p>LoL Esports only allows these videos to play on its own site.</p>
+    <p>None of this game's uploads allow playing on other sites.</p>
     ${en ? `<div class="acts"><a class="watch" href="https://www.youtube.com/watch?v=${esc(en.id)}" target="_blank" rel="noopener">Open on YouTube ↗</a></div><p>YouTube shows the video length.</p>` : ''}`);
 }
 
@@ -1919,7 +1919,7 @@ function renderWbLang() {
   const opts = W.cands.map((c, i) => W.failed.has(i) ? '' : `<option value="${i}" ${i === W.cand ? 'selected' : ''}>${esc(c.lang)}${c.day ? ' (full-day stream)' : ''}</option>`).join('');
   box.innerHTML = `<select id="wbLangSel" aria-label="Broadcast language">${opts}</select>
     ${v && en && v.locale !== 'en-US' && W.failed.has(W.cands.indexOf(en))
-      ? `<span class="note">English only plays on lolesports.com · <a href="https://www.youtube.com/watch?v=${esc(en.id)}" target="_blank" rel="noopener" title="YouTube shows the video length">English on YouTube ↗</a></span>` : ''}`;
+      ? `<span class="note">The English video won't play here · <a href="https://www.youtube.com/watch?v=${esc(en.id)}" target="_blank" rel="noopener" title="YouTube shows the video length">English on YouTube ↗</a></span>` : ''}`;
 }
 $('wbLang').addEventListener('change', e => {
   if (e.target.id !== 'wbLangSel') return;
