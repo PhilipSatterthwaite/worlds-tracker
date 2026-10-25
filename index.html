@@ -926,12 +926,15 @@ function goldHist(gameId) {
   return state.gold[gameId] ||= { pts: [], filled: false };
 }
 
+// Points stay ~10s apart, except the last one, which tracks the newest frame
+// so the graph's end matches the scoreboard.
 function goldPoints(G, frames, toMs) {
   for (const f of frames) {
     const ms = toMs(Date.parse(f.rfc460Timestamp));
-    if (f.blueTeam.totalGold && (!G.pts.length || ms >= G.pts.at(-1)[0] + 10e3)) {
-      G.pts.push([ms, f.blueTeam.totalGold - f.redTeam.totalGold]);
-    }
+    if (!f.blueTeam.totalGold || (G.pts.length && ms <= G.pts.at(-1)[0])) continue;
+    const pt = [ms, f.blueTeam.totalGold - f.redTeam.totalGold];
+    if (G.pts.length >= 2 && ms - G.pts.at(-2)[0] < 10e3) G.pts[G.pts.length - 1] = pt;
+    else G.pts.push(pt);
   }
 }
 
