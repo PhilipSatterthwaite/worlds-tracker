@@ -23,8 +23,10 @@
     --loss: #f87171;
     --live: #ff4655;
     --radius: 10px;
+    color-scheme: dark;
   }
   * { box-sizing: border-box; }
+  .scroll { scrollbar-width: thin; scrollbar-color: var(--line-2) transparent; }
   html, body { margin: 0; }
   body {
     background: var(--bg);
@@ -81,7 +83,7 @@
   .hero-team .full { display: block; font-size: 12px; font-weight: 500; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .hero-score { font-size: 30px; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--gold); white-space: nowrap; }
   .hero-meta { color: var(--muted); font-size: 13px; display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
-  .countdown { font-variant-numeric: tabular-nums; color: var(--text); font-weight: 600; }
+  .hero-label .when { text-transform: none; letter-spacing: 0; font-size: 13px; color: var(--gold); font-weight: 700; }
   .hero-empty { color: var(--muted); padding: 8px 0; }
   .watch { color: var(--gold); text-decoration: none; font-weight: 600; }
   .watch:hover { text-decoration: underline; }
@@ -107,14 +109,18 @@
   @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .3; } }
 
   /* Stage tabs */
-  .tabs { display: flex; gap: 6px; border-bottom: 1px solid var(--line); margin-bottom: 22px; overflow-x: auto; }
+  .tabs {
+    display: flex; gap: 6px; margin-bottom: 22px; box-shadow: inset 0 -1px 0 var(--line);
+    overflow-x: auto; overflow-y: hidden; scrollbar-width: none;
+  }
+  .tabs::-webkit-scrollbar { display: none; }
   .tab {
-    background: none; border: 0; border-bottom: 2px solid transparent; border-radius: 0;
-    padding: 10px 16px 11px; margin-bottom: -1px; color: var(--muted); font-weight: 700; font-size: 15px;
+    background: none; border: 0; border-radius: 0;
+    padding: 10px 16px 12px; color: var(--muted); font-weight: 700; font-size: 15px;
     display: flex; flex-direction: column; align-items: flex-start; gap: 1px; white-space: nowrap;
   }
-  .tab:hover { color: var(--text); border-color: transparent; }
-  .tab.on { color: var(--text); border-bottom-color: var(--gold); }
+  .tab:hover { color: var(--text); }
+  .tab.on { color: var(--text); box-shadow: inset 0 -2px 0 var(--gold); }
   .tab .ts { font-size: 11px; font-weight: 500; color: var(--muted); display: flex; align-items: center; gap: 6px; }
   .tab .ts.live { color: var(--live); font-weight: 700; }
   .panel[hidden] { display: none; }
@@ -173,6 +179,21 @@
   .out.e .tchip:not(.tbd) { opacity: .7; }
   .legend { display: flex; gap: 18px; flex-wrap: wrap; color: var(--muted); font-size: 12px; margin: -4px 0 14px; }
   .legend i { display: inline-block; width: 22px; height: 0; border-top: 2px solid; vertical-align: middle; margin-right: 6px; }
+  /* Hover/tap a team to trace its path through the Swiss chart */
+  .mm .mt[data-team], .tchip[data-team] { cursor: pointer; }
+  .sw.focus .mm:not(.hl), .sw.focus .tchip:not(.hl) { opacity: .22; }
+  .sw.focus .mt.me { color: var(--gold); opacity: 1; }
+  .sw .mm, .sw .tchip { transition: opacity .15s; }
+
+  /* Stage header + "how it works" */
+  .stage-h { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+  .stage-h h2 { margin: 0; }
+  .info-btn { font-size: 12px; padding: 3px 10px; border-radius: 999px; color: var(--muted); }
+  .info-btn[aria-expanded="true"] { color: var(--gold); border-color: var(--gold); }
+  .info { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 18px; margin: 0 0 16px; color: #c3cad6; font-size: 13px; max-width: 760px; }
+  .info ul { margin: 0; padding-left: 18px; }
+  .info li + li { margin-top: 4px; }
+  .info b { color: var(--text); }
 
   /* Play-In double elimination */
   .pi { display: grid; grid-template-columns: repeat(4, minmax(200px, 1fr)); column-gap: 52px; row-gap: 18px; min-width: 940px; align-items: center; }
@@ -248,20 +269,47 @@
   <nav class="tabs" id="tabs" role="tablist"></nav>
 
   <div class="panel" id="panel-playin" hidden>
-    <h2>Play-In <small>Los Angeles · Oct 15–18 · double elimination, all Bo5 · winner joins the Swiss Stage</small></h2>
+    <div class="stage-h">
+      <h2>Play-In <small>Los Angeles · Oct 15–18</small></h2>
+      <button class="info-btn" aria-expanded="false" aria-controls="info-playin">How it works</button>
+    </div>
+    <div class="info" id="info-playin" hidden><ul>
+      <li><b>4 teams</b> (the lowest seeds from LEC, LCS, LCP and CBLOL) play for <b>one spot</b> in the Swiss Stage.</li>
+      <li><b>Double elimination:</b> lose once and you drop to the lower bracket; lose twice and you're out.</li>
+      <li>Every series is <b>best of 5</b>. The upper-bracket winner meets the lower-bracket winner in the qualifier final.</li>
+    </ul></div>
     <div class="scroll"><div class="board pi" id="piBoard"></div></div>
     <div id="piSched"></div>
   </div>
 
   <div class="panel" id="panel-swiss" hidden>
-    <h2>Swiss Stage <small>Allen, TX · Oct 23–31 · 3 wins advance, 3 losses out · Bo3 when advancement or elimination is on the line</small></h2>
+    <div class="stage-h">
+      <h2>Swiss Stage <small>Allen, TX · Oct 23–31</small></h2>
+      <button class="info-btn" aria-expanded="false" aria-controls="info-swiss">How it works</button>
+    </div>
+    <div class="info" id="info-swiss" hidden><ul>
+      <li><b>16 teams</b>: 15 qualified through their leagues plus the Play-In winner.</li>
+      <li>Every round, teams play an opponent with the <b>same record</b> (1–0 vs 1–0, 0–2 vs 0–2…), drawn at random. Round 1 is drawn from seeding pots with no same-region matchups, and no one plays the same team twice.</li>
+      <li><b>3 wins advances</b> to the Knockout Stage; <b>3 losses eliminates</b>. That takes at most 5 rounds, and 8 teams go through.</li>
+      <li>Matches are <b>best of 1</b>, except when a team can qualify or be eliminated (any 2–x or x–2 record), which are <b>best of 3</b>.</li>
+      <li>Your record seeds the quarterfinal draw: the two <b>3–0</b> teams each face a <b>3–2</b> team; the remaining four are drawn at random.</li>
+      <li>Tip: hover or tap a team to trace its path through the chart.</li>
+    </ul></div>
     <div class="legend"><span><i style="border-color:var(--win)"></i>Winners move up</span><span><i style="border-color:var(--loss)"></i>Losers move down</span></div>
     <div class="scroll"><div class="board sw" id="swBoard"></div></div>
     <div id="swSched"></div>
   </div>
 
   <div class="panel" id="panel-ko" hidden>
-    <h2>Knockout Stage <small>Quarters &amp; semis in Allen, TX · Final at Barclays Center, Brooklyn · all Bo5</small></h2>
+    <div class="stage-h">
+      <h2>Knockout Stage <small>Allen, TX · Nov 3–8 &nbsp;·&nbsp; Final: Brooklyn, NY · Nov 14</small></h2>
+      <button class="info-btn" aria-expanded="false" aria-controls="info-ko">How it works</button>
+    </div>
+    <div class="info" id="info-ko" hidden><ul>
+      <li>The <b>8 teams</b> that reached 3 Swiss wins play a <b>single-elimination</b> bracket. Every series is <b>best of 5</b>.</li>
+      <li>Quarterfinal draw: the two 3–0 teams each get a 3–2 team; the other four are paired at random.</li>
+      <li>Quarterfinals and semifinals are in Allen, TX; the Grand Final is at Barclays Center in Brooklyn.</li>
+    </ul></div>
     <div class="scroll"><div class="board ko" id="koBoard"></div></div>
     <div id="koSched"></div>
   </div>
@@ -497,14 +545,14 @@ const fmtWhen = new Intl.DateTimeFormat(undefined, { weekday: 'short', hour: 'nu
 const fmtRange = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' });
 const dayKey = d => `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
 
-function until(t) {
-  let s = Math.max(0, Math.round((t - Date.now()) / 1000));
-  const d = Math.floor(s / 86400); s -= d * 86400;
-  const h = Math.floor(s / 3600); s -= h * 3600;
-  const m = Math.floor(s / 60); s -= m * 60;
-  if (d) return `${d}d ${h}h ${m}m`;
-  if (h) return `${h}h ${String(m).padStart(2, '0')}m ${String(s).padStart(2, '0')}s`;
-  return `${m}m ${String(s).padStart(2, '0')}s`;
+const fmtDate = new Intl.DateTimeFormat(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+
+// "Today 2:00 PM", "Tomorrow 1:00 PM", else "Wed, Oct 28 · 4:00 PM".
+function whenLabel(t) {
+  const now = new Date(), tom = new Date(now);
+  tom.setDate(now.getDate() + 1);
+  const day = dayKey(t) === dayKey(now) ? 'Today' : dayKey(t) === dayKey(tom) ? 'Tomorrow' : `${fmtDate.format(t)} ·`;
+  return `${day} ${fmtTime.format(t)}`;
 }
 
 function ago(t) {
@@ -532,29 +580,33 @@ const logo = t => t?.image ? `<img class="lg" src="${esc(t.image)}" alt="" loadi
 
 /* ---------- connectors ---------- */
 
-// Draws curved arrows between [data-node] elements inside a board. Each link
-// leaves the right edge and enters the left edge, nudged up or down toward
-// the other end so a box's incoming and outgoing lines don't pile up.
+// Draws curved arrows between [data-node] elements inside a board. A link
+// leaves the middle of the source box's right edge and lands on the target's
+// header (its record label, or the match card), so it points at the pool or
+// match, never at one team's row. The curve ends level, and the fixed-size
+// arrowhead sits on the very end of the line with its tip touching the box.
 function drawLinks(board, links) {
   board.querySelector(':scope > svg.links')?.remove();
   if (!board.offsetParent) return; // hidden tab: drawn when shown
   const base = board.getBoundingClientRect();
   const node = id => board.querySelector(`[data-node="${id}"]`);
-  const color = { win: 'var(--win)', loss: 'var(--loss)', path: 'var(--line-2)' };
+  const color = { win: '#4ade80', loss: '#f87171', path: '#4a5878' };
+  const HEAD = 7;
   let paths = '';
   for (const { from, to, kind, dashed } of links) {
     const a = node(from), b = node(to);
     if (!a || !b) continue;
-    const ra = a.getBoundingClientRect(), rb = b.getBoundingClientRect();
-    const ca = ra.top + ra.height / 2, cb = rb.top + rb.height / 2;
-    const nudge = (r, other) => other < r.top + r.height * .35 ? .3 : other > r.top + r.height * .65 ? .7 : .5;
-    const x1 = ra.right - base.left, y1 = ra.top + ra.height * nudge(ra, cb) - base.top;
-    const x2 = rb.left - base.left - 4, y2 = rb.top + rb.height * nudge(rb, ca) - base.top;
-    const dx = Math.max(16, (x2 - x1) / 2);
-    paths += `<path d="M${x1},${y1} C${x1 + dx},${y1} ${x2 - dx},${y2} ${x2},${y2}" fill="none" stroke="${color[kind]}" stroke-opacity=".7" stroke-width="1.6" ${dashed ? 'stroke-dasharray="4 4"' : ''} marker-end="url(#ah-${kind})"/>`;
+    const ra = (a.querySelector('.mc') || a).getBoundingClientRect();
+    const rb = (b.querySelector('.pool-h') || b.querySelector('.mc') || b).getBoundingClientRect();
+    const x1 = ra.right - base.left, y1 = ra.top + ra.height / 2 - base.top;
+    const tipX = b.getBoundingClientRect().left - base.left, y2 = rb.top + rb.height / 2 - base.top;
+    const x2 = tipX - HEAD; // line stops where the arrowhead's base begins
+    const dx = Math.max(12, (x2 - x1) * .55);
+    const c = color[kind];
+    paths += `<path d="M${x1},${y1} C${x1 + dx},${y1} ${x2 - dx},${y2} ${x2},${y2}" fill="none" stroke="${c}" stroke-opacity=".65" stroke-width="1.5" stroke-linecap="round" ${dashed ? 'stroke-dasharray="4 4"' : ''}/>`
+      + `<path d="M${x2 - .5},${y2 - HEAD / 2 - .5} L${tipX},${y2} L${x2 - .5},${y2 + HEAD / 2 + .5} z" fill="${c}" fill-opacity=".9"/>`;
   }
-  const marker = k => `<marker id="ah-${k}" viewBox="0 0 8 8" refX="6" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="${color[k]}" fill-opacity=".8"/></marker>`;
-  board.insertAdjacentHTML('afterbegin', `<svg class="links" width="${board.scrollWidth}" height="${board.scrollHeight}"><defs>${Object.keys(color).map(marker).join('')}</defs>${paths}</svg>`);
+  board.insertAdjacentHTML('afterbegin', `<svg class="links" width="${board.scrollWidth}" height="${board.scrollHeight}">${paths}</svg>`);
 }
 
 const boardLinks = {};
@@ -613,7 +665,7 @@ function upcomingList(ms, emptyText) {
         ${cell(m.t1, 1)}
         <span class="vs ${live ? '' : 'up'}">${live ? `${m.s1 ?? 0} – ${m.s2 ?? 0}` : 'vs'}</span>
         ${cell(m.t2, 2)}
-        <span class="st" ${!live && m.time > now ? `data-until="${+m.time}"` : ''}>${live ? '<span class="tag"><span class="live-pip"></span>LIVE</span>' : m.time > now ? until(m.time) : 'Starting soon'}</span>
+        <span class="st">${live ? '<span class="tag"><span class="live-pip"></span>LIVE</span>' : ''}</span>
       </div>`;
     }
     html += `</div></div>`;
@@ -658,9 +710,9 @@ function heroCard(m, kind) {
       <div class="nm">${esc(t?.short || 'TBD')}<span class="full">${t && t.name !== t.short ? esc(t.name) : ''}</span></div></div>`;
   const meta = live
     ? `<span>${esc(stageLabel(m))} · Bo${m.bo}</span><a class="watch" href="https://lolesports.com/live/worlds" target="_blank" rel="noopener">Watch live ↗</a>`
-    : `<span>${esc(stageLabel(m))} · Bo${m.bo} · ${fmtShort.format(m.time)}</span><span class="countdown" data-until="${+m.time}">${until(m.time)}</span>`;
+    : `<span>${esc(stageLabel(m))} · Bo${m.bo}</span>`;
   return `<div class="hero-card ${live ? 'live' : ''}">
-    <div class="hero-label">${live ? '<span class="live-pip"></span>Live now' : 'Up next'}</div>
+    <div class="hero-label">${live ? '<span class="live-pip"></span>Live now' : `Up next · <span class="when">${whenLabel(m.time)}</span>`}</div>
     <div class="hero-teams">${side(m.t1)}<div class="hero-score">${score}</div>${side(m.t2, true)}</div>
     ${live ? liveStats(m) : ''}
     <div class="hero-meta">${meta}</div></div>`;
@@ -817,14 +869,14 @@ const SWISS_COLS = [
   { title: 'Round 3', nodes: ['2–0', '1–1', '0–2'] },
   { title: 'Round 4', nodes: ['3–0', '2–1', '1–2', '0–3'] },
   { title: 'Round 5', nodes: ['3–1', '2–2', '1–3'] },
-  { title: 'Final records', nodes: ['3–2', '2–3'] },
+  { title: '&nbsp;', nodes: ['3–2', '2–3'] },
 ];
 
 function miniMatch(m) {
   const side = (t, s) => {
     const cls = !t ? 'tbd' : m.winner && m.winner !== s ? 'l' : '';
     const name = `<span title="${esc(t?.name || 'TBD')}">${esc(t?.short || 'TBD')}</span>`;
-    return `<span class="mt ${s === 1 ? 'a' : 'b'} ${cls}">${s === 1 ? name + logo(t) : logo(t) + name}</span>`;
+    return `<span class="mt ${s === 1 ? 'a' : 'b'} ${cls}" ${t ? `data-team="${esc(t.id)}"` : ''}>${s === 1 ? name + logo(t) : logo(t) + name}</span>`;
   };
   const mid = m.status === 'done' ? `<span class="ms">${m.s1 ?? 0}–${m.s2 ?? 0}</span>`
     : m.status === 'live' ? `<span class="ms"><span class="live-pip"></span>${m.s1 ?? 0}–${m.s2 ?? 0}</span>`
@@ -848,7 +900,7 @@ function renderSwiss() {
     const [w, l] = key.split('–').map(Number);
     const q = w === 3;
     const teams = records.filter(r => r.w === w && r.l === l);
-    const chips = teams.map(r => `<span class="tchip" title="${esc(r.team.name)}">${logo(r.team)}${esc(r.team.short)}</span>`).join('')
+    const chips = teams.map(r => `<span class="tchip" data-team="${esc(r.team.id)}" title="${esc(r.team.name)}">${logo(r.team)}${esc(r.team.short)}</span>`).join('')
       + '<span class="tchip tbd">TBD</span>'.repeat(Math.max(0, OUT_SIZE[key] - teams.length));
     return `<div class="node out ${q ? 'q' : 'e'}" data-node="sw-${key}"><div class="pool-h"><b>${key}</b><span>${q ? 'Qualified' : 'Eliminated'}</span></div><div class="out-teams">${chips}</div></div>`;
   };
@@ -862,7 +914,39 @@ function renderSwiss() {
     links.push({ from: `sw-${key}`, to: `sw-${w}–${l + 1}`, kind: 'loss' });
   }
   boardLinks.swBoard = links;
+  focusTeam(state.focus);
   $('swSched').innerHTML = upcomingList(swiss);
+}
+
+// Highlights every match and result chip for one team, dimming the rest.
+function focusTeam(id) {
+  state.focus = id || null;
+  const board = $('swBoard');
+  board.classList.toggle('focus', !!state.focus);
+  for (const el of board.querySelectorAll('.mm, .tchip')) {
+    el.classList.toggle('hl', !!state.focus && (el.dataset.team === state.focus || !!el.querySelector(`[data-team="${CSS.escape(state.focus)}"]`)));
+  }
+  for (const el of board.querySelectorAll('.mt[data-team]')) el.classList.toggle('me', el.dataset.team === state.focus);
+}
+const swBoardEl = $('swBoard');
+swBoardEl.addEventListener('mouseover', e => {
+  const t = e.target.closest('[data-team]');
+  if (t && t.dataset.team !== state.focus) focusTeam(t.dataset.team);
+});
+swBoardEl.addEventListener('mouseleave', () => focusTeam(state.pinned));
+// Touch: tap a team to pin its path, tap it again or anywhere else to clear.
+swBoardEl.addEventListener('click', e => {
+  const t = e.target.closest('[data-team]');
+  focusTeam(t && t.dataset.team !== state.pinned ? (state.pinned = t.dataset.team) : (state.pinned = null));
+});
+
+for (const btn of document.querySelectorAll('.info-btn')) {
+  btn.addEventListener('click', () => {
+    const box = $(btn.getAttribute('aria-controls'));
+    box.hidden = !box.hidden;
+    btn.setAttribute('aria-expanded', String(!box.hidden));
+    drawAll(); // the board below moved
+  });
 }
 
 /* ---------- Knockout ---------- */
@@ -915,7 +999,6 @@ function render() {
 // each minute so "Today" and countdown-to-live transitions stay right.
 let lastMinute = 0;
 function tick() {
-  for (const el of document.querySelectorAll('[data-until]')) el.textContent = until(+el.dataset.until);
   // Run the game clock forward between 10s stat polls.
   for (const el of document.querySelectorAll('[data-clock]')) {
     el.textContent = clock(+el.dataset.clock + (el.dataset.run === '1' ? Date.now() - +el.dataset.at : 0));
