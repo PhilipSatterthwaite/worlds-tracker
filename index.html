@@ -344,6 +344,12 @@ if (/^((www|ads)\.esportstracker\.app|philipsatterthwaite\.github\.io)$/.test(lo
   .srow .st { text-align: right; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
   .srow.live { background: rgba(255,70,85,.06); }
   .srow.live .st { color: var(--live); font-weight: 700; }
+  /* A result you just revealed: stays listed, score showing, until ✓ Done. */
+  .srow.kept { background: var(--gold-soft); box-shadow: inset 3px 0 0 var(--gold); }
+  .srow .lose { opacity: .45; }
+  .done-btn { font: inherit; font-size: 11px; font-weight: 700; line-height: 18px; padding: 0 8px; border-radius: 5px; cursor: pointer; color: var(--win); background: rgba(74,222,128,.1); border: 1px solid rgba(74,222,128,.45); }
+  .done-btn:hover { background: rgba(74,222,128,.2); }
+  h3.sub .linkish { margin-left: 8px; text-transform: none; letter-spacing: 0; font-weight: 500; }
   .tag { display: inline-flex; align-items: center; gap: 6px; }
 
   /* Header: no-spoilers switch */
@@ -1431,7 +1437,8 @@ function matchCard(m, placeholder) {
 function upcomingList(ms, emptyText) {
   const now = new Date();
   const today = dayKey(now);
-  const list = ms.filter(m => m.status !== 'done');
+  const kept = m => state.spoil.on && m.status === 'done' && state.spoil.kept.includes(m.id);
+  const list = ms.filter(m => m.status !== 'done' || kept(m));
   if (!list.length) return emptyText ? `<h3 class="sub">Schedule</h3><p class="note">${emptyText}</p>` : '';
   const days = new Map();
   for (const m of list) {
@@ -1441,21 +1448,25 @@ function upcomingList(ms, emptyText) {
   }
   const cell = (t, side, m) => {
     const name = t ? `<span title="${esc(t.name)}">${esc(t.short)}</span>` : `<span>${tbdName(m, side)}</span>`;
-    return `<span class="${side === 1 ? 'a' : 'b'} ${t ? '' : 'tbd'}">${side === 1 ? name + logo(t) : logo(t) + name}</span>`;
+    const lost = kept(m) && m.winner && m.winner !== side;
+    return `<span class="${side === 1 ? 'a' : 'b'} ${t ? '' : 'tbd'} ${lost ? 'lose' : ''}">${side === 1 ? name + logo(t) : logo(t) + name}</span>`;
   };
-  let html = `<h3 class="sub">${state.spoil.on ? 'To watch & upcoming' : 'Upcoming'}</h3>`;
+  const keptIds = list.filter(kept).map(m => m.id);
+  let html = `<h3 class="sub">${state.spoil.on ? 'To watch & upcoming' : 'Upcoming'}${keptIds.length > 1
+    ? ` <button class="linkish" data-done="${esc(keptIds.join(','))}">Mark all revealed done</button>` : ''}</h3>`;
   for (const [k, day] of days) {
     html += `<div class="day"><div class="day-h ${k === today ? 'today' : ''}">${fmtDay.format(day[0].time)}${k === today ? ' · Today' : ''}</div><div class="rows">`;
     for (const m of day) {
-      const live = m.status === 'live' || m.liveNow, hidden = m.status === 'hidden';
+      const live = m.status === 'live' || m.liveNow, hidden = m.status === 'hidden', shown = kept(m);
       const pip = live ? '<span class="live-pip"></span>LIVE' : '';
       const st = hidden ? `<span class="tag">${pip}<button class="reveal" data-reveal="${esc(m.id)}">${m.liveNow ? 'Show live score' : 'Reveal'}</button>${watchBtn(m, '▶ Watch')}</span>`
+        : shown ? `<span class="tag">${watchBtn(m, '↺ Rewatch')}<button class="done-btn" data-done="${esc(m.id)}" title="Mark as watched and take it off this list">✓ Done</button></span>`
         : live ? `<span class="tag">${pip}${watchBtn(m, '▶ Watch')}</span>` : '';
-      html += `<div class="srow ${live ? 'live' : ''}">
+      html += `<div class="srow ${live ? 'live' : ''} ${shown ? 'kept' : ''}">
         <span class="t">${fmtTime.format(m.time)}</span>
         <span class="stg">${esc(stageLabel(m))} · Bo${m.bo}</span>
         ${cell(m.t1, 1, m)}
-        <span class="vs ${live && !hidden ? '' : 'up'}">${hidden ? '?' : live ? `${m.s1 ?? 0} – ${m.s2 ?? 0}` : 'vs'}</span>
+        <span class="vs ${(live && !hidden) || shown ? '' : 'up'}">${hidden ? '?' : live || shown ? `${m.s1 ?? 0} – ${m.s2 ?? 0}` : 'vs'}</span>
         ${cell(m.t2, 2, m)}
         <span class="st">${st}</span>
       </div>`;
@@ -2029,6 +2040,7 @@ function renderKnockout() {
 const SPOIL_KEY = 'worlds2026.nospoil.v1';
 // revealed: match ids whose results you've chosen to see. peek: live matches
 // whose score you looked at; those go back to hidden once they finish.
+// kept: revealed results still listed under "To watch" until you mark them ✓ Done.
 // fresh: nothing saved yet (a first visit), until any change is saved.
 state.spoil = (() => {
   let s = null;
@@ -2038,6 +2050,7 @@ state.spoil = (() => {
     on: typeof o.on === 'boolean' ? o.on : true,
     revealed: Array.isArray(o.revealed) ? o.revealed.filter(x => typeof x === 'string') : [],
     peek: Array.isArray(o.peek) ? o.peek.filter(x => typeof x === 'string') : [],
+    kept: Array.isArray(o.kept) ? o.kept.filter(x => typeof x === 'string') : [],
     ...(typeof o.through === 'string' ? { through: o.through } : {}),
     ...(o.noAsk ? { noAsk: true } : {}),
     fresh: !s,
@@ -2141,7 +2154,9 @@ const plural = (n, word) => `${n} ${word}${n > 1 ? 's' : ''}`;
 function revealIds(ms) {
   for (const x of ms) {
     if (isRevealed(x)) continue;
-    (realStatus(x) === 'live' ? state.spoil.peek : state.spoil.revealed).push(x.id);
+    if (realStatus(x) === 'live') { state.spoil.peek.push(x.id); continue; }
+    state.spoil.revealed.push(x.id);
+    state.spoil.kept.push(x.id); // stays in the to-watch list, score showing, until ✓ Done
   }
   saveSpoil();
   render();
@@ -2267,7 +2282,9 @@ document.addEventListener('click', e => {
   if (r) { revealThrough(r.dataset.reveal); return; }
   const bk = e.target.closest('[data-bulk]');
   if (bk) { for (const s of STAGES) { const g = bulkGroups(s.key).find(x => x.key === bk.dataset.bulk); if (g) return revealGroup(g.ms, g.what); } return; }
-  if (e.target.closest('[data-hide-all]')) { state.spoil.revealed = []; state.spoil.peek = []; state.spoil.noAsk = false; wbReset(); saveSpoil(); render(); return; }
+  if (e.target.closest('[data-hide-all]')) { state.spoil.revealed = []; state.spoil.peek = []; state.spoil.kept = []; state.spoil.noAsk = false; wbReset(); saveSpoil(); render(); return; }
+  const dn = e.target.closest('[data-done]');
+  if (dn) { const ids = dn.dataset.done.split(','); state.spoil.kept = state.spoil.kept.filter(id => !ids.includes(id)); saveSpoil(); render(); return; }
   const f = e.target.closest('[data-first]');
   if (f) { if (f.dataset.first === 'show') { state.spoil.on = false; state.tab = null; } saveSpoil(); render(); return; }
   const w = e.target.closest('[data-watch]');
