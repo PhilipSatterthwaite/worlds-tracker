@@ -1961,15 +1961,32 @@ function renderSpoilBar() {
 
 // Reveals one result, in any order. If either team still has an earlier
 // result hidden, revealing this match would give it away, so those are
-// revealed with it (after asking).
+// revealed with it (after asking, unless you're watching this match: the
+// video already showed who's playing, and you agreed to that in watchMatch).
 function revealThrough(id) {
   const m = state.matches.find(x => x.id === id);
   if (!m || isRevealed(m)) return;
   const deps = revealDeps(m);
-  if (deps.length && !confirm(`This also reveals ${deps.length} earlier result${deps.length > 1 ? 's' : ''} it depends on. Continue?`)) return;
+  const watching = !$('wb').hidden && W.match?.id === id;
+  if (deps.length && !watching && !confirm(`This also reveals ${deps.length} earlier result${deps.length > 1 ? 's' : ''} it depends on. Continue?`)) return;
   state.spoil.revealed.push(...deps.map(x => x.id), m.id);
   saveSpoil();
   render();
+}
+
+// Watching a match shows who's playing, which gives away the earlier results
+// that put them there. Ask once, before the video opens, and reveal those.
+function watchMatch(id) {
+  const m = state.matches.find(x => x.id === id);
+  if (!m) return;
+  const deps = state.spoil.on ? revealDeps(m) : [];
+  if (deps.length) {
+    if (!confirm(`Watching this shows who's playing, which gives away ${deps.length} earlier result${deps.length > 1 ? 's' : ''}. Reveal ${deps.length > 1 ? 'them' : 'it'} and watch?`)) return;
+    state.spoil.revealed.push(...deps.map(x => x.id));
+    saveSpoil();
+    render();
+  }
+  openWatch(id);
 }
 
 $('nospoil').addEventListener('change', e => {
@@ -1983,7 +2000,7 @@ document.addEventListener('click', e => {
   if (r) { revealThrough(r.dataset.reveal); return; }
   if (e.target.closest('[data-hide-all]')) { state.spoil.revealed = []; wbReset(); saveSpoil(); render(); return; }
   const w = e.target.closest('[data-watch]');
-  if (w) openWatch(w.dataset.watch);
+  if (w) watchMatch(w.dataset.watch);
 });
 
 const watchBtn = (m, label = '▶') => `<button class="wbtn" data-watch="${esc(m.id)}" title="Rewatch without spoilers">${label}</button>`;
