@@ -429,7 +429,8 @@ if (/^((www|ads)\.esportstracker\.app|philipsatterthwaite\.github\.io)$/.test(lo
   .wb-cover h3 { margin: 0; font-size: 18px; }
   .wb-cover .acts { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
 
-  .wb-top, .wb-bottom { position: absolute; left: 0; right: 0; z-index: 2; transition: opacity .25s; }
+  /* The bars ease in and out (sliding a little toward their edge) rather than popping. */
+  .wb-top, .wb-bottom { position: absolute; left: 0; right: 0; z-index: 2; transition: opacity .35s ease, transform .35s ease; }
   .wb-top { top: 0; display: flex; align-items: center; gap: 12px; padding: 10px 10px 30px 18px; background: linear-gradient(rgba(0,0,0,.72), transparent); }
   .wb-games { display: inline-flex; gap: 4px; flex-wrap: wrap; }
   .wb-games button { font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 999px; background: rgba(255,255,255,.1); border-color: transparent; color: #dfe4ee; }
@@ -457,6 +458,8 @@ if (/^((www|ads)\.esportstracker\.app|philipsatterthwaite\.github\.io)$/.test(lo
   .wb-stage.solid .wb-bottom { display: none; }
   .wb-stage.idle { cursor: none; }
   .wb-stage.idle .wb-top, .wb-stage.idle .wb-bottom { opacity: 0; pointer-events: none; }
+  .wb-stage.idle .wb-top { transform: translateY(-10px); }
+  .wb-stage.idle .wb-bottom { transform: translateY(12px); }
 
   /* Scrubber: spans only what you've already watched; the right end is "live". */
   .wb-bar { position: relative; height: 18px; margin: 0 8px; cursor: pointer; touch-action: none; display: flex; align-items: center; }
