@@ -1338,8 +1338,7 @@ async function fetchLive(match) {
     await trackObjectives(T, w.frames);
     now = gameMs(T, Date.parse(f.rfc460Timestamp));
     const G = goldHist(game.id);
-    goldPoints(G, w.frames, ts => gameMs(T, ts));
-    fillGold(G, game.id, T.start, Date.parse(w.frames[0].rfc460Timestamp));
+    goldPoints(G, game.id, T.start, w.frames, ts => gameMs(T, ts));
   }
   // Items come from the details feed, ~250 KB a poll, so refresh them every 30s.
   const D = state.details;
@@ -1383,45 +1382,49 @@ async function finalSnapshot(match, ev, game, w) {
   const snap = { ...snapshot(match, ev, game, w, await liveDetails(game.id), start ? Date.parse(f.rfc460Timestamp) - start : null), final: true };
   if (start) {
     const G = goldHist(game.id);
-    goldPoints(G, [f], ts => ts - start);
-    fillGold(G, game.id, start, Date.parse(f.rfc460Timestamp));
+    goldPoints(G, game.id, start, [f], ts => ts - start);
   }
   if (f.gameState === 'finished') state.finalSnap = { id: game.id, snap };
   return snap;
 }
 
 // Gold difference (blue − red) through a game as [game ms, diff] points: one
-// every ~10s while watching, plus one a minute fetched once for the part of
-// the game before the page was open.
+// every ~10s while watching, plus one a minute fetched for any stretch the
+// page missed (before it was open, or while the tab was hidden).
 function goldHist(gameId) {
-  return state.gold[gameId] ||= { pts: [], filled: false };
+  return state.gold[gameId] ||= { pts: [[0, 0]], lastTs: 0 };
 }
 
 // Points stay ~10s apart, except the last one, which tracks the newest frame
 // so the graph's end matches the scoreboard.
-function goldPoints(G, frames, toMs) {
-  for (const f of frames) {
+function goldPoints(G, gameId, start, frames, toMs) {
+  const fresh = frames.filter(f => f.blueTeam.totalGold && Date.parse(f.rfc460Timestamp) > G.lastTs);
+  if (!fresh.length) return;
+  const from = G.lastTs || start, to = Date.parse(fresh[0].rfc460Timestamp);
+  if (to - from > 90e3) fillGold(G, gameId, from, to, toMs);
+  for (const f of fresh) {
     const ms = toMs(Date.parse(f.rfc460Timestamp));
-    if (!f.blueTeam.totalGold || (G.pts.length && ms <= G.pts.at(-1)[0])) continue;
+    if (ms <= G.pts.at(-1)[0]) continue;
     const pt = [ms, f.blueTeam.totalGold - f.redTeam.totalGold];
     if (G.pts.length >= 2 && ms - G.pts.at(-2)[0] < 10e3) G.pts[G.pts.length - 1] = pt;
     else G.pts.push(pt);
   }
+  G.lastTs = Date.parse(fresh.at(-1).rfc460Timestamp);
 }
 
-async function fillGold(G, gameId, start, until) {
-  if (G.filled) return;
-  G.filled = true;
+// One point a minute for feed times (from, to).
+async function fillGold(G, gameId, from, to, toMs) {
   const times = [];
-  for (let t = start + MIN; t < until - 30e3; t += MIN) times.push(t);
-  const got = [[0, 0]];
+  for (let t = from + MIN; t < to - 30e3; t += MIN) times.push(t);
+  const got = [];
   await pool(times, 4, async t => {
     try {
-      const f = (await feedJson(`${FEED}/window/${gameId}?startingTime=${new Date(Math.floor(t / 10e3) * 10e3).toISOString()}`))?.frames?.[0];
-      if (f) got.push([Date.parse(f.rfc460Timestamp) - start, f.blueTeam.totalGold - f.redTeam.totalGold]);
+      const f = (await feedJson(`${FEED}/window/${gameId}?startingTime=${new Date(Math.floor(t / 10e3) * 10e3).toISOString()}`))?.frames?.find(f => f.blueTeam.totalGold);
+      if (f) got.push([toMs(Date.parse(f.rfc460Timestamp)), f.blueTeam.totalGold - f.redTeam.totalGold]);
     } catch {}
   });
-  G.pts = [...got, ...G.pts].sort((a, b) => a[0] - b[0]);
+  if (!got.length) return;
+  G.pts = [...G.pts, ...got].sort((a, b) => a[0] - b[0]);
   renderHero();
 }
 
