@@ -368,11 +368,6 @@ if (/^((www|ads)\.esportstracker\.app|philipsatterthwaite\.github\.io)$/.test(lo
   .hero-card.result { border-color: rgba(200,170,110,.45); }
   .hero-team.l { opacity: .45; }
   /* A finished series on one line (the player's end screen) */
-  .res-line { display: inline-flex; align-items: center; gap: 8px; font-weight: 800; white-space: nowrap; }
-  .res-line span { display: inline-flex; align-items: center; gap: 6px; }
-  .res-line img { width: 22px; height: 22px; object-fit: contain; }
-  .res-line b { color: var(--gold); font-variant-numeric: tabular-nums; }
-  .res-line .l { opacity: .45; }
 
   /* Watch-back player: a stream-style player with overlaid controls that fade out while playing. */
   .wb { position: fixed; inset: 0; z-index: 50; background: rgba(4,6,10,.92); display: flex; align-items: center; justify-content: center; padding: 16px; }
@@ -418,18 +413,25 @@ if (/^((www|ads)\.esportstracker\.app|philipsatterthwaite\.github\.io)$/.test(lo
 
   .wb-top, .wb-bottom { position: absolute; left: 0; right: 0; z-index: 2; transition: opacity .25s; }
   .wb-top { top: 0; display: flex; align-items: center; gap: 12px; padding: 10px 10px 30px 18px; background: linear-gradient(rgba(0,0,0,.72), transparent); }
-  .wb-top b { font-size: 16px; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,.6); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
   .wb-games { display: inline-flex; gap: 4px; flex-wrap: wrap; }
   .wb-games button { font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 999px; background: rgba(255,255,255,.1); border-color: transparent; color: #dfe4ee; }
   .wb-games button.on { background: var(--gold); color: #0a0d14; }
-  .wb-top .wb-x { margin-left: auto; }
-  .wb-res { margin-left: auto; flex: none; font-size: 12px; font-weight: 700; padding: 4px 12px; border-radius: 999px; background: rgba(200,170,110,.16); border: 1px solid rgba(200,170,110,.5); color: var(--gold); }
-  .wb-res:not([hidden]) + .wb-x { margin-left: 0; }
-  .wb-final { display: flex; align-items: center; gap: 14px; font-size: 26px; }
-  .wb-final .res-line { gap: 14px; }
-  .wb-final .res-line img { width: 40px; height: 40px; }
-  .wb-final .res-line span { gap: 10px; }
-  @media (max-width: 600px) { .wb-final { font-size: 18px; } .wb-final .res-line img { width: 26px; height: 26px; } }
+  /* Scoreboard: the series score counts only the games you've revealed. */
+  .wb-sb { display: inline-flex; align-items: center; gap: 10px; flex: none; font-size: 17px; font-weight: 800; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,.6); white-space: nowrap; }
+  .wb-sb span { display: inline-flex; align-items: center; gap: 7px; }
+  .wb-sb img { width: 26px; height: 26px; object-fit: contain; }
+  .wb-sb b { color: var(--gold); font-variant-numeric: tabular-nums; }
+  .wb-step { margin-left: auto; display: inline-flex; flex: none; }
+  .wb-step button { font-size: 13px; font-weight: 700; padding: 5px 14px; border-radius: 999px; background: var(--gold); border: 1px solid var(--gold); color: #0a0d14; }
+  .wb-step button:hover { filter: brightness(1.1); }
+  .wb-step button.ghost { background: rgba(200,170,110,.16); border-color: rgba(200,170,110,.6); color: var(--gold); }
+  .wb-step .over { font-size: 12px; font-weight: 700; padding: 4px 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,.25); background: rgba(0,0,0,.35); color: #dfe4ee; }
+  @media (max-width: 600px) {
+    .wb-top { flex-wrap: wrap; gap: 6px 10px; padding: 8px 8px 22px 12px; }
+    .wb-games { order: 3; flex-basis: 100%; }
+    .wb-sb { font-size: 15px; }
+    .wb-sb img { width: 20px; height: 20px; }
+  }
   /* The fade under the title bar lets clicks through to the cover; only its buttons take them. */
   .wb-top { pointer-events: none; }
   .wb-stage:not(.idle) .wb-top > * { pointer-events: auto; }
@@ -630,9 +632,9 @@ if (/^((www|ads)\.esportstracker\.app|philipsatterthwaite\.github\.io)$/.test(lo
     <div id="wbPlayer"></div>
     <div class="wb-cover solid" id="wbCover"><p>Loading…</p></div>
     <div class="wb-top">
-      <b id="wbTitle"></b>
+      <span class="wb-sb" id="wbTitle"></span>
       <span class="wb-games" id="wbGames"></span>
-      <button class="wb-res" id="wbRes" data-wb="result" hidden></button>
+      <span class="wb-step" id="wbStep"></span>
       <button class="wb-ic sm wb-x" id="wbClose" data-wb="close" title="Close (Esc)" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
     </div>
     <div class="wb-bottom">
@@ -1525,12 +1527,6 @@ const seedLabel = t => {
 const heroSide = (t, r, dim) => `<div class="hero-team ${r ? 'r' : ''} ${dim ? 'l' : ''}">${t?.image ? `<img src="${esc(t.image)}" alt="" onerror="this.remove()">` : ''}
       <div class="nm">${esc(t?.short || 'TBD')}<span class="full">${t && t.name !== t.short ? esc(t.name) : ''}</span><span class="seed">${seedLabel(t)}</span></div></div>`;
 
-// A finished series as one line: logos, codes and the score, loser dimmed.
-const resultLine = m => {
-  const t = (x, k) => `<span class="${m.winner && m.winner !== k ? 'l' : ''}">${x?.image ? `<img src="${esc(x.image)}" alt="" onerror="this.remove()">` : ''}${esc(x?.short || 'TBD')}</span>`;
-  return `<span class="res-line">${t(m.t1, 1)}<b>${m.s1 ?? 0} – ${m.s2 ?? 0}</b>${t(m.t2, 2)}</span>`;
-};
-
 // kind: 'live', 'next' (not played yet), 'result' (the last result you
 // revealed; `opts.next` is the match after it, offered as "Reveal next"), or
 // 'watch' (a hidden result in the queue; `opts.first` marks the next one to
@@ -1985,7 +1981,7 @@ $('nospoil').addEventListener('change', e => {
 document.addEventListener('click', e => {
   const r = e.target.closest('[data-reveal]');
   if (r) { revealThrough(r.dataset.reveal); return; }
-  if (e.target.closest('[data-hide-all]')) { state.spoil.revealed = []; saveSpoil(); render(); return; }
+  if (e.target.closest('[data-hide-all]')) { state.spoil.revealed = []; wbReset(); saveSpoil(); render(); return; }
   const w = e.target.closest('[data-watch]');
   if (w) openWatch(w.dataset.watch);
 });
@@ -1999,11 +1995,13 @@ const canWatch = m => m.status === 'done' || m.status === 'hidden' || m.status =
 // progress bar or length, and the next game is offered without saying
 // whether the series went that far.
 const WB_KEY = 'worlds2026.watch.v1';
-const W = { player: null, match: null, games: [], gameNo: 1, vod: null, timer: null, cover: 'solid', savedAt: 0, rate: 1, edge: 0 };
+const W = { player: null, match: null, games: [], side: {}, win: {}, gameNo: 1, vod: null, timer: null, cover: 'solid', savedAt: 0, rate: 1, edge: 0 };
 const stageEl = $('wbStage');
 
 // pos: where you left off in each video; edge: the furthest point you've
-// watched (the scrubber's "live" end).
+// watched (the scrubber's "live" end); games: per match, the game you're on
+// (n), the furthest you've watched to the end (done) and how many games'
+// results you've revealed (rev).
 function wbStore() {
   try { return { pos: {}, games: {}, edge: {}, ...JSON.parse(localStorage.getItem(WB_KEY)) }; } catch { return { pos: {}, games: {}, edge: {} }; }
 }
@@ -2011,6 +2009,18 @@ function wbSave(fn) {
   const s = wbStore();
   fn(s);
   try { localStorage.setItem(WB_KEY, JSON.stringify(s)); } catch {}
+}
+// A full-day stream holds several games, so its positions are kept per game.
+const posKey = v => v.day ? `${v.id}@${Math.round(v.start)}` : v.id;
+function savePos() {
+  const p = W.player, v = W.vod;
+  if (!v || !p?.getCurrentTime) return;
+  const t = p.getCurrentTime();
+  if (t > v.start) wbSave(s => { s.pos[posKey(v)] = t; s.edge[posKey(v)] = Math.max(W.edge, t); });
+}
+// "Hide all again" starts the rewatches over too.
+function wbReset() {
+  wbSave(s => { s.pos = {}; s.edge = {}; s.games = {}; });
 }
 
 let ytReady = null;
@@ -2077,39 +2087,40 @@ function hideControls() {
 async function openWatch(matchId) {
   const m = state.matches.find(x => x.id === matchId);
   if (!m) return;
-  // "Next match" opens straight from another match's player.
-  try { W.player?.pauseVideo?.(); } catch {}
-  clearInterval(W.timer);
   W.vod = null;
-  W.held = W.atBreak = false;
-  setAd(false);
+  W.atBreak = false;
   W.match = m;
-  $('wbRes').hidden = true;
-  const v = state.view[state.matches.indexOf(m)] || m;
-  $('wbTitle').textContent = `${v.t1?.short || m.t1?.short || 'TBD'} vs ${v.t2?.short || m.t2?.short || 'TBD'} · ${stageLabel(m)}`;
-  $('wbGames').innerHTML = '';
+  W.games = [];
   $('wb').hidden = false;
   document.body.style.overflow = 'hidden';
   // Opens on a play button with a banner under it; the videos load meanwhile.
-  const games = api('getEventDetails', { id: matchId }).then(d => d.event.match.games || []);
-  games.catch(() => {});
+  const ev = api('getEventDetails', { id: matchId }).then(d => d.event.match);
+  ev.catch(() => {});
   W.start = async () => {
     W.start = null;
     cover('solid', '<p>Loading…</p>');
+    let em;
     try {
-      W.games = await games;
+      em = await ev;
     } catch {
       cover('solid', "<p>Couldn't load this match's videos. Try again in a minute.</p>");
       return;
     }
     if (W.match !== m || $('wb').hidden) return;
-    renderWbRes();
+    W.games = em.games || [];
+    // Which of the match's two teams each team id is, to read each game's sides.
+    W.side = Object.fromEntries((em.teams || []).map(t => [t.id, t.code === m.t1?.short ? 1 : 2]));
+    renderWbTop();
+    // Winners of games revealed on an earlier visit, for the score.
+    const R = revealedGames();
+    Promise.all(W.games.filter(g => g.number <= R).map(gameWinner)).then(() => W.match === m && renderWbTop());
     // Pick up where you left off: mid-game resumes the video; after finishing a
     // game you're back on the break screen.
     const r = wbStore().games[m.id];
     if (r?.done && r.done >= (r.n || 1)) intermission(r.done);
     else playGame(r?.n || 1);
   };
+  renderWbTop();
   cover('solid', `<div class="wb-inter wb-pre">
     <button class="wb-start" data-wb="start" title="Play" aria-label="Play">${BIG_PLAY}</button>
     <div class="ad-slot" hidden></div></div>`);
@@ -2117,7 +2128,7 @@ async function openWatch(matchId) {
 }
 
 function closeWatch() {
-  W.held = false;
+  savePos();
   try { W.player?.pauseVideo?.(); } catch {}
   clearInterval(W.timer);
   if (document.fullscreenElement) document.exitFullscreen();
@@ -2127,33 +2138,30 @@ function closeWatch() {
   document.body.style.overflow = '';
 }
 
-// Game buttons: every game once the result is revealed, otherwise only the
-// games already reached, so the count doesn't give away the series length.
-function renderWbGames() {
+// Game buttons: the games you've revealed plus the one after them (if the
+// series went on), so the number of buttons never gives away its length.
+function renderWbGames(R = revealedGames()) {
   const m = W.match;
-  const played = W.games.filter(g => g.state === 'completed').map(g => g.number);
-  const max = Math.min(m.bo, isRevealed(m)
-    ? Math.max(W.gameNo, ...played)
-    : Math.max(W.gameNo, wbStore().games[m.id]?.max || 1));
+  const max = Math.min(m.bo, Math.max(W.gameNo, R + (gameExists(R + 1) ? 1 : 0)));
   const done = wbStore().games[m.id]?.done || 0;
-  $('wbGames').innerHTML = m.bo > 1 ? Array.from({ length: max }, (_, i) =>
+  $('wbGames').innerHTML = m.bo > 1 && W.games.length ? Array.from({ length: max }, (_, i) =>
     `<button class="${i + 1 === W.gameNo ? 'on' : ''}" data-wb-game="${i + 1}" title="${i + 1 <= done ? 'Watched' : ''}">Game ${i + 1}${i + 1 <= done ? ' ✓' : ''}</button>`).join('') : '';
 }
 
 async function playGame(n) {
   const m = W.match, g = W.games.find(x => x.number === n);
+  savePos(); // switching games: keep your place in the one you're leaving
   W.gameNo = n;
   W.atBreak = false;
   W.vod = null;
   clearInterval(W.timer);
   try { W.player?.pauseVideo?.(); } catch {}
-  wbSave(s => { const r = s.games[m.id] ||= { n: 1, max: 1 }; r.n = n; r.max = Math.max(r.max, n); });
-  renderWbGames();
+  wbSave(s => { (s.games[m.id] ||= {}).n = n; });
+  renderWbTop();
   $('wbTime').textContent = '0:00';
   $('wbBar').classList.add('empty');
-  const reveal = isRevealed(m) ? '' : `<button class="reveal" data-reveal="${esc(m.id)}">Reveal result</button>`;
   if (!g || g.state === 'unneeded') {
-    return cover('solid', `<h3>No game ${n}</h3><p>Series ended after game ${n - 1}.</p><div class="acts">${reveal}<button data-wb="close">Close</button></div>`);
+    return cover('solid', `<h3>No game ${n}</h3><p>Series ended after game ${n - 1}.</p><div class="acts"><button data-wb="close">Close</button></div>`);
   }
   if (g.state === 'inProgress') {
     return cover('solid', `<h3>Game ${n} is live right now</h3><p>The video comes after it ends.</p>
@@ -2178,9 +2186,9 @@ async function startVod() {
   cover('solid', '<p>Loading video…</p>');
   await loadYT();
   if (W.vod !== vod) return; // switched games while the player loaded
-  const pos = wbStore().pos[vod.id];
+  const pos = wbStore().pos[posKey(vod)];
   const at = pos && pos > vod.start + 15 ? pos - 3 : vod.start;
-  W.edge = Math.max(wbStore().edge[vod.id] || 0, pos || 0, at);
+  W.edge = Math.max(wbStore().edge[posKey(vod)] || 0, pos || 0, at);
   const end = vod.end ? { end: Math.floor(vod.end) } : {};
   if (!W.player) {
     W.player = new YT.Player('wbPlayer', {
@@ -2241,7 +2249,7 @@ $('wbLang').addEventListener('change', e => {
 });
 
 function wbState(s) {
-  if (!W.vod || W.held) return;
+  if (!W.vod) return;
   if (s === YT.PlayerState.PLAYING) cover('play');
   else if (s === YT.PlayerState.PAUSED || s === YT.PlayerState.CUED) cover('paused');
   else if (s === YT.PlayerState.ENDED) wbEnded();
@@ -2253,8 +2261,8 @@ function wbEnded() {
   const n = W.gameNo;
   if (!W.vod) return;
   wbSave(s => {
-    delete s.pos[W.vod.id];
-    const r = s.games[W.match.id] ||= { n, max: n };
+    delete s.pos[posKey(W.vod)];
+    const r = s.games[W.match.id] ||= { n };
     r.done = Math.max(r.done || 0, n);
   });
   W.vod = null;
@@ -2262,20 +2270,19 @@ function wbEnded() {
   intermission(n);
 }
 
-// Between games: a break screen. Whether the series went on stays hidden
-// until you ask for the next game.
+// Between games: a break screen with the same next step as the top bar.
 function intermission(n) {
-  const m = W.match, more = n < m.bo;
   W.gameNo = n;
   W.atBreak = true;
-  renderWbGames();
+  renderWbTop();
+  const nx = wbNext(revealedGames());
   cover('solid', `<div class="wb-inter">
     <h3>Game ${n} complete</h3>
-    ${more ? '' : '<p>Last possible game of the series.</p>'}
-    <div class="acts">${more ? `<button class="main" data-wb-game="${n + 1}">Is there a Game ${n + 1}? ▶</button>` : ''}
-      <button data-wb-game="${n}">↺ Rewatch Game ${n}</button>
-      ${liveMatch().status === 'done' ? `<button class="reveal" data-wb="result">${isRevealed(m) ? 'Result & next match' : 'Reveal result'}</button>` : ''}
-      <button data-wb="close">Watch later</button></div>
+    ${nx?.over ? '<p>Series over.</p>' : ''}
+    <div class="acts">${nx?.reveal ? `<button class="main" data-wb="reveal">Reveal game ${nx.reveal}</button>` : ''}
+      ${nx?.next ? `<button class="main" data-wb-game="${nx.next}">Watch game ${nx.next} ▶</button>` : ''}
+      <button data-wb-game="${n}">↺ Rewatch game ${n}</button>
+      <button data-wb="close">Close</button></div>
     <div class="ad-slot" hidden></div></div>`);
   window.renderAds?.();
 }
@@ -2283,46 +2290,80 @@ function intermission(n) {
 // W.match as of the latest schedule refresh (a live match may have finished since it opened).
 const liveMatch = () => state.matches.find(x => x.id === W.match?.id) || W.match;
 
-// The top-bar button: once the series is over you can skip to its result.
-function renderWbRes() {
-  const m = liveMatch(), b = $('wbRes');
-  b.hidden = !m || m.status !== 'done' || W.held;
-  b.textContent = m && isRevealed(m) ? 'Next match ▸' : 'Reveal result';
-}
+/* ---- revealing a series one game at a time ---- */
 
-// Seen enough: reveal the series result and offer the next match. The video
-// waits underneath, so "Keep watching" picks up where it stopped.
-function wbResult() {
+// Completed games are always games 1..n, in order.
+const played = () => W.games.filter(g => g.state === 'completed').length;
+const gameExists = n => { const g = W.games.find(x => x.number === n); return !!g && g.state !== 'unneeded'; };
+
+// How many of this series' games you've seen the result of: all of them once
+// the match is revealed (or spoilers are off), else what you've revealed here.
+function revealedGames() {
   const m = liveMatch();
-  if (m.status !== 'done') return;
-  if (!isRevealed(m)) revealThrough(m.id);
-  if (!isRevealed(m)) return; // declined revealing earlier results
-  // Where "Keep watching" returns to: the video, the break screen, or whatever message was showing.
-  const html = $('wbCover').innerHTML;
-  W.back = W.cover === 'play' || W.cover === 'paused' ? null : W.atBreak ? () => intermission(W.gameNo) : () => cover('solid', html);
-  try { W.player?.pauseVideo?.(); } catch {}
-  W.held = true;
-  setAd(false);
-  const i = state.matches.findIndex(x => x.id === m.id);
-  const next = state.matches.slice(i + 1).find(canWatch);
-  W.next = next?.id;
-  const nv = next && state.view[state.matches.indexOf(next)];
-  renderWbRes();
-  cover('solid', `<div class="wb-inter">
-    <div class="hero-label">Final · ${esc(stageLabel(m))}</div>
-    <div class="wb-final">${resultLine(m)}</div>
-    <div class="acts">${next ? '<button class="main" data-wb="next">Next match ▶</button>' : ''}
-      <button data-wb="resume">Keep watching</button>
-      <button data-wb="close">Close</button></div>
-    ${nv ? `<p>Next: ${esc(nv.t1?.short || 'TBD')} vs ${esc(nv.t2?.short || 'TBD')} · ${esc(stageLabel(nv))}</p>` : ''}</div>`);
+  return isRevealed(m) ? played() : Math.min(played(), wbStore().games[m.id]?.rev || 0);
 }
 
-function wbResume() {
-  W.held = false;
-  renderWbRes();
-  if (W.back) return W.back();
-  cover('paused');
-  try { W.player?.playVideo?.(); } catch {}
+// The schedule only has series scores, so a game's winner comes from its last
+// live-stats frame: the side that took an inhibitor (the nexus towers can't be
+// hit before one falls), else the one with more towers, else more gold.
+async function gameWinner(g) {
+  if (W.win[g.id]) return W.win[g.id];
+  const w = await feedJson(`${FEED}/window/${g.id}?startingTime=${feedTime(state.feedLag + 60e3)}`).catch(() => null);
+  const f = w?.frames?.at(-1);
+  if (f?.gameState !== 'finished') return 0;
+  const b = f.blueTeam, r = f.redTeam;
+  const blueWon = !b.inhibitors !== !r.inhibitors ? b.inhibitors > 0 : b.towers !== r.towers ? b.towers > r.towers : b.totalGold > r.totalGold;
+  const k = W.side[g.teams?.find(t => t.side === 'blue')?.id];
+  if (!k) return 0;
+  return W.win[g.id] = blueWon ? k : 3 - k;
+}
+
+// The score over the first R games. Once every game is revealed, the official
+// series score stands in case a guessed winner was wrong.
+function wbScore(R) {
+  const m = liveMatch();
+  let a = 0, b = 0;
+  for (const g of W.games) if (g.number <= R) { if (W.win[g.id] === 1) a++; else if (W.win[g.id] === 2) b++; }
+  if (m.status === 'done' && m.s1 != null && (isRevealed(m) || (W.games.length && R >= played()))) return [m.s1, m.s2];
+  return [a, b];
+}
+
+// The next step: reveal the game you're on, start the next one, or nothing left.
+function wbNext(R) {
+  const m = liveMatch();
+  if (!W.games.length) return null;
+  if (R < played() && W.gameNo > R) return { reveal: R + 1 };
+  if (gameExists(R + 1) && W.gameNo !== R + 1) return { next: R + 1 };
+  if (!gameExists(R + 1) && m.status === 'done') return { over: true };
+  return null;
+}
+
+// Top bar: both teams with the score so far, the game buttons, and the next step.
+function renderWbTop() {
+  const m = liveMatch(), R = revealedGames();
+  const [a, b] = wbScore(R);
+  const logo = t => t?.image ? `<img src="${esc(t.image)}" alt="" onerror="this.remove()">` : '';
+  $('wbTitle').innerHTML = `<span>${logo(m.t1)}${esc(m.t1?.short || 'TBD')}</span><b>${a} – ${b}</b><span>${esc(m.t2?.short || 'TBD')}${logo(m.t2)}</span>`;
+  $('wbTitle').title = stageLabel(m);
+  renderWbGames(R);
+  const nx = wbNext(R);
+  $('wbStep').innerHTML = nx?.reveal ? `<button class="ghost" data-wb="reveal">Reveal game ${nx.reveal}</button>`
+    : nx?.next ? `<button data-wb-game="${nx.next}">Next game ▶</button>`
+    : nx?.over ? '<span class="over">Series over</span>' : '';
+}
+
+// Reveal the game you're on without stopping the video. Revealing the last
+// game reveals the whole series to the rest of the site.
+async function wbReveal() {
+  const m = liveMatch(), R = revealedGames(), g = W.games.find(x => x.number === R + 1);
+  if (!g || g.state !== 'completed') return;
+  $('wbStep').innerHTML = '<span class="over">…</span>';
+  await gameWinner(g);
+  if (W.match?.id !== m.id) return;
+  wbSave(s => { (s.games[m.id] ||= { n: W.gameNo }).rev = R + 1; });
+  if (!gameExists(R + 2) && m.status === 'done' && !isRevealed(m)) revealThrough(m.id);
+  if (W.atBreak) intermission(W.gameNo);
+  else renderWbTop();
 }
 
 function wbTick() {
@@ -2339,7 +2380,7 @@ function wbTick() {
     W.edge = Math.max(W.edge, t);
     if (Date.now() - W.savedAt > 5e3) {
       W.savedAt = Date.now();
-      wbSave(s => { s.pos[v.id] = t; s.edge[v.id] = W.edge; });
+      wbSave(s => { s.pos[posKey(v)] = t; s.edge[posKey(v)] = W.edge; });
     }
   }
   if (!W.dragging) renderBar(t);
@@ -2405,10 +2446,8 @@ function wbAction(a) {
   if (a === 'start' || (a === 'play' && W.start)) return W.start?.(); // Space also starts
   if (a === 'fs') return toggleFs();
   if (a === 'settings') { $('wbMenu').hidden = !$('wbMenu').hidden; return; }
-  if (a === 'result') return wbResult();
-  if (a === 'next') return W.next && openWatch(W.next);
-  if (a === 'resume') return wbResume();
-  if (W.held || !p?.getCurrentTime || !W.vod) return;
+  if (a === 'reveal') return wbReveal();
+  if (!p?.getCurrentTime || !W.vod) return;
   if (a === 'play') return p.getPlayerState() === YT.PlayerState.PLAYING ? p.pauseVideo() : p.playVideo();
   if (a === 'mute') return setMuted(!W.muted);
   if (a === 'live') return wbSeek(W.edge);
@@ -2545,7 +2584,7 @@ function render() {
   renderPlayin();
   renderSwiss();
   renderKnockout();
-  if (!$('wb').hidden && !W.start) renderWbRes(); // a match being watched may have just finished
+  if (!$('wb').hidden) renderWbTop(); // a match being watched may have just finished
   requestAnimationFrame(drawAll);
   tick();
 }
