@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <script>
-// One address: send www and the old GitHub Pages copy to esportstracker.app.
-if (/^(www\.esportstracker\.app|philipsatterthwaite\.github\.io)$/.test(location.hostname)) {
+// One address: send www, the ads subdomain and the old GitHub Pages copy to esportstracker.app.
+if (/^((www|ads)\.esportstracker\.app|philipsatterthwaite\.github\.io)$/.test(location.hostname)) {
   location.replace('https://esportstracker.app' + location.pathname.replace(/^\/worlds-tracker/, '') + location.search + location.hash);
 }
 </script>

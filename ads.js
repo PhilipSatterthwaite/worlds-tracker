@@ -1,37 +1,33 @@
-// Banner ads (Adsterra). Each unit's key and script URL come from its
-// "Get code" snippet in the Adsterra dashboard; a slot stays hidden while
-// its key is empty.
-//
-// Each banner runs in its own sandboxed iframe: its scripts can't read or
-// change this page, and it can't redirect the tab (no allow-top-navigation),
-// though clicking an ad may open a new tab.
+// Banner ads (Adsterra). Each slot frames ad.html from ads.esportstracker.app,
+// a separate origin: the ad script gets its own storage there, but it can't
+// read or change this page. The sandbox also stops an ad from navigating
+// this tab away (no allow-top-navigation); clicking an ad opens a new tab.
+// Unit keys live in ad.html; leave `frame` empty to turn ads off.
 const ADS = {
+  frame: 'https://ads.esportstracker.app/ad', // ad.html; Cloudflare serves it without the .html
   units: {
-    // screens with room for it
-    wide: { key: '8704830e1ff2f669c2f3b80a3be0fbff', width: 728, height: 90, src: 'https://bauval.org/22/8704830e1ff2f669c2f3b80a3be0fbff' },
-    // phones
-    small: { key: 'f379952fd180376850e574e74794cad4', width: 320, height: 50, src: 'https://bauval.org/22/f379952fd180376850e574e74794cad4' },
+    wide: { width: 728, height: 90 },  // screens with room for it
+    small: { width: 320, height: 50 }, // phones
   },
-  sandbox: 'allow-scripts allow-popups allow-popups-to-escape-sandbox',
+  sandbox: 'allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox',
 };
 
 function renderAds() {
   for (const slot of document.querySelectorAll('.ad-slot')) {
     const room = slot.parentElement.clientWidth;
-    const unit = room >= ADS.units.wide.width && ADS.units.wide.key ? ADS.units.wide : ADS.units.small;
-    if (!unit.key || room < unit.width) { slot.hidden = true; continue; }
+    const name = room >= ADS.units.wide.width ? 'wide' : 'small';
+    const unit = ADS.units[name];
+    if (!ADS.frame || room < unit.width) { slot.hidden = true; continue; }
     slot.hidden = false;
-    if (slot.dataset.key === unit.key) continue;
-    slot.dataset.key = unit.key;
+    if (slot.dataset.unit === name) continue;
+    slot.dataset.unit = name;
     const frame = document.createElement('iframe');
     frame.title = 'Advertisement';
     frame.width = unit.width;
     frame.height = unit.height;
     frame.setAttribute('scrolling', 'no');
     frame.setAttribute('sandbox', ADS.sandbox);
-    frame.srcdoc = `<!doctype html><html><head><style>:root{color-scheme:dark}html,body{margin:0;overflow:hidden;background:transparent}</style></head><body>
-<script>atOptions={key:${JSON.stringify(unit.key)},format:'iframe',height:${unit.height},width:${unit.width},params:{}};<\/script>
-<script src="${unit.src}"><\/script></body></html>`;
+    frame.src = `${ADS.frame}?unit=${name}`;
     slot.replaceChildren(Object.assign(document.createElement('span'), { className: 'ad-label', textContent: 'Advertisement' }), frame);
   }
 }

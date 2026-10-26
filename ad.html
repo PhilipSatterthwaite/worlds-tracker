@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex">
+<title>Advertisement</title>
+<style>:root { color-scheme: dark; } html, body { margin: 0; overflow: hidden; background: transparent; }</style>
+</head>
+<body>
+<script>
+// One Adsterra banner, framed by ads.js. It's served from ads.esportstracker.app
+// so the ad script gets its own origin: it can use storage, but it can't reach
+// the tracker page. Unit keys and script URLs come from each unit's "Get code"
+// snippet in the Adsterra dashboard.
+const UNITS = {
+  wide: { key: '8704830e1ff2f669c2f3b80a3be0fbff', width: 728, height: 90, src: 'https://bauval.org/22/8704830e1ff2f669c2f3b80a3be0fbff' },
+  small: { key: 'f379952fd180376850e574e74794cad4', width: 320, height: 50, src: 'https://bauval.org/22/f379952fd180376850e574e74794cad4' },
+};
+const unit = UNITS[new URLSearchParams(location.search).get('unit')];
+if (unit && location.hostname === 'ads.esportstracker.app') {
+  window.atOptions = { key: unit.key, format: 'iframe', height: unit.height, width: unit.width, params: {} };
+  const s = document.createElement('script');
+  s.src = unit.src;
+  document.body.append(s);
+}
+</script>
+</body>
+</html>
