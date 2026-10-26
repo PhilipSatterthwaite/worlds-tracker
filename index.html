@@ -2516,7 +2516,17 @@ async function playStream(x, from = LS.from, at = 0) {
   LS.player = new YT.Player('lsmPlayer', {
     videoId: x.parameter,
     playerVars: { autoplay: 1, rel: 0, playsinline: 1 },
-    events: { onReady: () => { LS.settled = false; if (from === 'start') streamSeek('start', at); else { markFrom('live'); saveLivePref(); } }, onStateChange: streamState },
+    events: {
+      onReady: () => {
+        LS.settled = false;
+        if (from !== 'start') { markFrom('live'); saveLivePref(); return; }
+        streamSeek('start', at);
+        // YouTube moves a just-loaded live stream to its edge a moment after
+        // it's ready, undoing that seek, so check again shortly after.
+        setTimeout(() => settleStart(5), 1500);
+      },
+      onStateChange: streamState,
+    },
   });
   LS.timer = setInterval(saveLivePref, 10e3); // keep your place even if the tab is closed
 }
