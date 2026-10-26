@@ -2771,6 +2771,21 @@ function renderWbGames(R = revealedGames()) {
     `<button class="${i + 1 === W.gameNo ? 'on' : ''}" data-wb-game="${i + 1}" title="${i + 1 <= done ? 'Watched' : ''}">Game ${i + 1}${i + 1 <= done ? ' ✓' : ''}</button>`).join('') : '';
 }
 
+// Series uploads are one video for every game, cut by Riot's start/end
+// markers, and a game's end marker can run past where the next game starts
+// (into its draft and first minutes). End each game where the next one begins.
+function trimToNext(c, g) {
+  for (const h of W.games) {
+    if (h.number <= g.number) continue;
+    for (const v of h.vods || []) {
+      if (v.provider !== 'youtube' || v.parameter !== c.id || v.startMillis == null) continue;
+      const s = v.startMillis / 1000;
+      if (s > c.start + 60 && (c.end == null || s < c.end)) c.end = s;
+    }
+  }
+  return c;
+}
+
 async function playGame(n) {
   if (W.replayGame !== n) W.replayGame = null; // a rewatch's Replay mode ends with that game
   const m = W.match, g = W.games.find(x => x.number === n);
@@ -2796,7 +2811,7 @@ async function playGame(n) {
   }
   if (g.state !== 'completed') return cover('solid', `<h3>Game ${n} hasn't started yet</h3>`);
   W.game = g;
-  if (W.cands = vodsFor(g).filter(c => !badVods.has(c.id)), W.cands.some(c => c.fft)) {
+  if (W.cands = vodsFor(g).filter(c => !badVods.has(c.id)).map(c => trimToNext(c, g)), W.cands.some(c => c.fft)) {
     loadGameStart(g).then(() => W.game === g && renderSkip(W.player?.getCurrentTime?.()));
     loadGameEnd(g);
   }
