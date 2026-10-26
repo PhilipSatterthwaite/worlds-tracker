@@ -1298,7 +1298,13 @@ async function fetchLive(match) {
     if (win.frames.at(-1).gameState !== 'finished') break;
   }
   if (!w) {
-    if (!games.length) return { matchId: match.id, starting: true };
+    if (!games.length) {
+      // Not on Riot's live feed: just finished (the series is decided, or
+      // another match is on air now), else about to start.
+      const need = Math.floor(match.bo / 2) + 1;
+      const over = (match.s1 ?? 0) >= need || (match.s2 ?? 0) >= need || (!!state.stream?.matchId && state.stream.matchId !== match.id);
+      return { matchId: match.id, ...(over ? { over: true } : { starting: true }) };
+    }
     // Between games: keep the last game's final scoreboard up until the next one loads.
     const gameNo = open[0]?.number || games.filter(g => g.state === 'completed').length + 1;
     const prev = games.filter(g => g.state === 'completed').at(-1);
@@ -1413,8 +1419,14 @@ async function fillGold(G, gameId, start, until) {
   renderHero();
 }
 
+// The match on air. The schedule can keep listing a finished match as live for
+// a few minutes after the next one starts, so prefer the one Riot's live feed
+// has (state.stream), else the first live one.
+const isLiveM = m => m && (m.status === 'live' || m.liveNow);
+const onAir = list => list.find(m => isLiveM(m) && m.id === state.stream?.matchId) || list.find(isLiveM);
+
 async function syncLive() {
-  const m = state.matches.find(x => x.status === 'live' && isRevealed(x)); // hidden in no-spoilers mode: nothing to show, so don't fetch
+  const m = onAir(state.matches.filter(x => x.status === 'live' && isRevealed(x))); // hidden in no-spoilers mode: nothing to show, so don't fetch
   if (!m) { clearTimeout(state.liveTimer); if (state.live) { state.live = null; renderHero(); } return; }
   // The first poll of a game can take a few seconds (finding past objective
   // kills), so don't start a second one alongside it.
@@ -1621,11 +1633,15 @@ function liveStats(m) {
   // schedule can still list an unplayed game slot, e.g. game 2 of a Bo1).
   const need = Math.floor(m.bo / 2) + 1, over = (m.s1 ?? 0) >= need || (m.s2 ?? 0) >= need;
   const next = L.nextNo || L.gameNo;
-  const note = L.starting ? 'Starting soon · live stats on the way'
-    : L.between ? (over || next > m.bo ? 'Match over' : `Between games · Game ${next} up next`)
-    : L.finished ? `Game ${L.gameNo} just ended${over ? ' · match over' : state.provisional[m.id]?.[L.gameNo] ? '' : ' · updating series score…'}` : '';
+  // A Bo1 has one game, so no game numbers.
+  const G = n => m.bo === 1 || !n ? 'Game' : `Game ${n}`;
+  const soon = 'Starting soon · live stats once the game loads';
+  const note = L.starting ? soon
+    : L.over || (L.between && (over || next > m.bo)) ? 'Match over'
+    : L.between ? (next === 1 ? soon : `Between games · Game ${next} up next`)
+    : L.finished ? (over && m.bo === 1 ? 'Match over' : `${G(L.gameNo)} just ended${over ? ' · match over' : state.provisional[m.id]?.[L.gameNo] ? '' : ' · updating series score…'}`) : '';
   if (!L.players) {
-    return `<div class="ls"><div class="ls-note">${note || `${L.gameNo ? `Game ${L.gameNo}` : 'Game'} in progress · live stats unavailable right now`}</div></div>`;
+    return `<div class="ls"><div class="ls-note">${note || `${G(L.gameNo)} in progress · live stats unavailable right now`}</div></div>`;
   }
   const [s1, s2] = L.t1Blue ? ['blue', 'red'] : ['red', 'blue'];
   const run = L.gameState === 'in_game' ? 1 : 0;
@@ -1654,7 +1670,7 @@ function liveStats(m) {
       ${half(L.t1, m.t1?.short, s1, diff)}
       <div class="bc-mid">
         <div class="bc-k" title="Kills">${L.t1.totalKills}${icon('kills')}${L.t2.totalKills}</div>
-        <div class="bc-clock">Game ${L.gameNo} · ${when}${L.gameState === 'paused' ? ' · paused' : ''}</div>
+        <div class="bc-clock">${m.bo === 1 ? '' : `Game ${L.gameNo} · `}${when}${L.gameState === 'paused' ? ' · paused' : ''}</div>
       </div>
       ${half(L.t2, m.t2?.short, s2, -diff, true)}
     </div>
@@ -1874,16 +1890,15 @@ function renderHero() {
     shown = [last, ...picks];
     html = cards.join('');
   } else {
-    const live = V.find(m => m.status === 'live' || m.liveNow);
+    const live = onAir(V);
     const upcoming = V.filter(m => m.status === 'upcoming').slice(0, 2);
     shown = [live, ...upcoming];
     html = (live ? heroCard(live, 'live') : '') + upcoming.map(m => heroCard(m, 'next')).join('');
   }
   // League is live (a show, or a match that isn't among the cards above, as
   // with no spoilers when you're behind): say so up front, in either mode.
-  const isLive = m => m && (m.status === 'live' || m.liveNow);
-  const liveMatch = V.find(isLive);
-  if ((state.stream || liveMatch) && !shown.some(isLive)) html = streamCard(V, liveMatch) + html;
+  const liveMatch = onAir(V);
+  if ((state.stream || liveMatch) && !shown.some(isLiveM)) html = streamCard(V, liveMatch) + html;
   if (!html) {
     html = V.length
       ? `<div class="hero-card"><div class="hero-label">Tournament over</div><div class="hero-empty">No more matches scheduled.</div></div>`
