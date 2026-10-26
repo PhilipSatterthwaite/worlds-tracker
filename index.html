@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <script>
 // One address: send www, the ads subdomain and the old GitHub Pages copy to esportstracker.app.
-if (/^((www|ads)\.esportstracker\.app|philipsatterthwaite\.github\.io)$/.test(location.hostname)) {
+if (/^((www|ads)\.esportstracker\.app|philipsatterthwaite\.github\.io)$/.test(location.hostname) || (location.protocol === 'http:' && location.hostname === 'esportstracker.app')) {
   location.replace('https://esportstracker.app' + location.pathname.replace(/^\/worlds-tracker/, '') + location.search + location.hash);
 }
 </script>
@@ -20,6 +20,8 @@ if (/^((www|ads)\.esportstracker\.app|philipsatterthwaite\.github\.io)$/.test(lo
 <meta property="og:image" content="https://esportstracker.app/og.png">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="theme-color" content="#0a0d14">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
@@ -595,6 +597,17 @@ if (/^((www|ads)\.esportstracker\.app|philipsatterthwaite\.github\.io)$/.test(lo
     .board .reveal { font-size: 12px; line-height: 24px; padding: 0 8px; }
     .board .wbtn { line-height: 22px; padding: 0 7px; }
     .mc-foot { align-items: center; }
+    /* The info icon stays on the title line; the venue/dates wrap under it. */
+    .stage-h { flex-wrap: nowrap; }
+    .stage-h h2 { flex: 1; min-width: 0; }
+  }
+  /* Landscape phones and tablets: finger-sized buttons at any width. */
+  @media (pointer: coarse) {
+    .reveal { font-size: 13px; line-height: 30px; padding: 0 12px; border-radius: 7px; }
+    .wbtn { font-size: 12px; line-height: 28px; padding: 0 10px; border-radius: 6px; }
+    .board .reveal { font-size: 12px; line-height: 24px; padding: 0 8px; }
+    .board .wbtn { line-height: 22px; padding: 0 7px; }
+    .mc-foot { align-items: center; }
   }
 </style>
 </head>
@@ -744,6 +757,7 @@ if (/^((www|ads)\.esportstracker\.app|philipsatterthwaite\.github\.io)$/.test(lo
 </div>
 
 <script>
+if (!Array.prototype.at) Array.prototype.at = function (i) { return this[i < 0 ? this.length + i : i]; };
 const API = 'https://esports-api.lolesports.com/persisted/gw';
 const FEED = 'https://feed.lolesports.com/livestats/v1';
 const API_KEY = '0TvQnueqKa5mxJntVWt0w4LpLfEkrV1Ta8rQBb9Z'; // public key the lolesports.com site itself uses
@@ -857,8 +871,11 @@ async function load() {
     $('err').classList.remove('show');
   } catch (e) {
     state.failures++;
-    $('err').textContent = `Couldn't refresh (${e.message}). Showing the last data I have; retrying automatically.`;
+    $('err').textContent = state.matches.length
+      ? `Couldn't refresh (${e.message}). Showing the last data I have; retrying automatically.`
+      : `Couldn't load the schedule (${e.message}). Retrying automatically.`;
     $('err').classList.add('show');
+    if (!state.matches.length) setStatus('err', 'Not loaded');
   }
   render();
   schedule();

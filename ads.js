@@ -12,8 +12,20 @@ const ADS = {
   sandbox: 'allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox',
 };
 
+// Visit once with ?noads to stop ads on this browser (your own views would
+// only skew the stats); ?ads turns them back on.
+const adsOff = (() => {
+  try {
+    const q = new URLSearchParams(location.search);
+    if (q.has('noads')) localStorage.setItem('noads', '1');
+    if (q.has('ads')) localStorage.removeItem('noads');
+    return !!localStorage.getItem('noads');
+  } catch { return false; }
+})();
+
 function renderAds() {
   for (const slot of document.querySelectorAll('.ad-slot')) {
+    if (adsOff) { slot.hidden = true; continue; }
     const room = slot.parentElement.clientWidth;
     const name = room >= ADS.units.wide.width ? 'wide' : 'small';
     const unit = ADS.units[name];
