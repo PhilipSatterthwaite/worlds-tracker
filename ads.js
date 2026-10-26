@@ -1,15 +1,16 @@
-// Banner ads (Adsterra). Fill in the two unit keys from the Adsterra
-// dashboard (Websites → Get code); slots stay hidden while a key is empty.
+// Banner ads (Adsterra). Each unit's key and script URL come from its
+// "Get code" snippet in the Adsterra dashboard; a slot stays hidden while
+// its key is empty.
 //
 // Each banner runs in its own sandboxed iframe: its scripts can't read or
 // change this page, and it can't redirect the tab (no allow-top-navigation),
 // though clicking an ad may open a new tab.
 const ADS = {
-  // The host in the snippet's invoke.js URL, e.g. //www.highperformanceformat.com/<key>/invoke.js
-  host: 'https://www.highperformanceformat.com',
   units: {
-    wide: { key: '', width: 728, height: 90 },  // screens with room for it
-    small: { key: '', width: 320, height: 50 }, // phones
+    // screens with room for it
+    wide: { key: '8704830e1ff2f669c2f3b80a3be0fbff', width: 728, height: 90, src: 'https://bauval.org/22/8704830e1ff2f669c2f3b80a3be0fbff' },
+    // phones
+    small: { key: 'f379952fd180376850e574e74794cad4', width: 320, height: 50, src: 'https://bauval.org/22/f379952fd180376850e574e74794cad4' },
   },
   sandbox: 'allow-scripts allow-popups allow-popups-to-escape-sandbox',
 };
@@ -30,7 +31,7 @@ function renderAds() {
     frame.setAttribute('sandbox', ADS.sandbox);
     frame.srcdoc = `<!doctype html><html><head><style>html,body{margin:0;overflow:hidden;background:transparent}</style></head><body>
 <script>atOptions={key:${JSON.stringify(unit.key)},format:'iframe',height:${unit.height},width:${unit.width},params:{}};<\/script>
-<script src="${ADS.host}/${encodeURIComponent(unit.key)}/invoke.js"><\/script></body></html>`;
+<script src="${unit.src}"><\/script></body></html>`;
     slot.replaceChildren(Object.assign(document.createElement('span'), { className: 'ad-label', textContent: 'Advertisement' }), frame);
   }
 }
