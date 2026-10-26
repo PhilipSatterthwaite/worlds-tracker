@@ -2814,6 +2814,7 @@ async function startVod() {
   W.played = null; // set once this video is really playing inside its game
   W.seekTo = null;
   W.stuck = 0;
+  W.lastLoaded = 0;
   setAd(false);
   renderWbLang();
   cover('solid', '<p>Loading video…</p>');
@@ -2846,7 +2847,8 @@ async function startVod() {
   // Autoplay can be blocked (always on iOS after a non-tap start): offer a
   // click to start instead of a blank screen. If the player never even
   // reports ready, YouTube's embed is blocked here.
-  setTimeout(() => { if (W.vod === vod && W.cover === 'solid') cover('paused'); }, 2500);
+  const waiting = () => [-1, 5].includes(W.player?.getPlayerState?.() ?? -1); // unstarted or cued, not buffering
+  for (const ms of [2500, 6000]) setTimeout(() => { if (W.vod === vod && W.cover === 'solid' && waiting()) cover('paused'); }, ms);
   setTimeout(() => { if (W.vod === vod && !W.player?.getPlayerState) ytFailed(); }, 12e3);
   clearInterval(W.timer);
   W.timer = setInterval(wbTick, 500);
@@ -3061,14 +3063,19 @@ function wbTick() {
   // show the target until it catches up (or 3s pass), and don't save that
   // stale time or count it toward the ad check.
   if (W.seekTo != null) {
-    if (Math.abs(t - W.seekTo) < 1.5 || Date.now() - W.seekAt > 3000) W.seekTo = null;
+    if (Math.abs(t - W.seekTo) < 3 || Date.now() - W.seekAt > 3000) W.seekTo = null;
     else { if (!W.dragging) renderBar(W.seekTo); W.lastT = W.seekTo; return; }
   }
   // An ad plays inside the same player: it reports PLAYING while the video's
   // own clock stands still.
+  // Buffering looks the same, so it takes 3s of standing still, and a stall
+  // while the video is still loading counts only after 6s.
+  const loaded = p.getVideoLoadedFraction?.() ?? 0, loading = loaded > (W.lastLoaded ?? 0) + 1e-4;
+  W.lastLoaded = loaded;
   W.stuck = p.getPlayerState() === YT.PlayerState.PLAYING && Math.abs(t - W.lastT) < .05 ? (W.stuck || 0) + 1 : 0;
   W.lastT = t;
-  if ((W.stuck >= 3) !== W.ad) setAd(W.stuck >= 3);
+  const ad = W.stuck >= 12 || (W.stuck >= 6 && !loading);
+  if (ad !== W.ad) setAd(ad);
   if (!W.atBreak && v.end && W.played === v && t >= v.end - .5 && t <= v.end + 5) { p.pauseVideo(); wbEnded(); return; }
   // When the video's timing is known, the game stops shortly after the nexus
   // falls (see GAME_END_PAD) rather than at the end of its video, and playing
