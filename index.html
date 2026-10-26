@@ -105,6 +105,22 @@ if (/^((www|ads)\.esportstracker\.app|philipsatterthwaite\.github\.io)$/.test(lo
   .hero-meta { color: var(--muted); font-size: 13px; display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
   .hero-label .when { text-transform: none; letter-spacing: 0; font-size: 13px; color: var(--gold); font-weight: 700; }
   .hero-empty { color: var(--muted); padding: 8px 0; }
+  .stream-body { display: flex; flex-direction: column; gap: 4px; padding: 14px 0 12px; }
+  .stream-body b { font-size: 22px; font-weight: 800; }
+  .stream-body span { color: var(--muted); }
+  .watch-live { font-weight: 700; color: #fff; background: rgba(255,70,85,.2); border-color: rgba(255,70,85,.6); }
+  .watch-live:hover { background: rgba(255,70,85,.32); border-color: var(--live); }
+  /* Live broadcast modal */
+  .lsm { position: fixed; inset: 0; z-index: 60; background: rgba(4,6,10,.9); display: flex; align-items: center; justify-content: center; padding: 16px; }
+  .lsm[hidden] { display: none; }
+  .lsm-box { width: min(1200px, 100%); display: flex; flex-direction: column; gap: 10px; }
+  .lsm-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .lsm-head b { color: var(--live); font-size: 13px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+  .lsm-head .sp { flex: 1; }
+  .lsm-head select { font: inherit; font-size: 13px; color: var(--text); background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 5px 8px; max-width: 60vw; }
+  .lsm-x { background: none; border: 0; color: var(--text); font-size: 20px; padding: 2px 8px; }
+  .lsm-stage { position: relative; width: 100%; aspect-ratio: 16 / 9; max-height: calc(100dvh - 90px); background: #000; border-radius: 8px; overflow: hidden; }
+  .lsm-stage iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
   .watch { color: var(--gold); text-decoration: none; font-weight: 600; }
   .watch:hover { text-decoration: underline; }
 
@@ -777,6 +793,15 @@ if (/^((www|ads)\.esportstracker\.app|philipsatterthwaite\.github\.io)$/.test(lo
   </div>
 </div>
 
+<div class="lsm" id="lsm" hidden role="dialog" aria-modal="true" aria-label="Live broadcast">
+  <div class="lsm-box">
+    <div class="lsm-head"><span class="live-pip"></span><b>Live</b>
+      <select id="lsmSrc" aria-label="Stream"></select><span class="sp"></span>
+      <button class="lsm-x" data-lsm-close title="Close (Esc)" aria-label="Close">✕</button></div>
+    <div class="lsm-stage" id="lsmStage"></div>
+  </div>
+</div>
+
 <div class="wb" id="wb" hidden role="dialog" aria-modal="true" aria-labelledby="wbTitle">
   <div class="wb-stage solid" id="wbStage">
     <div id="wbPlayer"></div>
@@ -949,6 +974,7 @@ async function load() {
   if (state.loading) return;
   state.loading = true;
   setStatus('busy', 'Updating…');
+  const onAir = loadStream();
   try {
     state.events = await getEvents();
     state.matches = state.events.map(toMatch).sort((x, y) => x.time - y.time);
@@ -964,10 +990,21 @@ async function load() {
     $('err').classList.add('show');
     if (!state.matches.length) setStatus('err', 'Not loaded');
   }
+  await onAir;
   state.loading = false;
   render();
   schedule();
   syncLive();
+}
+
+// What Riot is broadcasting right now (a pre-show, a match…), if anything,
+// with its YouTube and Twitch streams. Region-locked streams are left out.
+async function loadStream() {
+  try {
+    const ev = ((await api('getLive')).schedule?.events || []).find(e => e.league?.slug === 'worlds' && e.state === 'inProgress');
+    const streams = (ev?.streams || []).filter(x => (x.provider === 'youtube' || x.provider === 'twitch') && !x.countries?.length);
+    state.stream = streams.length ? { type: ev.type, matchId: ev.match?.id || null, streams } : null;
+  } catch {}
 }
 
 function loadCache() {
@@ -1707,7 +1744,8 @@ function heroCard(m, kind, opts = {}) {
   const live = kind === 'live', hidden = m.status === 'hidden', done = kind === 'result';
   const next = opts.next;
   const score = hidden ? '? – ?' : live || done ? `${m.s1 ?? 0} – ${m.s2 ?? 0}` : 'vs';
-  const liveLink = '<a class="watch" href="https://lolesports.com/live/worlds" target="_blank" rel="noopener">Watch live ↗</a>';
+  const liveLink = state.stream ? '<button class="watch-live" data-live-stream>▶ Watch live</button>'
+    : '<a class="watch" href="https://lolesports.com/live/worlds" target="_blank" rel="noopener">Watch live ↗</a>';
   const meta = live && !hidden
     ? `<span>${esc(stageLabel(m))} · Bo${m.bo}</span><span class="tag">${state.live?.players
         ? `<button class="info-btn" data-ls-toggle aria-expanded="${state.lsOpen}">${state.lsOpen ? 'Hide game stats ▴' : 'Show game stats ▾'}</button>` : ''}
@@ -1732,6 +1770,16 @@ function heroCard(m, kind, opts = {}) {
     <div class="hero-meta">${meta}</div></div>`;
 }
 
+function streamCard(V) {
+  const next = V.find(m => m.status === 'upcoming');
+  const nm = t => t ? esc(t.short) : 'TBD';
+  return `<div class="hero-card live stream">
+    <div class="hero-label"><span class="live-pip"></span>Live now · Worlds broadcast</div>
+    <div class="stream-body"><b>${state.stream.type === 'show' ? 'Show on air' : 'Live broadcast'}</b>
+      ${next ? `<span>${next.t1 && next.t2 ? `Before ${nm(next.t1)} vs ${nm(next.t2)}` : 'Next match'} · ${whenLabel(next.time)}</span>` : ''}</div>
+    <div class="hero-meta"><span>Pre-show, analysis and the matches</span><button class="watch-live" data-live-stream>▶ Watch live</button></div></div>`;
+}
+
 function renderHero() {
   const V = state.view;
   let html;
@@ -1753,6 +1801,8 @@ function renderHero() {
     const upcoming = V.filter(m => m.status === 'upcoming').slice(0, 2);
     html = (live ? heroCard(live, 'live') : '') + upcoming.map(m => heroCard(m, 'next')).join('');
   }
+  // On air but no match being played (a pre-show or the analyst desk).
+  if (state.stream && !V.some(m => m.status === 'live' || m.liveNow)) html = streamCard(V) + html;
   if (!html) {
     html = V.length
       ? `<div class="hero-card"><div class="hero-label">Tournament over</div><div class="hero-empty">No more matches scheduled.</div></div>`
@@ -2334,6 +2384,57 @@ document.addEventListener('click', e => {
   const w = e.target.closest('[data-watch]');
   if (w) watchMatch(w.dataset.watch);
 });
+
+/* ---------- live broadcast ---------- */
+
+// Riot's live stream in a modal, YouTube or Twitch in any language. It's
+// live, so there's nothing to hide about its length, but with no spoilers on
+// the show can recap results you haven't revealed: ask first. Watching never
+// reveals anything on the site.
+const LIVE_SRC_KEY = 'worlds2026.liveSrc';
+const srcKey = x => `${x.provider}:${x.parameter}`;
+function streamLabel(x) {
+  let lang = x.locale;
+  try { lang = langName.of(x.locale) || x.locale; } catch {}
+  return `${lang} · ${x.provider === 'youtube' ? 'YouTube' : 'Twitch'}`;
+}
+function streamSrc(x) {
+  return x.provider === 'youtube'
+    ? `https://www.youtube.com/embed/${encodeURIComponent(x.parameter)}?autoplay=1&rel=0&playsinline=1`
+    : `https://player.twitch.tv/?channel=${encodeURIComponent(x.parameter)}&parent=${encodeURIComponent(location.hostname)}&autoplay=true`;
+}
+function playStream(x) {
+  try { localStorage.setItem(LIVE_SRC_KEY, srcKey(x)); } catch {}
+  $('lsmStage').innerHTML = `<iframe src="${esc(streamSrc(x))}" title="Live broadcast" allow="autoplay; fullscreen; encrypted-media; picture-in-picture" allowfullscreen></iframe>`;
+}
+async function openStream() {
+  const list = state.stream?.streams;
+  if (!list?.length) return;
+  const hidden = state.spoil.on ? state.matches.filter(m => started(m) && !isRevealed(m)).length : 0;
+  if (hidden && !await askReveal(`The live broadcast can show results you haven't revealed yet (${plural(hidden, 'hidden result')}). Nothing gets revealed here.`, 'Watch anyway')) return;
+  let saved = null;
+  try { saved = localStorage.getItem(LIVE_SRC_KEY); } catch {}
+  const pick = list.find(x => srcKey(x) === saved) || list.find(x => x.locale === 'en-US' && x.provider === 'youtube')
+    || list.find(x => x.locale === 'en-US') || list[0];
+  $('lsmSrc').innerHTML = list.map(x => `<option value="${esc(srcKey(x))}" ${x === pick ? 'selected' : ''}>${esc(streamLabel(x))}</option>`).join('');
+  $('lsm').hidden = false;
+  document.body.style.overflow = 'hidden';
+  playStream(pick);
+}
+function closeStream() {
+  $('lsm').hidden = true;
+  $('lsmStage').innerHTML = ''; // stops playback
+  document.body.style.overflow = '';
+}
+$('lsmSrc').addEventListener('change', e => {
+  const x = state.stream?.streams.find(y => srcKey(y) === e.target.value);
+  if (x) playStream(x);
+});
+document.addEventListener('click', e => {
+  if (e.target.closest('[data-live-stream]')) openStream();
+  else if (e.target.closest('[data-lsm-close]') || e.target === $('lsm')) closeStream();
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('lsm').hidden) closeStream(); });
 
 const watchBtn = (m, label = '▶') => `<button class="wbtn" data-watch="${esc(m.id)}" title="Rewatch without spoilers" aria-label="Rewatch">${label}</button>`;
 const canWatch = m => m.status === 'done' || m.status === 'hidden' || m.status === 'live';
