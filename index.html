@@ -1516,11 +1516,13 @@ const seedLabel = t => {
   return s ? `<span title="${s[0]} ${s[1]}${['', 'st', 'nd', 'rd'][s[1]] || 'th'} seed">${s[0]} #${s[1]}</span>` : '';
 };
 
-// kind: 'live', 'next' (upcoming), 'watch' (the next hidden result, in
-// no-spoilers mode) or 'result' (a result just revealed; `next` is the
-// following hidden match, offered as the next thing to reveal or watch).
-function heroCard(m, kind, next) {
+// kind: 'live', 'next' (not played yet), 'result' (the last result you
+// revealed; `opts.next` is the match after it, offered as "Reveal next"), or
+// 'watch' (a hidden result in the queue; `opts.first` marks the next one to
+// watch, and `opts.reveal` puts a Reveal button on it when no result card does).
+function heroCard(m, kind, opts = {}) {
   const live = kind === 'live', hidden = m.status === 'hidden', done = kind === 'result';
+  const next = opts.next;
   const score = hidden ? '? – ?' : live || done ? `${m.s1 ?? 0} – ${m.s2 ?? 0}` : 'vs';
   const side = (t, r) => `<div class="hero-team ${r ? 'r' : ''} ${done && m.winner && m.winner !== (r ? 2 : 1) ? 'l' : ''}">${t?.image ? `<img src="${esc(t.image)}" alt="" onerror="this.remove()">` : ''}
       <div class="nm">${esc(t?.short || 'TBD')}<span class="full">${t && t.name !== t.short ? esc(t.name) : ''}</span><span class="seed">${seedLabel(t)}</span></div></div>`;
@@ -1531,16 +1533,15 @@ function heroCard(m, kind, next) {
       ${liveLink}</span>`
     : `<span>${esc(stageLabel(m))} · Bo${m.bo}</span>${live ? liveLink : ''}`;
   const body = hidden
-    ? `<div class="hero-hidden">
-        <div class="acts"><button class="reveal" data-reveal="${esc(m.id)}">Reveal</button>${watchBtn(m, '▶ Watch')}</div></div>`
+    ? `<div class="hero-hidden"><div class="acts">${opts.reveal ? `<button class="reveal" data-reveal="${esc(m.id)}">Reveal</button>` : ''}${watchBtn(m, '▶ Watch')}</div></div>`
     : done
-    ? `<div class="hero-hidden"><div class="acts">${next
-        ? `<button class="reveal" data-reveal="${esc(next.id)}">Reveal next ▸</button>${watchBtn(next, '▶ Watch next')}`
-        : 'All caught up.'}<button class="linkish" data-hero-dismiss title="Close">✕</button></div></div>`
+    ? `<div class="hero-hidden"><div class="acts">${next?.status === 'hidden' ? `<button class="reveal" data-reveal="${esc(next.id)}">Reveal next ▸</button>` : ''}${watchBtn(m, '↺ Rewatch')}</div></div>`
     : live ? liveStats(m) : '';
+  // Played matches show only their date; matches still to come show day and time.
+  const date = `<span class="when">${fmtDate.format(m.time)}</span>`;
   const label = live ? '<span class="live-pip"></span>Live now'
-    : kind === 'watch' ? `Next to watch · <span class="when">${fmtDate.format(m.time)}</span>`
-    : done ? `Result · <span class="when">${fmtDate.format(m.time)}</span>`
+    : done ? `Result · ${date}`
+    : hidden ? `${m.liveNow ? '<span class="live-pip"></span>' : ''}${opts.first ? 'Next to watch' : 'After that'} · ${date}`
     : `Up next · <span class="when">${whenLabel(m.time)}</span>`;
   return `<div class="hero-card ${live ? 'live' : ''} ${done ? 'result' : ''}">
     <div class="hero-label">${label}</div>
@@ -1551,13 +1552,24 @@ function heroCard(m, kind, next) {
 
 function renderHero() {
   const V = state.view;
-  const live = V.find(m => m.status === 'live' || m.liveNow);
-  const toWatch = state.spoil.on && V.find(m => m.status === 'hidden' && !m.liveNow);
-  // Right after a reveal, show that result (with "Reveal next") in place of the next hidden match.
-  const result = state.spoil.on && state.heroResult && V.find(m => m.id === state.heroResult && m.status === 'done');
-  const upcoming = V.filter(m => m.status === 'upcoming').slice(0, 2);
-  let html = (result ? heroCard(result, 'result', toWatch) : toWatch ? heroCard(toWatch, 'watch') : '')
-    + (live ? heroCard(live, 'live') : '') + upcoming.map(m => heroCard(m, 'next')).join('');
+  let html;
+  if (state.spoil.on && V.some(m => m.status === 'hidden')) {
+    // Behind with no spoilers: a fixed queue in schedule order. Slot 1 is the
+    // last result you revealed; then the next matches to watch. "Reveal next"
+    // moves the next match's result into slot 1 and shifts the rest along.
+    const ri = revealIdx();
+    const last = ri >= 0 ? V[ri] : null;
+    const queue = V.slice(ri + 1);
+    const cards = last ? [last.status === 'live' ? heroCard(last, 'live') : heroCard(last, 'result', { next: queue[0] })] : [];
+    queue.slice(0, 3 - cards.length).forEach((m, k) => cards.push(m.status === 'hidden'
+      ? heroCard(m, 'watch', { first: k === 0, reveal: k === 0 && !last })
+      : heroCard(m, m.status === 'live' ? 'live' : 'next')));
+    html = cards.join('');
+  } else {
+    const live = V.find(m => m.status === 'live' || m.liveNow);
+    const upcoming = V.filter(m => m.status === 'upcoming').slice(0, 2);
+    html = (live ? heroCard(live, 'live') : '') + upcoming.map(m => heroCard(m, 'next')).join('');
+  }
   if (!html) {
     html = V.length
       ? `<div class="hero-card"><div class="hero-label">Tournament over</div><div class="hero-empty">No more matches scheduled.</div></div>`
@@ -1876,18 +1888,17 @@ function spoilerView() {
   });
 }
 
-const matchName = v => `${v.t1?.short || 'TBD'} vs ${v.t2?.short || 'TBD'} (${stageLabel(v)})`;
 
 function renderSpoilBar() {
   $('nospoil').checked = state.spoil.on;
   const bar = $('spoilBar');
   bar.hidden = !state.spoil.on;
   if (!state.spoil.on) return;
+  // Revealing happens on the hero's result card; the bar only offers to start over.
   const ri = revealIdx();
   const hidden = state.matches.filter((m, i) => i > ri && started(m));
-  const next = hidden[0] && state.view[state.matches.indexOf(hidden[0])];
+  bar.hidden = ri < 0 && hidden.length > 0;
   bar.innerHTML = `${hidden.length ? '' : '<span class="sp-text">Caught up.</span>'}<span class="sp-acts">
-    ${next ? `<button class="main" data-reveal="${esc(next.id)}">Reveal next: ${esc(matchName(next))}</button>` : ''}
     ${ri >= 0 ? '<button class="linkish" data-hide-all>Hide all again</button>' : ''}</span>`;
 }
 
@@ -1897,7 +1908,6 @@ function revealThrough(id) {
   const skipped = state.matches.slice(ri + 1, i).filter(started).length;
   if (skipped && !confirm(`Also reveals ${skipped} earlier result${skipped > 1 ? 's' : ''}. Continue?`)) return;
   state.spoil.through = id;
-  state.heroResult = id;
   saveSpoil();
   render();
 }
@@ -1911,8 +1921,7 @@ $('nospoil').addEventListener('change', e => {
 document.addEventListener('click', e => {
   const r = e.target.closest('[data-reveal]');
   if (r) { revealThrough(r.dataset.reveal); return; }
-  if (e.target.closest('[data-hide-all]')) { state.spoil.through = null; state.heroResult = null; saveSpoil(); render(); return; }
-  if (e.target.closest('[data-hero-dismiss]')) { state.heroResult = null; renderHero(); return; }
+  if (e.target.closest('[data-hide-all]')) { state.spoil.through = null; saveSpoil(); render(); return; }
   const w = e.target.closest('[data-watch]');
   if (w) openWatch(w.dataset.watch);
 });
