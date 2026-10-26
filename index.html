@@ -503,6 +503,13 @@ if (/^((www|ads)\.esportstracker\.app|philipsatterthwaite\.github\.io)$/.test(lo
   .wb-rates { display: flex; gap: 4px; }
   .wb-rates button { flex: 1; font-size: 12px; padding: 4px 0; }
   .wb-rates button.on { border-color: var(--gold); color: var(--gold); }
+  .wb-opts { display: flex; flex-direction: column; gap: 6px; }
+  .wb-opt { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #dfe4ee; cursor: pointer; }
+  .wb-opt input { width: 16px; height: 16px; margin: 0; accent-color: var(--gold); }
+  .wb-na { color: var(--muted); font-size: 12px; }
+  .wb-na[hidden], .wb-skip[hidden], .wb-live[hidden] { display: none; }
+  .wb-skip { font-size: 12px; font-weight: 700; padding: 3px 10px; margin-left: 8px; border-radius: 999px; background: rgba(255,255,255,.14); border: 0; color: #fff; white-space: nowrap; }
+  .wb-skip:hover { background: rgba(255,255,255,.24); }
   .wb-lang:empty { display: none; }
   .wb-lang select { width: 100%; font: inherit; font-size: 13px; color: var(--text); background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 5px 8px; }
   .wb-lang .note { display: block; margin-top: 6px; font-size: 12px; }
@@ -754,6 +761,7 @@ if (/^((www|ads)\.esportstracker\.app|philipsatterthwaite\.github\.io)$/.test(lo
           </button>
           <input type="range" id="wbVol" min="0" max="100" value="100" aria-label="Volume">
         </span>
+        <button class="wb-skip" data-wb="skip" id="wbSkip" hidden title="Jump to the start of the game">Skip draft ⏭</button>
         <button class="wb-live" data-wb="live" id="wbLive" title="Jump to where you left off" aria-label="Jump to where you left off">LIVE</button>
         <span class="wb-time" id="wbTime" title="Game time">0:00</span>
         <span class="sp"></span>
@@ -770,6 +778,10 @@ if (/^((www|ads)\.esportstracker\.app|philipsatterthwaite\.github\.io)$/.test(lo
       <div><h5>Speed</h5><div class="wb-rates" id="wbRates">
         <button data-rate="1" class="on">1×</button><button data-rate="1.25">1.25×</button><button data-rate="1.5">1.5×</button><button data-rate="2">2×</button>
       </div></div>
+      <div class="wb-opts"><h5>Playback</h5>
+        <label class="wb-opt"><input type="checkbox" id="wbOptFull"> Show video length</label>
+        <label class="wb-opt"><input type="checkbox" id="wbOptSkip"> Skip the draft <span class="wb-na" id="wbSkipNa" hidden>· not for this video</span></label>
+      </div>
       <div class="wb-lang" id="wbLang"></div>
     </div>
   </div>
@@ -2193,7 +2205,7 @@ const canWatch = m => m.status === 'done' || m.status === 'hidden' || m.status =
 // progress bar or length, and the next game is offered without saying
 // whether the series went that far.
 const WB_KEY = 'worlds2026.watch.v1';
-const W = { player: null, match: null, games: [], side: {}, win: {}, gameNo: 1, vod: null, timer: null, cover: 'solid', savedAt: 0, rate: 1, edge: 0 };
+const W = { player: null, match: null, games: [], side: {}, win: {}, gs: {}, gameNo: 1, vod: null, timer: null, cover: 'solid', savedAt: 0, rate: 1, edge: 0 };
 const stageEl = $('wbStage');
 
 // pos: where you left off in each video; edge: the furthest point you've
@@ -2208,6 +2220,19 @@ function wbSave(fn) {
   fn(s);
   try { localStorage.setItem(WB_KEY, JSON.stringify(s)); } catch {}
 }
+// Playback options, remembered per browser: full (show the video's length) and
+// skip (start each game after its draft, where that's known exactly).
+W.opt = { full: false, skip: false, ...wbStore().opts };
+$('wbOptFull').checked = W.opt.full;
+$('wbOptSkip').checked = W.opt.skip;
+for (const [el, k] of [['wbOptFull', 'full'], ['wbOptSkip', 'skip']]) {
+  $(el).addEventListener('change', e => {
+    W.opt[k] = e.target.checked;
+    wbSave(s => { s.opts = W.opt; });
+    if (W.vod && W.player?.getCurrentTime) renderBar(W.player.getCurrentTime());
+  });
+}
+
 // A full-day stream holds several games, so its positions are kept per game.
 const posKey = v => v.day ? `${v.id}@${Math.round(v.start)}` : v.id;
 function savePos() {
@@ -2258,7 +2283,31 @@ function vodsFor(game) {
     // The feed tags Serbian as sr-SR (SR is Suriname), so name it by language alone.
     id: v.parameter, locale: v.locale, lang: (() => { try { return langName.of(v.locale === 'sr-SR' ? 'sr' : v.locale) || v.locale; } catch { return v.locale; } })(), day: v.startMillis != null,
     start: v.startMillis != null ? v.startMillis / 1000 : v.offset || 0, end: v.endMillis != null ? v.endMillis / 1000 : null,
+    // When the video's first frame went out (wall clock, s). With the game's
+    // start from the live-stats feed, that places the game exactly in the video.
+    fft: v.firstFrameTime ? Date.parse(v.firstFrameTime) / 1000 : null,
   }));
+}
+
+// Seconds into the video where the game clock starts, minus a few seconds so
+// you land on the walk-in rather than mid-fight. Only when the video's first
+// frame time is known; English series uploads have their breaks cut out, so
+// no wall-clock mapping exists for them.
+function draftEnd(v) {
+  const t = W.gs[W.game?.id];
+  if (!v?.fft || !t) return null;
+  const p = t / 1000 - v.fft - 5;
+  return p > v.start + 30 && (!v.end || p < v.end) ? p : null;
+}
+function loadGameStart(g) {
+  return W.gs[g.id] !== undefined ? Promise.resolve(W.gs[g.id])
+    : (W.gsP ||= {})[g.id] ||= gameStart(g.id).catch(() => null).then(t => (W.gs[g.id] = t));
+}
+// The Skip draft button and the "not for this video" note.
+function renderSkip(t) {
+  const p = draftEnd(W.vod);
+  $('wbSkip').hidden = p == null || t == null || t > p - 3;
+  $('wbSkipNa').hidden = !W.vod || p != null || W.gs[W.game?.id] === undefined;
 }
 
 const hms = ms => {
@@ -2387,7 +2436,8 @@ async function playGame(n) {
       <div class="acts"><a class="watch" href="https://lolesports.com/live/worlds" target="_blank" rel="noopener">Watch live ↗</a></div>`);
   }
   if (g.state !== 'completed') return cover('solid', `<h3>Game ${n} hasn't started yet</h3>`);
-  W.cands = vodsFor(g).filter(c => !badVods.has(c.id));
+  W.game = g;
+  if (W.cands = vodsFor(g).filter(c => !badVods.has(c.id)), W.cands.some(c => c.fft)) loadGameStart(g).then(() => W.game === g && renderSkip(W.player?.getCurrentTime?.()));
   W.failed = new Set();
   if (!W.cands.length) return cover('solid', `<h3>Game ${n}</h3><p>No video yet. Usually up within a few hours.</p>`);
   // Start with the language picked last time, if this game has it.
@@ -2405,8 +2455,13 @@ async function startVod() {
   cover('solid', '<p>Loading video…</p>');
   try { await loadYT(); } catch { if (W.vod === vod) ytFailed(); return; }
   if (W.vod !== vod) return; // switched games while the player loaded
+  if (W.opt.skip && vod.fft) {
+    await Promise.race([loadGameStart(W.game), new Promise(r => setTimeout(r, 3000))]);
+    if (W.vod !== vod) return;
+  }
   const pos = wbStore().pos[posKey(vod)];
-  const at = pos && pos > vod.start + 15 ? pos - 3 : vod.start;
+  const skipTo = W.opt.skip ? draftEnd(vod) : null;
+  const at = pos && pos > vod.start + 15 ? Math.max(pos - 3, skipTo ?? 0) : skipTo ?? vod.start;
   W.edge = Math.max(wbStore().edge[posKey(vod)] || 0, pos || 0, at);
   const end = vod.end ? { end: Math.floor(vod.end) } : {};
   if (!W.player) {
@@ -2632,19 +2687,28 @@ function wbTick() {
 // The scrubber runs from the start of the game to the furthest point you've
 // watched, like a live stream's DVR window, so it never shows the video's
 // length. At that edge you're "LIVE"; behind it, the badge says how far.
+// The video's real end: the game's window in a full-day stream, else the video.
+const vodEnd = v => v.end ?? (W.player?.getDuration?.() || 0);
+// The scrubber's right end: the furthest you've watched, or with Show video
+// length on, the end of the game's video.
+const barEnd = () => W.opt.full && vodEnd(W.vod) > W.vod.start ? vodEnd(W.vod) : W.edge;
+
 function renderBar(t) {
   const v = W.vod;
   if (!v) return;
-  const span = W.edge - v.start;
+  const span = barEnd() - v.start;
   const frac = span > 1 ? Math.min(1, Math.max(0, (t - v.start) / span)) : 1;
   $('wbBar').classList.toggle('empty', span < 5);
   $('wbFill').style.width = `${frac * 100}%`;
   $('wbKnob').style.left = `${frac * 100}%`;
   const behind = W.edge - t, live = behind < 4;
+  $('wbLive').hidden = W.opt.full;
   $('wbLive').classList.toggle('on', live);
   $('wbLive').textContent = live ? 'LIVE' : `−${hms(behind * 1000)}`;
   $('wbLive').title = live ? "You're caught up" : 'Jump back to where you left off';
-  $('wbTime').textContent = hms(Math.max(0, t - v.start) * 1000);
+  $('wbTime').textContent = hms(Math.max(0, t - v.start) * 1000) + (W.opt.full && span > 5 ? ` / ${hms(span * 1000)}` : '');
+  $('wbBar').title = W.opt.full ? '' : "Scrub back through what you've watched";
+  renderSkip(t);
 }
 
 // YouTube draws a paused video's title along the top edge of its player and a
@@ -2694,6 +2758,7 @@ function wbAction(a) {
   if (a === 'play') return p.getPlayerState() === YT.PlayerState.PLAYING ? p.pauseVideo() : p.playVideo();
   if (a === 'mute') return setMuted(!W.muted);
   if (a === 'live') return wbSeek(W.edge);
+  if (a === 'skip') { const p = draftEnd(W.vod); if (p != null) wbSeek(p); return; }
   wbSeek(p.getCurrentTime() + Number(a));
 }
 
@@ -2744,7 +2809,7 @@ wbBar.addEventListener('pointerdown', e => {
   if (!W.vod || !W.player?.seekTo) return;
   const at = x => {
     const r = wbBar.getBoundingClientRect();
-    return W.vod.start + Math.min(1, Math.max(0, (x - r.left) / r.width)) * (W.edge - W.vod.start);
+    return W.vod.start + Math.min(1, Math.max(0, (x - r.left) / r.width)) * (barEnd() - W.vod.start);
   };
   let x = e.clientX;
   W.dragging = true;
