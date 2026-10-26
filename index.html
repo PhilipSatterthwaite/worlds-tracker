@@ -99,8 +99,6 @@ if (/^((www|ads)\.esportstracker\.app|philipsatterthwaite\.github\.io)$/.test(lo
   .hero-team .nm { min-width: 0; }
   .hero-team .full { display: block; font-size: 12px; font-weight: 500; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .hero-team .seed { display: block; font-size: 11px; font-weight: 600; color: var(--gold); opacity: .85; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .hero-team.l { opacity: .45; }
-  .hero-card.result { border-color: rgba(200,170,110,.45); }
   .hero-score { font-size: 30px; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--gold); white-space: nowrap; }
   .hero-meta { color: var(--muted); font-size: 13px; display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
   .hero-label .when { text-transform: none; letter-spacing: 0; font-size: 13px; color: var(--gold); font-weight: 700; }
@@ -350,17 +348,7 @@ if (/^((www|ads)\.esportstracker\.app|philipsatterthwaite\.github\.io)$/.test(lo
   .switch input:checked + i::after { transform: translateX(18px); background: var(--bg); }
   .switch input:focus-visible + i { outline: 2px solid var(--gold); outline-offset: 2px; }
 
-  /* No-spoilers bar and hidden results */
-  .spoil-bar {
-    display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin: -8px 0 22px;
-    background: var(--gold-soft); border: 1px solid rgba(200,170,110,.35); border-radius: var(--radius); padding: 10px 14px; font-size: 13px;
-  }
-  .spoil-bar[hidden] { display: none; }
-  .spoil-bar b { color: var(--gold); }
-  .spoil-bar .sp-text { color: #d8cfbd; }
-  .spoil-bar .sp-acts { display: flex; flex-wrap: wrap; gap: 6px; }
-  .spoil-bar button { font-size: 12px; padding: 4px 10px; }
-  .spoil-bar button.main { border-color: var(--gold); color: var(--gold); }
+  /* Hidden results */
   .linkish { background: none; border: 0; padding: 0; color: var(--muted); text-decoration: underline; font-size: 12px; }
   .linkish:hover { color: var(--gold); }
   .reveal {
@@ -374,8 +362,22 @@ if (/^((www|ads)\.esportstracker\.app|philipsatterthwaite\.github\.io)$/.test(lo
   }
   .wbtn:hover { color: var(--gold); border-color: var(--gold); }
   .mc-foot .tag { gap: 6px; }
-  .hero-hidden { text-align: center; padding: 14px 0 6px; border-top: 1px solid var(--line); margin-top: 6px; color: var(--muted); font-size: 13px; }
-  .hero-hidden .acts { display: flex; gap: 8px; justify-content: center; margin-top: 8px; flex-wrap: wrap; }
+  /* No-spoilers welcome panel */
+  .hero-card.welcome { grid-column: 1 / -1; border-color: rgba(200,170,110,.35); padding: 22px 24px; }
+  .wl-head { display: flex; align-items: baseline; justify-content: space-between; gap: 6px 16px; flex-wrap: wrap; padding-bottom: 16px; margin-bottom: 16px; border-bottom: 1px solid var(--line); }
+  .wl-head h2 { margin: 0; font-size: 24px; font-weight: 800; color: var(--text); text-transform: none; letter-spacing: 0; }
+  .wl-head p { margin: 0; color: var(--muted); }
+  .wl-last { display: inline-flex; align-items: center; gap: 10px; }
+  .welcome .hero-teams { max-width: 640px; margin: 14px auto 16px; }
+  .wl-acts { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-bottom: 14px; }
+  .wl-acts button { font-size: 15px; font-weight: 700; line-height: 1.2; padding: 9px 20px; border-radius: 8px; }
+  .wl-acts .wbtn.main { background: var(--gold); border: 1px solid var(--gold); color: #0a0d14; }
+  .wl-acts .wbtn.main:hover { filter: brightness(1.1); color: #0a0d14; }
+  .res-line { display: inline-flex; align-items: center; gap: 8px; font-weight: 800; white-space: nowrap; }
+  .res-line span { display: inline-flex; align-items: center; gap: 6px; }
+  .res-line img { width: 22px; height: 22px; object-fit: contain; }
+  .res-line b { color: var(--gold); font-variant-numeric: tabular-nums; }
+  .res-line .l { opacity: .45; }
 
   /* Watch-back player: a stream-style player with overlaid controls that fade out while playing. */
   .wb { position: fixed; inset: 0; z-index: 50; background: rgba(4,6,10,.92); display: flex; align-items: center; justify-content: center; padding: 16px; }
@@ -426,6 +428,13 @@ if (/^((www|ads)\.esportstracker\.app|philipsatterthwaite\.github\.io)$/.test(lo
   .wb-games button { font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 999px; background: rgba(255,255,255,.1); border-color: transparent; color: #dfe4ee; }
   .wb-games button.on { background: var(--gold); color: #0a0d14; }
   .wb-top .wb-x { margin-left: auto; }
+  .wb-res { margin-left: auto; flex: none; font-size: 12px; font-weight: 700; padding: 4px 12px; border-radius: 999px; background: rgba(200,170,110,.16); border: 1px solid rgba(200,170,110,.5); color: var(--gold); }
+  .wb-res:not([hidden]) + .wb-x { margin-left: 0; }
+  .wb-final { display: flex; align-items: center; gap: 14px; font-size: 26px; }
+  .wb-final .res-line { gap: 14px; }
+  .wb-final .res-line img { width: 40px; height: 40px; }
+  .wb-final .res-line span { gap: 10px; }
+  @media (max-width: 600px) { .wb-final { font-size: 18px; } .wb-final .res-line img { width: 26px; height: 26px; } }
   /* The fade under the title bar lets clicks through to the cover; only its buttons take them. */
   .wb-top { pointer-events: none; }
   .wb-stage:not(.idle) .wb-top > * { pointer-events: auto; }
@@ -549,13 +558,13 @@ if (/^((www|ads)\.esportstracker\.app|philipsatterthwaite\.github\.io)$/.test(lo
     </div>
     <div class="status">
       <label class="switch" title="Hide results until you reveal them"><input type="checkbox" id="nospoil"><i></i>No spoilers</label>
+      <button class="linkish" id="hideAll" data-hide-all hidden>Hide all again</button>
       <span class="dot" id="dot"></span>
       <span id="updated">Loading…</span>
       <button id="refresh" title="Refresh now">Refresh</button>
     </div>
   </header>
 
-  <div class="spoil-bar" id="spoilBar" hidden></div>
   <div class="err-box" id="err"></div>
 
   <section>
@@ -628,6 +637,7 @@ if (/^((www|ads)\.esportstracker\.app|philipsatterthwaite\.github\.io)$/.test(lo
     <div class="wb-top">
       <b id="wbTitle"></b>
       <span class="wb-games" id="wbGames"></span>
+      <button class="wb-res" id="wbRes" data-wb="result" hidden></button>
       <button class="wb-ic sm wb-x" id="wbClose" data-wb="close" title="Close (Esc)" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
     </div>
     <div class="wb-bottom">
@@ -1516,56 +1526,64 @@ const seedLabel = t => {
   return s ? `<span title="${s[0]} ${s[1]}${['', 'st', 'nd', 'rd'][s[1]] || 'th'} seed">${s[0]} #${s[1]}</span>` : '';
 };
 
-// kind: 'live', 'next' (not played yet), 'result' (the last result you
-// revealed; `opts.next` is the match after it, offered as "Reveal next"), or
-// 'watch' (a hidden result in the queue; `opts.first` marks the next one to
-// watch, and `opts.reveal` puts a Reveal button on it).
-function heroCard(m, kind, opts = {}) {
-  const live = kind === 'live', hidden = m.status === 'hidden', done = kind === 'result';
-  const next = opts.next;
-  const score = hidden ? '? – ?' : live || done ? `${m.s1 ?? 0} – ${m.s2 ?? 0}` : 'vs';
-  const side = (t, r) => `<div class="hero-team ${r ? 'r' : ''} ${done && m.winner && m.winner !== (r ? 2 : 1) ? 'l' : ''}">${t?.image ? `<img src="${esc(t.image)}" alt="" onerror="this.remove()">` : ''}
+// One side of a hero matchup; `dim` greys out the loser.
+const heroSide = (t, r, dim) => `<div class="hero-team ${r ? 'r' : ''} ${dim ? 'l' : ''}">${t?.image ? `<img src="${esc(t.image)}" alt="" onerror="this.remove()">` : ''}
       <div class="nm">${esc(t?.short || 'TBD')}<span class="full">${t && t.name !== t.short ? esc(t.name) : ''}</span><span class="seed">${seedLabel(t)}</span></div></div>`;
+
+// A finished series as one line: logos, codes and the score, loser dimmed.
+const resultLine = m => {
+  const t = (x, k) => `<span class="${m.winner && m.winner !== k ? 'l' : ''}">${x?.image ? `<img src="${esc(x.image)}" alt="" onerror="this.remove()">` : ''}${esc(x?.short || 'TBD')}</span>`;
+  return `<span class="res-line">${t(m.t1, 1)}<b>${m.s1 ?? 0} – ${m.s2 ?? 0}</b>${t(m.t2, 2)}</span>`;
+};
+
+// kind: 'live' or 'next' (not played yet).
+function heroCard(m, kind) {
+  const live = kind === 'live';
+  const score = live ? `${m.s1 ?? 0} – ${m.s2 ?? 0}` : 'vs';
   const liveLink = '<a class="watch" href="https://lolesports.com/live/worlds" target="_blank" rel="noopener">Watch live ↗</a>';
-  const meta = live && !hidden
+  const meta = live
     ? `<span>${esc(stageLabel(m))} · Bo${m.bo}</span><span class="tag">${state.live?.players
         ? `<button class="info-btn" data-ls-toggle aria-expanded="${state.lsOpen}">${state.lsOpen ? 'Hide game stats ▴' : 'Show game stats ▾'}</button>` : ''}
       ${liveLink}</span>`
-    : `<span>${esc(stageLabel(m))} · Bo${m.bo}</span>${live ? liveLink : ''}`;
-  const body = hidden
-    ? `<div class="hero-hidden"><div class="acts">${opts.reveal ? `<button class="reveal" data-reveal="${esc(m.id)}">Reveal</button>` : ''}${watchBtn(m, '▶ Watch')}</div></div>`
-    : done
-    ? `<div class="hero-hidden"><div class="acts">${next?.status === 'hidden' ? `<button class="reveal" data-reveal="${esc(next.id)}">Reveal next ▸</button>` : ''}${watchBtn(m, '↺ Rewatch')}</div></div>`
-    : live ? liveStats(m) : '';
-  // Played matches show only their date; matches still to come show day and time.
-  const date = `<span class="when">${fmtDate.format(m.time)}</span>`;
-  const label = live ? '<span class="live-pip"></span>Live now'
-    : done ? `Result · ${date}`
-    : hidden ? `${m.liveNow ? '<span class="live-pip"></span>' : ''}${opts.first ? 'Next to watch' : 'After that'} · ${date}`
-    : `Up next · <span class="when">${whenLabel(m.time)}</span>`;
-  return `<div class="hero-card ${live ? 'live' : ''} ${done ? 'result' : ''}">
+    : `<span>${esc(stageLabel(m))} · Bo${m.bo}</span>`;
+  const label = live ? '<span class="live-pip"></span>Live now' : `Up next · <span class="when">${whenLabel(m.time)}</span>`;
+  return `<div class="hero-card ${live ? 'live' : ''}">
     <div class="hero-label">${label}</div>
-    <div class="hero-teams">${side(m.t1)}<div class="hero-score">${score}</div>${side(m.t2, true)}</div>
-    ${body}
+    <div class="hero-teams">${heroSide(m.t1)}<div class="hero-score">${score}</div>${heroSide(m.t2, true)}</div>
+    ${live ? liveStats(m) : ''}
     <div class="hero-meta">${meta}</div></div>`;
+}
+
+// No-spoilers landing while behind: a welcome panel built around the next
+// match to watch. Revealing it puts its result on the "Last result" line and
+// brings up the match after it.
+function welcomeCard(m, last) {
+  const date = `<span class="when">${fmtDate.format(m.time)}</span>`;
+  return `<div class="hero-card welcome">
+    <div class="wl-head">
+      <h2>${last ? 'Keep watching' : 'Welcome to Worlds 2026'}</h2>
+      ${last ? `<span class="wl-last"><span class="hero-label">Last result</span>${resultLine(last)}</span>`
+        : '<p>Results stay hidden until you reveal them.</p>'}
+    </div>
+    <div class="hero-label">${m.liveNow ? '<span class="live-pip"></span>' : ''}Next to watch · ${date}</div>
+    <div class="hero-teams">${heroSide(m.t1)}<div class="hero-score">? – ?</div>${heroSide(m.t2, true)}</div>
+    <div class="wl-acts">
+      <button class="wbtn main" data-watch="${esc(m.id)}">▶ Watch</button>
+      <button class="reveal" data-reveal="${esc(m.id)}">Reveal result</button>
+    </div>
+    <div class="hero-meta"><span>${esc(stageLabel(m))} · Bo${m.bo}</span>
+      ${last ? '' : '<button class="linkish" data-spoil-off>Show all results</button>'}</div></div>`;
 }
 
 function renderHero() {
   const V = state.view;
   let html;
-  if (state.spoil.on && V.some(m => m.status === 'hidden')) {
-    // Behind with no spoilers: a fixed queue in schedule order. Slot 1 is the
-    // last result you revealed; then the next matches to watch. "Reveal next"
-    // moves the next match's result into slot 1 and shifts the rest along.
+  const toWatch = state.spoil.on && V.find(m => m.status === 'hidden');
+  if (toWatch) {
     const ri = revealIdx();
     const last = ri >= 0 ? V[ri] : null;
-    // Everything not yet revealed, in schedule order (reveals needn't go in order).
-    const queue = V.filter((m, i) => !isRevealed(state.matches[i]));
-    const cards = last ? [last.status === 'live' ? heroCard(last, 'live') : heroCard(last, 'result', { next: queue[0] })] : [];
-    queue.slice(0, 3 - cards.length).forEach((m, k) => cards.push(m.status === 'hidden'
-      ? heroCard(m, 'watch', { first: k === 0, reveal: true })
-      : heroCard(m, m.status === 'live' ? 'live' : 'next')));
-    html = cards.join('');
+    html = (last?.status === 'live' ? heroCard(last, 'live') : '')
+      + welcomeCard(toWatch, last?.status === 'done' ? last : null);
   } else {
     const live = V.find(m => m.status === 'live' || m.liveNow);
     const upcoming = V.filter(m => m.status === 'upcoming').slice(0, 2);
@@ -1909,17 +1927,10 @@ function spoilerView() {
 }
 
 
+// "Hide all again" sits beside the switch once something has been revealed.
 function renderSpoilBar() {
   $('nospoil').checked = state.spoil.on;
-  const bar = $('spoilBar');
-  bar.hidden = !state.spoil.on;
-  if (!state.spoil.on) return;
-  // Revealing happens on the hero's result card; the bar only offers to start over.
-  const any = state.spoil.revealed.length > 0;
-  const hidden = state.matches.filter(m => started(m) && !isRevealed(m));
-  bar.hidden = !any && hidden.length > 0;
-  bar.innerHTML = `${hidden.length ? '' : '<span class="sp-text">Caught up.</span>'}<span class="sp-acts">
-    ${any ? '<button class="linkish" data-hide-all>Hide all again</button>' : ''}</span>`;
+  $('hideAll').hidden = !state.spoil.on || !state.spoil.revealed.length;
 }
 
 // Reveals one result. Matches in the same round don't depend on each other,
@@ -1946,6 +1957,7 @@ document.addEventListener('click', e => {
   const r = e.target.closest('[data-reveal]');
   if (r) { revealThrough(r.dataset.reveal); return; }
   if (e.target.closest('[data-hide-all]')) { state.spoil.revealed = []; saveSpoil(); render(); return; }
+  if (e.target.closest('[data-spoil-off]')) { state.spoil.on = false; saveSpoil(); render(); return; }
   const w = e.target.closest('[data-watch]');
   if (w) openWatch(w.dataset.watch);
 });
@@ -2037,7 +2049,14 @@ function hideControls() {
 async function openWatch(matchId) {
   const m = state.matches.find(x => x.id === matchId);
   if (!m) return;
+  // "Next match" opens straight from another match's player.
+  try { W.player?.pauseVideo?.(); } catch {}
+  clearInterval(W.timer);
+  W.vod = null;
+  W.held = W.atBreak = false;
+  setAd(false);
   W.match = m;
+  $('wbRes').hidden = true;
   const v = state.view[state.matches.indexOf(m)] || m;
   $('wbTitle').textContent = `${v.t1?.short || m.t1?.short || 'TBD'} vs ${v.t2?.short || m.t2?.short || 'TBD'} · ${stageLabel(m)}`;
   $('wbGames').innerHTML = '';
@@ -2056,6 +2075,7 @@ async function openWatch(matchId) {
       return;
     }
     if (W.match !== m || $('wb').hidden) return;
+    renderWbRes();
     // Pick up where you left off: mid-game resumes the video; after finishing a
     // game you're back on the break screen.
     const r = wbStore().games[m.id];
@@ -2069,6 +2089,7 @@ async function openWatch(matchId) {
 }
 
 function closeWatch() {
+  W.held = false;
   try { W.player?.pauseVideo?.(); } catch {}
   clearInterval(W.timer);
   if (document.fullscreenElement) document.exitFullscreen();
@@ -2094,6 +2115,7 @@ function renderWbGames() {
 async function playGame(n) {
   const m = W.match, g = W.games.find(x => x.number === n);
   W.gameNo = n;
+  W.atBreak = false;
   W.vod = null;
   clearInterval(W.timer);
   try { W.player?.pauseVideo?.(); } catch {}
@@ -2191,7 +2213,7 @@ $('wbLang').addEventListener('change', e => {
 });
 
 function wbState(s) {
-  if (!W.vod) return;
+  if (!W.vod || W.held) return;
   if (s === YT.PlayerState.PLAYING) cover('play');
   else if (s === YT.PlayerState.PAUSED || s === YT.PlayerState.CUED) cover('paused');
   else if (s === YT.PlayerState.ENDED) wbEnded();
@@ -2217,16 +2239,62 @@ function wbEnded() {
 function intermission(n) {
   const m = W.match, more = n < m.bo;
   W.gameNo = n;
+  W.atBreak = true;
   renderWbGames();
   cover('solid', `<div class="wb-inter">
     <h3>Game ${n} complete</h3>
     ${more ? '' : '<p>Last possible game of the series.</p>'}
     <div class="acts">${more ? `<button class="main" data-wb-game="${n + 1}">Is there a Game ${n + 1}? ▶</button>` : ''}
       <button data-wb-game="${n}">↺ Rewatch Game ${n}</button>
-      ${isRevealed(m) ? '' : `<button class="reveal" data-reveal="${esc(m.id)}">Reveal result</button>`}
+      ${liveMatch().status === 'done' ? `<button class="reveal" data-wb="result">${isRevealed(m) ? 'Result & next match' : 'Reveal result'}</button>` : ''}
       <button data-wb="close">Watch later</button></div>
     <div class="ad-slot" hidden></div></div>`);
   window.renderAds?.();
+}
+
+// W.match as of the latest schedule refresh (a live match may have finished since it opened).
+const liveMatch = () => state.matches.find(x => x.id === W.match?.id) || W.match;
+
+// The top-bar button: once the series is over you can skip to its result.
+function renderWbRes() {
+  const m = liveMatch(), b = $('wbRes');
+  b.hidden = !m || m.status !== 'done' || W.held;
+  b.textContent = m && isRevealed(m) ? 'Next match ▸' : 'Reveal result';
+}
+
+// Seen enough: reveal the series result and offer the next match. The video
+// waits underneath, so "Keep watching" picks up where it stopped.
+function wbResult() {
+  const m = liveMatch();
+  if (m.status !== 'done') return;
+  if (!isRevealed(m)) revealThrough(m.id);
+  if (!isRevealed(m)) return; // declined revealing earlier results
+  // Where "Keep watching" returns to: the video, the break screen, or whatever message was showing.
+  const html = $('wbCover').innerHTML;
+  W.back = W.cover === 'play' || W.cover === 'paused' ? null : W.atBreak ? () => intermission(W.gameNo) : () => cover('solid', html);
+  try { W.player?.pauseVideo?.(); } catch {}
+  W.held = true;
+  setAd(false);
+  const i = state.matches.findIndex(x => x.id === m.id);
+  const next = state.matches.slice(i + 1).find(canWatch);
+  W.next = next?.id;
+  const nv = next && state.view[state.matches.indexOf(next)];
+  renderWbRes();
+  cover('solid', `<div class="wb-inter">
+    <div class="hero-label">Final · ${esc(stageLabel(m))}</div>
+    <div class="wb-final">${resultLine(m)}</div>
+    <div class="acts">${next ? '<button class="main" data-wb="next">Next match ▶</button>' : ''}
+      <button data-wb="resume">Keep watching</button>
+      <button data-wb="close">Close</button></div>
+    ${nv ? `<p>Next: ${esc(nv.t1?.short || 'TBD')} vs ${esc(nv.t2?.short || 'TBD')} · ${esc(stageLabel(nv))}</p>` : ''}</div>`);
+}
+
+function wbResume() {
+  W.held = false;
+  renderWbRes();
+  if (W.back) return W.back();
+  cover('paused');
+  try { W.player?.playVideo?.(); } catch {}
 }
 
 function wbTick() {
@@ -2309,7 +2377,10 @@ function wbAction(a) {
   if (a === 'start' || (a === 'play' && W.start)) return W.start?.(); // Space also starts
   if (a === 'fs') return toggleFs();
   if (a === 'settings') { $('wbMenu').hidden = !$('wbMenu').hidden; return; }
-  if (!p?.getCurrentTime || !W.vod) return;
+  if (a === 'result') return wbResult();
+  if (a === 'next') return W.next && openWatch(W.next);
+  if (a === 'resume') return wbResume();
+  if (W.held || !p?.getCurrentTime || !W.vod) return;
   if (a === 'play') return p.getPlayerState() === YT.PlayerState.PLAYING ? p.pauseVideo() : p.playVideo();
   if (a === 'mute') return setMuted(!W.muted);
   if (a === 'live') return wbSeek(W.edge);
@@ -2446,6 +2517,7 @@ function render() {
   renderPlayin();
   renderSwiss();
   renderKnockout();
+  if (!$('wb').hidden && !W.start) renderWbRes(); // a match being watched may have just finished
   requestAnimationFrame(drawAll);
   tick();
 }
