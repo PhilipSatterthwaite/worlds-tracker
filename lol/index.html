@@ -26,7 +26,8 @@
     color-scheme: dark;
   }
   * { box-sizing: border-box; }
-  .scroll { scrollbar-width: thin; scrollbar-color: var(--line-2) transparent; }
+  /* Nothing scrolls sideways: layouts reflow or scale to the screen. Only the page scrolls, vertically. */
+  html, body { overflow-x: clip; }
   html, body { margin: 0; }
   body {
     background: var(--bg);
@@ -186,10 +187,8 @@
 
   /* Stage tabs */
   .tabs {
-    display: flex; gap: 6px; margin-bottom: 22px; box-shadow: inset 0 -1px 0 var(--line);
-    overflow-x: auto; overflow-y: hidden; scrollbar-width: none;
+    display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 22px; box-shadow: inset 0 -1px 0 var(--line);
   }
-  .tabs::-webkit-scrollbar { display: none; }
   .tab {
     background: none; border: 0; border-radius: 0;
     padding: 10px 16px 12px; color: var(--muted); font-weight: 700; font-size: 15px;
@@ -201,8 +200,22 @@
   .tab .ts.live { color: var(--live); font-weight: 700; }
   .panel[hidden] { display: none; }
 
-  .scroll { overflow-x: auto; padding-bottom: 8px; }
-  .board { position: relative; }
+  /* Brackets: scaled down to fit when that keeps them readable (fitBoard), else stacked. */
+  .scroll { overflow: hidden; padding-bottom: 8px; }
+  .board { position: relative; transform-origin: 0 0; }
+  .board.stack > svg.links { display: none; }
+  .stack-only { display: none; }
+  .stack .stack-only { display: inline; }
+  .stack .flow-only { display: none; }
+  .sw.stack { display: block; min-width: 0; }
+  .sw.stack .sw-col + .sw-col { margin-top: 18px; }
+  .sw.stack .sw-col h4 { text-align: left; }
+  .sw.stack .sw-stack { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(210px, 100%), 1fr)); gap: 12px; align-items: start; }
+  .pi.stack { grid-template-columns: repeat(auto-fill, minmax(min(240px, 100%), 1fr)); min-width: 0; align-items: start; }
+  .pi.stack > * { grid-column: auto !important; grid-row: auto !important; }
+  .pi.stack > .pi-label { grid-column: 1 / -1 !important; margin-top: 6px !important; }
+  .ko.stack { grid-template-columns: minmax(0, 1fr); row-gap: 22px; min-width: 0; }
+  .ko.stack .ko-body, .ko.stack .ko-pair { min-height: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(240px, 100%), 1fr)); gap: 12px; }
   .board > svg.links { position: absolute; inset: 0; pointer-events: none; overflow: visible; z-index: 0; }
   .board .node { position: relative; z-index: 1; }
 
@@ -352,7 +365,9 @@
   .wb-games { display: inline-flex; gap: 4px; flex-wrap: wrap; }
   .wb-games button { font-size: 12px; padding: 3px 9px; }
   .wb-games button.on { border-color: var(--gold); color: var(--gold); }
-  .wb-stage { position: relative; aspect-ratio: 16 / 9; background: #000; border-radius: 6px; overflow: hidden; }
+  .wb-box { overflow: hidden; }
+  /* Leaves room for the header and controls so the whole player fits on short screens. */
+  .wb-stage { position: relative; aspect-ratio: 16 / 9; max-height: calc(100dvh - 230px); min-height: 140px; background: #000; border-radius: 6px; overflow: hidden; }
   .wb-stage iframe, .wb-stage > div:first-child { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
   /* Sits over the video so YouTube's own hover UI (and its end screen) never shows. */
   .wb-cover { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; text-align: center; cursor: pointer; padding: 20px; }
@@ -1061,8 +1076,10 @@ const logo = t => t?.image ? `<img class="lg" src="${esc(t.image)}" alt="" loadi
 // arrowhead sits on the very end of the line with its tip touching the box.
 function drawLinks(board, links) {
   board.querySelector(':scope > svg.links')?.remove();
-  if (!board.offsetParent) return; // hidden tab: drawn when shown
+  if (!board.offsetParent || board.classList.contains('stack')) return; // hidden tab: drawn when shown
   const base = board.getBoundingClientRect();
+  // Rects are on screen, the SVG is inside the (possibly scaled) board.
+  const k = base.width / board.offsetWidth || 1;
   const node = id => board.querySelector(`[data-node="${id}"]`);
   const color = { win: '#4ade80', loss: '#f87171', path: '#4a5878' };
   const HEAD = 7;
@@ -1072,8 +1089,8 @@ function drawLinks(board, links) {
     if (!a || !b) continue;
     const ra = (a.querySelector('.mc') || a).getBoundingClientRect();
     const rb = (b.querySelector('.pool-h') || b.querySelector('.mc') || b).getBoundingClientRect();
-    const x1 = ra.right - base.left, y1 = ra.top + ra.height / 2 - base.top;
-    const tipX = b.getBoundingClientRect().left - base.left, y2 = rb.top + rb.height / 2 - base.top;
+    const x1 = (ra.right - base.left) / k, y1 = (ra.top + ra.height / 2 - base.top) / k;
+    const tipX = (b.getBoundingClientRect().left - base.left) / k, y2 = (rb.top + rb.height / 2 - base.top) / k;
     const x2 = tipX - HEAD; // line stops where the arrowhead's base begins
     const dx = Math.max(12, (x2 - x1) * .55);
     const c = color[kind];
@@ -1083,9 +1100,27 @@ function drawLinks(board, links) {
   board.insertAdjacentHTML('afterbegin', `<svg class="links" width="${board.scrollWidth}" height="${board.scrollHeight}">${paths}</svg>`);
 }
 
+// A bracket wider than the screen is scaled down to fit, as long as it stays
+// readable (MIN_SCALE); past that it switches to the stacked layout.
+const MIN_SCALE = .8;
+function fitBoard(board) {
+  const wrap = board.parentElement;
+  board.classList.remove('stack');
+  board.style.transform = wrap.style.height = '';
+  if (!board.offsetParent) return;
+  const k = wrap.clientWidth / board.scrollWidth;
+  if (k >= 1) return;
+  if (k < MIN_SCALE) { board.classList.add('stack'); return; }
+  board.style.transform = `scale(${k})`;
+  wrap.style.height = `${board.offsetHeight * k + 8}px`;
+}
+
 const boardLinks = {};
 function drawAll() {
-  for (const [id, links] of Object.entries(boardLinks)) drawLinks($(id), links);
+  for (const [id, links] of Object.entries(boardLinks)) {
+    fitBoard($(id));
+    drawLinks($(id), links);
+  }
 }
 window.addEventListener('resize', () => requestAnimationFrame(drawAll));
 document.fonts?.ready.then(drawAll);
@@ -1530,7 +1565,7 @@ const SWISS_COLS = [
   { title: 'Round 3', nodes: ['2–0', '1–1', '0–2'] },
   { title: 'Round 4', nodes: ['3–0', '2–1', '1–2', '0–3'] },
   { title: 'Round 5', nodes: ['3–1', '2–2', '1–3'] },
-  { title: '&nbsp;', nodes: ['3–2', '2–3'] },
+  { title: '<span class="flow-only">&nbsp;</span><span class="stack-only">After round 5</span>', nodes: ['3–2', '2–3'] },
 ];
 
 function miniMatch(m) {
