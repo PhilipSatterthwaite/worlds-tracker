@@ -1004,7 +1004,7 @@ async function load() {
   const onAir = loadStream();
   try {
     state.events = await getEvents();
-    state.matches = state.events.map(toMatch).sort((x, y) => x.time - y.time);
+    refreshMatches();
     state.fetchedAt = Date.now();
     state.failures = 0;
     try { localStorage.setItem(CACHE_KEY, JSON.stringify({ at: state.fetchedAt, events: state.events })); } catch {}
@@ -1037,12 +1037,40 @@ async function loadStream() {
   } catch {}
 }
 
+// Game results the live-stats feed has seen before the schedule records them
+// (that takes minutes): matchId → { gameNumber: 1 | 2 } for the team that won.
+// Each one counts toward the shown series score until the schedule includes
+// it. Only the score: the match finishing (status, winner, bracket moves)
+// waits for the schedule, since the winner here is read from the last frame.
+state.provisional = {};
+function refreshMatches() {
+  state.matches = state.events.map(toMatch).sort((x, y) => x.time - y.time);
+  for (const m of state.matches) {
+    const P = state.provisional[m.id];
+    if (!P) continue;
+    const known = (m.s1 ?? 0) + (m.s2 ?? 0);
+    for (const n of Object.keys(P).map(Number).sort((a, b) => a - b)) {
+      if (n <= known) { delete P[n]; continue; } // the schedule has it now
+      if (P[n] === 1) m.s1 = (m.s1 ?? 0) + 1; else m.s2 = (m.s2 ?? 0) + 1;
+    }
+    if (!Object.keys(P).length) delete state.provisional[m.id];
+  }
+}
+// Who won a finished game, from its last frame: the side that took an
+// inhibitor (the nexus can't be hit before one falls), else more towers, else
+// more gold. Returns 1 or 2 for the match's team 1 or 2.
+function finishedWinner(f, t1Blue) {
+  const b = f.blueTeam, r = f.redTeam;
+  const blueWon = !b.inhibitors !== !r.inhibitors ? b.inhibitors > 0 : b.towers !== r.towers ? b.towers > r.towers : b.totalGold > r.totalGold;
+  return blueWon === t1Blue ? 1 : 2;
+}
+
 function loadCache() {
   try {
     const c = JSON.parse(localStorage.getItem(CACHE_KEY));
     if (c && c.events) {
       state.events = c.events;
-      state.matches = c.events.map(toMatch).sort((x, y) => x.time - y.time);
+      refreshMatches();
       state.fetchedAt = c.at;
     }
   } catch {}
@@ -1279,9 +1307,17 @@ async function fetchLive(match) {
   }
   const f = w.frames.at(-1);
   if (f.gameState === 'finished') {
-    // Pull the series score as soon as a game ends instead of waiting for the next scheduled refresh.
+    const snap = await finalSnapshot(match, ev, game, w);
+    // Count the game toward the series score now, rather than when the
+    // schedule gets round to it.
+    if (snap && !state.provisional[match.id]?.[game.number]) {
+      (state.provisional[match.id] ||= {})[game.number] = finishedWinner(f, snap.t1Blue);
+      refreshMatches();
+      render();
+    }
+    // And refresh the schedule as soon as a game ends instead of waiting for the next scheduled refresh.
     if (state.reloadedFor !== game.id) { state.reloadedFor = game.id; load(); }
-    return { ...await finalSnapshot(match, ev, game, w), finished: true };
+    return { ...snap, finished: true };
   }
 
   const T = await tracker(game.id);
@@ -1582,7 +1618,7 @@ function liveStats(m) {
   const L = state.live;
   if (!L || L.matchId !== m.id) return `<div class="ls"><div class="ls-note">Loading live game stats…</div></div>`;
   const note = L.starting ? 'Starting soon · live stats on the way' : L.between ? `Between games · Game ${L.nextNo || L.gameNo} up next`
-    : L.finished ? `Game ${L.gameNo} just ended · updating series score…` : '';
+    : L.finished ? `Game ${L.gameNo} just ended${state.provisional[m.id]?.[L.gameNo] ? '' : ' · updating series score…'}` : '';
   if (!L.players) {
     return `<div class="ls"><div class="ls-note">${note || `${L.gameNo ? `Game ${L.gameNo}` : 'Game'} in progress · live stats unavailable right now`}</div></div>`;
   }
