@@ -397,6 +397,19 @@ if (/^((www|ads)\.esportstracker\.app|philipsatterthwaite\.github\.io)$/.test(lo
   .wb-inter { display: flex; flex-direction: column; align-items: center; gap: 12px; }
   .wb-inter h3 { font-size: 22px; }
   .wb-inter .ad-slot { margin: 14px 0 0; }
+  /* Full width so the banner can size to the stage (ads.js measures the parent). */
+  .wb-pre { align-self: stretch; }
+  .wb-cover:has(.wb-pre) { padding: 8px; }
+  .wb-start { background: none; border: 0; padding: 0; cursor: pointer; }
+  .wb-start:hover .wb-big { border-color: var(--gold); color: var(--gold); }
+  /* Phones: the stage is short, so keep the play button clear of the title bar. */
+  @media (max-width: 600px) {
+    .wb-cover:has(.wb-pre) { padding-top: 44px; justify-content: flex-start; }
+    .wb-pre { gap: 6px; }
+    .wb-pre .ad-slot { margin-top: 0; }
+    .wb-pre .wb-big { width: 54px; height: 54px; }
+    .wb-pre .wb-big svg { width: 24px; height: 24px; }
+  }
   .wb-big { width: 76px; height: 76px; border-radius: 50%; background: rgba(10,13,20,.6); border: 1px solid rgba(255,255,255,.18); display: grid; place-items: center; color: #fff; backdrop-filter: blur(4px); }
   .wb-big svg { width: 34px; height: 34px; margin-left: 4px; }
   .wb-cover p { margin: 0; color: var(--muted); max-width: 460px; }
@@ -410,6 +423,9 @@ if (/^((www|ads)\.esportstracker\.app|philipsatterthwaite\.github\.io)$/.test(lo
   .wb-games button { font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 999px; background: rgba(255,255,255,.1); border-color: transparent; color: #dfe4ee; }
   .wb-games button.on { background: var(--gold); color: #0a0d14; }
   .wb-top .wb-x { margin-left: auto; }
+  /* The fade under the title bar lets clicks through to the cover; only its buttons take them. */
+  .wb-top { pointer-events: none; }
+  .wb-stage:not(.idle) .wb-top > * { pointer-events: auto; }
   .wb-bottom { bottom: 0; padding: 34px 10px 6px; background: linear-gradient(transparent, rgba(0,0,0,.82)); }
   .wb-stage.solid .wb-bottom { display: none; }
   .wb-stage.idle { cursor: none; }
@@ -1968,18 +1984,29 @@ async function openWatch(matchId) {
   $('wbGames').innerHTML = '';
   $('wb').hidden = false;
   document.body.style.overflow = 'hidden';
-  cover('solid', '<p>Loading…</p>');
-  try {
-    W.games = (await api('getEventDetails', { id: matchId })).event.match.games || [];
-  } catch {
-    cover('solid', "<p>Couldn't load this match's videos. Try again in a minute.</p>");
-    return;
-  }
-  // Pick up where you left off: mid-game resumes the video; after finishing a
-  // game you're back on the break screen.
-  const r = wbStore().games[m.id];
-  if (r?.done && r.done >= (r.n || 1)) intermission(r.done);
-  else playGame(r?.n || 1);
+  // Opens on a play button with a banner under it; the videos load meanwhile.
+  const games = api('getEventDetails', { id: matchId }).then(d => d.event.match.games || []);
+  games.catch(() => {});
+  W.start = async () => {
+    W.start = null;
+    cover('solid', '<p>Loading…</p>');
+    try {
+      W.games = await games;
+    } catch {
+      cover('solid', "<p>Couldn't load this match's videos. Try again in a minute.</p>");
+      return;
+    }
+    if (W.match !== m || $('wb').hidden) return;
+    // Pick up where you left off: mid-game resumes the video; after finishing a
+    // game you're back on the break screen.
+    const r = wbStore().games[m.id];
+    if (r?.done && r.done >= (r.n || 1)) intermission(r.done);
+    else playGame(r?.n || 1);
+  };
+  cover('solid', `<div class="wb-inter wb-pre">
+    <button class="wb-start" data-wb="start" title="Play" aria-label="Play">${BIG_PLAY}</button>
+    <div class="ad-slot" hidden></div></div>`);
+  window.renderAds?.();
 }
 
 function closeWatch() {
@@ -2220,6 +2247,7 @@ function wbAction(a) {
   const p = W.player;
   wake();
   if (a === 'close') return closeWatch();
+  if (a === 'start' || (a === 'play' && W.start)) return W.start?.(); // Space also starts
   if (a === 'fs') return toggleFs();
   if (a === 'settings') { $('wbMenu').hidden = !$('wbMenu').hidden; return; }
   if (!p?.getCurrentTime || !W.vod) return;
