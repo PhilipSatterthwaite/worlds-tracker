@@ -443,6 +443,9 @@ if (/^((www|ads)\.esportstracker\.app|philipsatterthwaite\.github\.io)$/.test(lo
     color: var(--muted); background: transparent; border: 1px solid var(--line-2);
   }
   .wbtn:hover { color: var(--gold); border-color: var(--gold); }
+  .live-btn { font: inherit; font-size: 11px; font-weight: 700; line-height: 18px; padding: 0 8px; border-radius: 999px; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; color: #fff; background: rgba(255,70,85,.2); border: 1px solid rgba(255,70,85,.6); white-space: nowrap; }
+  .live-btn:hover { background: rgba(255,70,85,.34); border-color: var(--live); }
+  .live-btn .live-pip { width: 6px; height: 6px; }
   .board .reveal, .board .wbtn { white-space: nowrap; }
   .mc-foot .tag { gap: 6px; }
   /* No-spoilers watch queue: hidden/result cards and their buttons */
@@ -1561,8 +1564,8 @@ function matchCard(m, placeholder) {
   };
   const live = m.status === 'live' || m.liveNow;
   const bo = `<span class="tag">${canWatch(m) ? watchBtn(m, '▶ Watch') : ''}Bo${m.bo}</span>`;
-  const foot = m.status === 'hidden' ? `<span class="tag">${live ? '<span class="live-pip"></span>' : ''}<button class="reveal" data-reveal="${esc(m.id)}">Reveal result</button></span>${bo}`
-    : live ? `<span class="tag"><span class="live-pip"></span>LIVE</span>${bo}`
+  const foot = m.status === 'hidden' ? `<span class="tag">${liveBtn(m, 'Live') || (live ? '<span class="live-pip"></span>' : '')}<button class="reveal" data-reveal="${esc(m.id)}">Reveal result</button></span>${bo}`
+    : live ? `<span class="tag">${liveBtn(m) || '<span class="live-pip"></span>LIVE'}</span>${bo}`
     : m.status === 'done' ? `<span>Final</span>${bo}`
     : `<span>${fmtShort.format(m.time)}</span>${bo}`;
   return `<div class="mc ${live ? 'live' : ''}">${row(m.t1, m.s1, 1)}${row(m.t2, m.s2, 2)}<div class="mc-foot">${foot}</div></div>`;
@@ -1593,7 +1596,7 @@ function upcomingList(ms, emptyText) {
     html += `<div class="day"><div class="day-h ${k === today ? 'today' : ''}">${fmtDay.format(day[0].time)}${k === today ? ' · Today' : ''}</div><div class="rows">`;
     for (const m of day) {
       const live = m.status === 'live' || m.liveNow, hidden = m.status === 'hidden', shown = kept(m);
-      const pip = live ? '<span class="live-pip"></span>LIVE' : '';
+      const pip = liveBtn(m, 'LIVE') || (live ? '<span class="live-pip"></span>LIVE' : '');
       const st = hidden ? `<span class="tag">${pip}<button class="reveal" data-reveal="${esc(m.id)}">${m.liveNow ? 'Show live score' : 'Reveal'}</button>${watchBtn(m, '▶ Watch')}</span>`
         : shown ? `<span class="tag">${watchBtn(m, '↺ Rewatch')}<button class="done-btn" data-done="${esc(m.id)}" title="Mark as watched and take it off this list">✓ Done</button></span>`
         : live ? `<span class="tag">${pip}${watchBtn(m, '▶ Watch')}</span>` : '';
@@ -2077,7 +2080,8 @@ function miniMatch(m) {
     : m.status === 'done' ? `<span class="ms">${m.s1 ?? 0}–${m.s2 ?? 0}${wb}</span>`
     : live ? `<span class="ms"><span class="live-pip"></span>${m.s1 ?? 0}–${m.s2 ?? 0}${wb}</span>`
     : `<span class="ms up">vs</span>`;
-  const when = m.status === 'upcoming' && m.t1 && m.t2 ? `<span class="mw">${fmtWhen.format(m.time)}</span>` : '';
+  const lb = liveBtn(m);
+  const when = lb ? `<span class="mw">${lb}</span>` : m.status === 'upcoming' && m.t1 && m.t2 ? `<span class="mw">${fmtWhen.format(m.time)}</span>` : '';
   return `<div class="mm ${live ? 'live' : ''}">${side(m.t1, 1)}${mid}${side(m.t2, 2)}${when}</div>`;
 }
 
@@ -2635,6 +2639,11 @@ document.addEventListener('click', e => {
   else if (e.target.closest('[data-lsm-close]') || e.target === $('lsm')) closeStream();
 });
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('lsm').hidden) closeStream(); });
+
+// "● Watch live" on a match that's on air right now (opens the live stream).
+// Not for a match the schedule still lists as live after the next one started.
+const liveBtn = (m, label = 'Watch live') => (m.status === 'live' || m.liveNow) && state.stream && (!state.stream.matchId || state.stream.matchId === m.id)
+  ? `<button class="live-btn" data-live-stream title="Watch the live broadcast"><span class="live-pip"></span>${label}</button>` : '';
 
 const watchBtn = (m, label = '▶') => `<button class="wbtn" data-watch="${esc(m.id)}" title="Rewatch without spoilers" aria-label="Rewatch">${label}</button>`;
 const canWatch = m => m.status === 'done' || m.status === 'hidden' || m.status === 'live';
