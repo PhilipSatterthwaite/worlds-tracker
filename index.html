@@ -1765,8 +1765,18 @@ function miniMatch(m) {
 }
 
 function renderSwiss() {
-  // Re-run on the spoiler-free view so records and outcome boxes only count revealed results.
-  const { swiss, records } = computeSwiss(state.view);
+  // Pools come from the real results (stamped in render()); records, and so
+  // the qualified/eliminated boxes, count only results you can see.
+  const swiss = state.view.filter(m => m.stage === 'swiss');
+  const rec = new Map();
+  for (const m of swiss) {
+    if (!m.winner) continue;
+    for (const [t, won] of [[m.t1, m.winner === 1], [m.t2, m.winner === 2]]) {
+      const r = rec.get(t.id) || rec.set(t.id, { team: t, w: 0, l: 0 }).get(t.id);
+      won ? r.w++ : r.l++;
+    }
+  }
+  const records = [...rec.values()];
   const poolBox = key => {
     const [w, l] = key.split('–').map(Number);
     const ms = swiss.filter(m => m.pool === key);
@@ -1808,15 +1818,24 @@ function focusTeam(id) {
   }
   for (const el of board.querySelectorAll('.mt[data-team]')) el.classList.toggle('me', el.dataset.team === state.focus);
 }
+// Mouse: a team's path is shaded only while the pointer is directly on that
+// team, and clears the moment it moves off. Touch has no hover, so a tap pins
+// the path instead; tap it again or anywhere else to clear.
 const swBoardEl = $('swBoard');
-swBoardEl.addEventListener('mouseover', e => {
-  const t = e.target.closest('[data-team]');
-  if (t && t.dataset.team !== state.focus) focusTeam(t.dataset.team);
+const teamAt = el => el?.closest?.('[data-team]');
+swBoardEl.addEventListener('pointerover', e => {
+  if (e.pointerType !== 'mouse') return;
+  const id = teamAt(e.target)?.dataset.team || null;
+  if (id !== state.focus) focusTeam(id);
 });
-swBoardEl.addEventListener('mouseleave', () => focusTeam(state.pinned));
-// Touch: tap a team to pin its path, tap it again or anywhere else to clear.
+swBoardEl.addEventListener('pointerout', e => {
+  if (e.pointerType === 'mouse' && !teamAt(e.relatedTarget)) focusTeam(null);
+});
+swBoardEl.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse') focusTeam(null); });
+swBoardEl.addEventListener('pointerdown', e => { state.lastPointer = e.pointerType; });
 swBoardEl.addEventListener('click', e => {
-  const t = e.target.closest('[data-team]');
+  if (state.lastPointer === 'mouse') return;
+  const t = teamAt(e.target);
   focusTeam(t && t.dataset.team !== state.pinned ? (state.pinned = t.dataset.team) : (state.pinned = null));
 });
 
@@ -1898,28 +1917,43 @@ function migrateSpoil() {
   saveSpoil();
 }
 
-// Bracket depth: who plays in a round depends on every earlier round's results.
-function roundOf(m) {
-  if (m.stage === 'playin') return { ub1: 1, ub2: 1, ubf: 2, lb1: 2, lbf: 3, f: 4 }[m.piSlot] || 1;
-  if (m.stage === 'swiss') return 4 + (m.swissRound || 1);
-  return { qf: 10, sf: 11, f: 12 }[m.koRound];
+const plays = (m, t) => !!t && (m.t1?.id === t.id || m.t2?.id === t.id);
+
+// A team is shown in a match once every earlier result of theirs is revealed,
+// since that's when you'd know where they went next (as if the draw were
+// instant). Until then that side reads TBD, because seeing them there would
+// give away how they did.
+function sideKnown(t, i) {
+  return !!t && state.matches.every((x, j) => j >= i || !plays(x, t) || isRevealed(x));
 }
 
 // The matches as a spoiler-free viewer should see them: hidden results look
-// unplayed (status 'hidden'), and a matchup is shown only if no earlier
-// round still has a hidden result, since the pairing itself would give that
-// result away (Swiss round 2 pairs the round 1 winners, and so on).
+// unplayed (status 'hidden'), and each side of a matchup appears only once
+// that team's earlier results are revealed. Matches keep their real round,
+// pool and bracket slot, which give nothing away on their own.
 function spoilerView() {
   migrateSpoil();
   if (!state.spoil.on) return state.matches;
-  const hiddenRounds = state.matches.filter(m => started(m) && !isRevealed(m)).map(roundOf);
-  const minHidden = Math.min(Infinity, ...hiddenRounds);
-  return state.matches.map(m => {
+  return state.matches.map((m, i) => {
     if (isRevealed(m)) return m;
-    const teams = roundOf(m) <= minHidden ? {} : { t1: null, t2: null, pool: null };
-    if (!started(m)) return { ...m, ...teams };
-    return { ...m, ...teams, status: 'hidden', liveNow: m.status === 'live', s1: null, s2: null, winner: 0 };
+    const sides = { t1: sideKnown(m.t1, i) ? m.t1 : null, t2: sideKnown(m.t2, i) ? m.t2 : null };
+    if (!started(m)) return { ...m, ...sides };
+    return { ...m, ...sides, status: 'hidden', liveNow: m.status === 'live', s1: null, s2: null, winner: 0 };
   });
+}
+
+// Hidden results a match depends on: both teams' earlier matches, and in turn
+// whatever those depend on, so that both sides can be shown.
+function revealDeps(m) {
+  const out = new Set();
+  const visit = x => {
+    const i = state.matches.indexOf(x);
+    state.matches.forEach((y, j) => {
+      if (j < i && started(y) && !isRevealed(y) && !out.has(y) && (plays(y, x.t1) || plays(y, x.t2))) { out.add(y); visit(y); }
+    });
+  };
+  visit(m);
+  return state.matches.filter(y => out.has(y)); // schedule order
 }
 
 
@@ -1929,14 +1963,13 @@ function renderSpoilBar() {
   $('hideAll').hidden = !state.spoil.on || !state.spoil.revealed.length;
 }
 
-// Reveals one result. Matches in the same round don't depend on each other,
-// so they can be revealed in any order; a later-round match's pairing gives
-// away earlier results, so revealing it also reveals any still-hidden
-// matches from earlier rounds (after asking).
+// Reveals one result, in any order. If either team still has an earlier
+// result hidden, revealing this match would give it away, so those are
+// revealed with it (after asking).
 function revealThrough(id) {
   const m = state.matches.find(x => x.id === id);
   if (!m || isRevealed(m)) return;
-  const deps = state.matches.filter(x => x !== m && started(x) && !isRevealed(x) && roundOf(x) < roundOf(m));
+  const deps = revealDeps(m);
   if (deps.length && !confirm(`This also reveals ${deps.length} earlier result${deps.length > 1 ? 's' : ''} it depends on. Continue?`)) return;
   state.spoil.revealed.push(...deps.map(x => x.id), m.id);
   saveSpoil();
@@ -2501,8 +2534,8 @@ async function pool(items, n, fn) {
 /* ---------- render loop ---------- */
 
 function render() {
-  // Stamp rounds and slots from the real results first; the spoiler-free
-  // view copies them, and roundOf() needs them.
+  // Stamp rounds, pools and slots from the real results first; the
+  // spoiler-free view copies them.
   computeSwiss(state.matches);
   playinSlots(state.matches);
   state.view = spoilerView();
