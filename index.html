@@ -98,6 +98,9 @@ if (/^((www|ads)\.esportstracker\.app|philipsatterthwaite\.github\.io)$/.test(lo
   .hero-team img { width: 44px; height: 44px; object-fit: contain; flex: none; }
   .hero-team .nm { min-width: 0; }
   .hero-team .full { display: block; font-size: 12px; font-weight: 500; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .hero-team .seed { display: block; font-size: 11px; font-weight: 600; color: var(--gold); opacity: .85; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .hero-team.l { opacity: .45; }
+  .hero-card.result { border-color: rgba(200,170,110,.45); }
   .hero-score { font-size: 30px; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--gold); white-space: nowrap; }
   .hero-meta { color: var(--muted); font-size: 13px; display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
   .hero-label .when { text-transform: none; letter-spacing: 0; font-size: 13px; color: var(--gold); font-weight: 700; }
@@ -543,7 +546,6 @@ if (/^((www|ads)\.esportstracker\.app|philipsatterthwaite\.github\.io)$/.test(lo
   <header>
     <div class="brand">
       <h1>Worlds <span>2026</span> Tracker</h1>
-      <p>Play-In, Los Angeles · Oct 15–18 &nbsp;·&nbsp; Swiss, Allen TX · Oct 23–31 &nbsp;·&nbsp; Knockouts Nov 3–14</p>
     </div>
     <div class="status">
       <label class="switch" title="Hide results until you reveal them"><input type="checkbox" id="nospoil"><i></i>No spoilers</label>
@@ -557,7 +559,6 @@ if (/^((www|ads)\.esportstracker\.app|philipsatterthwaite\.github\.io)$/.test(lo
   <div class="err-box" id="err"></div>
 
   <section>
-    <h2>Now <small id="tzLabel"></small></h2>
     <div class="hero" id="hero"></div>
   </section>
 
@@ -590,9 +591,8 @@ if (/^((www|ads)\.esportstracker\.app|philipsatterthwaite\.github\.io)$/.test(lo
       <li><b>3 wins advances</b> to the Knockout Stage; <b>3 losses eliminates</b>. That takes at most 5 rounds, and 8 teams go through.</li>
       <li>Matches are <b>best of 1</b>, except when a team can qualify or be eliminated (any 2–x or x–2 record), which are <b>best of 3</b>.</li>
       <li>Your record seeds the quarterfinal draw: the two <b>3–0</b> teams each face a <b>3–2</b> team; the remaining four are drawn at random.</li>
-      <li>Tip: hover or tap a team to trace its path through the chart.</li>
+      <li>In the chart, green arrows carry winners up and red arrows carry losers down. Hover or tap a team to trace its path.</li>
     </ul></div>
-    <div class="legend"><span><i style="border-color:var(--win)"></i>Winners move up</span><span><i style="border-color:var(--loss)"></i>Losers move down</span></div>
     <div class="scroll"><div class="board sw" id="swBoard"></div></div>
     <div id="swSched"></div>
   </div>
@@ -1295,7 +1295,7 @@ function upcomingList(ms, emptyText) {
     const name = `<span title="${esc(t?.name || 'TBD')}">${esc(t?.short || 'TBD')}</span>`;
     return `<span class="${side === 1 ? 'a' : 'b'} ${t ? '' : 'tbd'}">${side === 1 ? name + logo(t) : logo(t) + name}</span>`;
   };
-  let html = `<h3 class="sub">${state.spoil.on ? 'To watch & upcoming' : 'Upcoming'} · local time</h3>`;
+  let html = `<h3 class="sub">${state.spoil.on ? 'To watch & upcoming' : 'Upcoming'}</h3>`;
   for (const [k, day] of days) {
     html += `<div class="day"><div class="day-h ${k === today ? 'today' : ''}">${fmtDay.format(day[0].time)}${k === today ? ' · Today' : ''}</div><div class="rows">`;
     for (const m of day) {
@@ -1314,7 +1314,7 @@ function upcomingList(ms, emptyText) {
     }
     html += `</div></div>`;
   }
-  return html + `<p class="note">After a day's first match, start times are estimates; each match starts when the previous one ends.</p>`;
+  return html;
 }
 
 /* ---------- hero ---------- */
@@ -1501,12 +1501,29 @@ function lanes(L) {
   }).join('');
 }
 
-// kind: 'live', 'next' (upcoming) or 'watch' (the next hidden result, in no-spoilers mode).
-function heroCard(m, kind) {
-  const live = kind === 'live', hidden = m.status === 'hidden';
-  const score = hidden ? '? – ?' : live ? `${m.s1 ?? 0} – ${m.s2 ?? 0}` : 'vs';
-  const side = (t, r) => `<div class="hero-team ${r ? 'r' : ''}">${t?.image ? `<img src="${esc(t.image)}" alt="" onerror="this.remove()">` : ''}
-      <div class="nm">${esc(t?.short || 'TBD')}<span class="full">${t && t.name !== t.short ? esc(t.name) : ''}</span></div></div>`;
+// League and seed for each Worlds 2026 team (the feed doesn't carry seeds).
+// From the Round 1 draw, which paired them as LCK #1 vs LPL #4, etc.
+const SEED = {
+  GEN: ['LCK', 1], HLE: ['LCK', 2], T1: ['LCK', 3], DK: ['LCK', 4],
+  AL: ['LPL', 1], BLG: ['LPL', 2], TES: ['LPL', 3], IG: ['LPL', 4],
+  G2: ['LEC', 1], MKOI: ['LEC', 2], KC: ['LEC', 3],
+  TLAW: ['LCS', 1], LYON: ['LCS', 2], C9: ['LCS', 3],
+  TSW: ['LCP', 1], CFO: ['LCP', 2], MVK: ['LCP', 3],
+  LOS: ['CBLOL', 1], FUR: ['CBLOL', 2],
+};
+const seedLabel = t => {
+  const s = t && SEED[t.short];
+  return s ? `<span title="${s[0]} ${s[1]}${['', 'st', 'nd', 'rd'][s[1]] || 'th'} seed">${s[0]} #${s[1]}</span>` : '';
+};
+
+// kind: 'live', 'next' (upcoming), 'watch' (the next hidden result, in
+// no-spoilers mode) or 'result' (a result just revealed; `next` is the
+// following hidden match, offered as the next thing to reveal or watch).
+function heroCard(m, kind, next) {
+  const live = kind === 'live', hidden = m.status === 'hidden', done = kind === 'result';
+  const score = hidden ? '? – ?' : live || done ? `${m.s1 ?? 0} – ${m.s2 ?? 0}` : 'vs';
+  const side = (t, r) => `<div class="hero-team ${r ? 'r' : ''} ${done && m.winner && m.winner !== (r ? 2 : 1) ? 'l' : ''}">${t?.image ? `<img src="${esc(t.image)}" alt="" onerror="this.remove()">` : ''}
+      <div class="nm">${esc(t?.short || 'TBD')}<span class="full">${t && t.name !== t.short ? esc(t.name) : ''}</span><span class="seed">${seedLabel(t)}</span></div></div>`;
   const liveLink = '<a class="watch" href="https://lolesports.com/live/worlds" target="_blank" rel="noopener">Watch live ↗</a>';
   const meta = live && !hidden
     ? `<span>${esc(stageLabel(m))} · Bo${m.bo}</span><span class="tag">${state.live?.players
@@ -1516,11 +1533,16 @@ function heroCard(m, kind) {
   const body = hidden
     ? `<div class="hero-hidden">
         <div class="acts"><button class="reveal" data-reveal="${esc(m.id)}">Reveal</button>${watchBtn(m, '▶ Watch')}</div></div>`
+    : done
+    ? `<div class="hero-hidden"><div class="acts">${next
+        ? `<button class="reveal" data-reveal="${esc(next.id)}">Reveal next ▸</button>${watchBtn(next, '▶ Watch next')}`
+        : 'All caught up.'}<button class="linkish" data-hero-dismiss title="Close">✕</button></div></div>`
     : live ? liveStats(m) : '';
   const label = live ? '<span class="live-pip"></span>Live now'
     : kind === 'watch' ? `Next to watch · <span class="when">${fmtDate.format(m.time)}</span>`
+    : done ? `Result · <span class="when">${fmtDate.format(m.time)}</span>`
     : `Up next · <span class="when">${whenLabel(m.time)}</span>`;
-  return `<div class="hero-card ${live ? 'live' : ''}">
+  return `<div class="hero-card ${live ? 'live' : ''} ${done ? 'result' : ''}">
     <div class="hero-label">${label}</div>
     <div class="hero-teams">${side(m.t1)}<div class="hero-score">${score}</div>${side(m.t2, true)}</div>
     ${body}
@@ -1531,15 +1553,17 @@ function renderHero() {
   const V = state.view;
   const live = V.find(m => m.status === 'live' || m.liveNow);
   const toWatch = state.spoil.on && V.find(m => m.status === 'hidden' && !m.liveNow);
+  // Right after a reveal, show that result (with "Reveal next") in place of the next hidden match.
+  const result = state.spoil.on && state.heroResult && V.find(m => m.id === state.heroResult && m.status === 'done');
   const upcoming = V.filter(m => m.status === 'upcoming').slice(0, 2);
-  let html = (toWatch ? heroCard(toWatch, 'watch') : '') + (live ? heroCard(live, 'live') : '') + upcoming.map(m => heroCard(m, 'next')).join('');
+  let html = (result ? heroCard(result, 'result', toWatch) : toWatch ? heroCard(toWatch, 'watch') : '')
+    + (live ? heroCard(live, 'live') : '') + upcoming.map(m => heroCard(m, 'next')).join('');
   if (!html) {
     html = V.length
       ? `<div class="hero-card"><div class="hero-label">Tournament over</div><div class="hero-empty">No more matches scheduled.</div></div>`
       : `<div class="hero-card"><div class="hero-empty">Loading matches…</div></div>`;
   }
   $('hero').innerHTML = html;
-  $('tzLabel').textContent = `Times shown in ${Intl.DateTimeFormat().resolvedOptions().timeZone}`;
   drawGoldHover();
   tick();
 }
@@ -1873,6 +1897,7 @@ function revealThrough(id) {
   const skipped = state.matches.slice(ri + 1, i).filter(started).length;
   if (skipped && !confirm(`Also reveals ${skipped} earlier result${skipped > 1 ? 's' : ''}. Continue?`)) return;
   state.spoil.through = id;
+  state.heroResult = id;
   saveSpoil();
   render();
 }
@@ -1886,7 +1911,8 @@ $('nospoil').addEventListener('change', e => {
 document.addEventListener('click', e => {
   const r = e.target.closest('[data-reveal]');
   if (r) { revealThrough(r.dataset.reveal); return; }
-  if (e.target.closest('[data-hide-all]')) { state.spoil.through = null; saveSpoil(); render(); return; }
+  if (e.target.closest('[data-hide-all]')) { state.spoil.through = null; state.heroResult = null; saveSpoil(); render(); return; }
+  if (e.target.closest('[data-hero-dismiss]')) { state.heroResult = null; renderHero(); return; }
   const w = e.target.closest('[data-watch]');
   if (w) openWatch(w.dataset.watch);
 });
