@@ -2000,8 +2000,8 @@ const stageEl = $('wbStage');
 
 // pos: where you left off in each video; edge: the furthest point you've
 // watched (the scrubber's "live" end); games: per match, the game you're on
-// (n), the furthest you've watched to the end (done) and how many games'
-// results you've revealed (rev).
+// (n), the furthest you've watched to the end (done), how many games'
+// results you've revealed (rev) and the most game buttons you've seen (max).
 function wbStore() {
   try { return { pos: {}, games: {}, edge: {}, ...JSON.parse(localStorage.getItem(WB_KEY)) }; } catch { return { pos: {}, games: {}, edge: {} }; }
 }
@@ -2140,10 +2140,14 @@ function closeWatch() {
 
 // Game buttons: the games you've revealed plus the one after them (if the
 // series went on), so the number of buttons never gives away its length.
+// A button that has shown once stays, so you don't lose track of a game
+// you already know about.
 function renderWbGames(R = revealedGames()) {
-  const m = W.match;
-  const max = Math.min(m.bo, Math.max(W.gameNo, R + (gameExists(R + 1) ? 1 : 0)));
-  const done = wbStore().games[m.id]?.done || 0;
+  const m = W.match, rec = wbStore().games[m.id] || {};
+  const seen = Math.min(rec.max || 1, W.games.filter(g => g.state !== 'unneeded').length || 1);
+  const max = Math.min(m.bo, Math.max(W.gameNo, seen, R + (gameExists(R + 1) ? 1 : 0)));
+  if (W.games.length && max > (rec.max || 0)) wbSave(s => { (s.games[m.id] ||= {}).max = max; });
+  const done = rec.done || 0;
   $('wbGames').innerHTML = m.bo > 1 && W.games.length ? Array.from({ length: max }, (_, i) =>
     `<button class="${i + 1 === W.gameNo ? 'on' : ''}" data-wb-game="${i + 1}" title="${i + 1 <= done ? 'Watched' : ''}">Game ${i + 1}${i + 1 <= done ? ' ✓' : ''}</button>`).join('') : '';
 }
