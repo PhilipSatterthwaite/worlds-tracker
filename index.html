@@ -296,6 +296,8 @@ if (/^((www|ads)\.esportstracker\.app|philipsatterthwaite\.github\.io)$/.test(lo
   .stage-h h2 { margin: 0; }
   .info-btn { font-size: 12px; padding: 3px 10px; border-radius: 999px; color: var(--muted); }
   .info-btn[aria-expanded="true"] { color: var(--gold); border-color: var(--gold); }
+  .info-ic { width: 24px; height: 24px; padding: 0; border-radius: 50%; display: inline-grid; place-items: center; align-self: center; }
+  .info-ic svg { width: 14px; height: 14px; }
   .info { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 18px; margin: 0 0 16px; color: #c3cad6; font-size: 13px; max-width: 760px; }
   .info ul { margin: 0; padding-left: 18px; }
   .info li + li { margin-top: 4px; }
@@ -575,7 +577,7 @@ if (/^((www|ads)\.esportstracker\.app|philipsatterthwaite\.github\.io)$/.test(lo
   <div class="panel" id="panel-playin" hidden>
     <div class="stage-h">
       <h2>Play-In <small>Los Angeles · Oct 15–18</small></h2>
-      <button class="info-btn" aria-expanded="false" aria-controls="info-playin">How it works</button>
+      <button class="info-btn info-ic" aria-expanded="false" aria-controls="info-playin" title="How it works" aria-label="How it works"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="4.6" r="1.1" fill="currentColor"/><path d="M8 7.2v5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
     </div>
     <div class="info" id="info-playin" hidden><ul>
       <li><b>4 teams</b> (the lowest seeds from LEC, LCS, LCP and CBLOL) play for <b>one spot</b> in the Swiss Stage.</li>
@@ -589,7 +591,7 @@ if (/^((www|ads)\.esportstracker\.app|philipsatterthwaite\.github\.io)$/.test(lo
   <div class="panel" id="panel-swiss" hidden>
     <div class="stage-h">
       <h2>Swiss Stage <small>Allen, TX · Oct 23–31</small></h2>
-      <button class="info-btn" aria-expanded="false" aria-controls="info-swiss">How it works</button>
+      <button class="info-btn info-ic" aria-expanded="false" aria-controls="info-swiss" title="How it works" aria-label="How it works"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="4.6" r="1.1" fill="currentColor"/><path d="M8 7.2v5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
     </div>
     <div class="info" id="info-swiss" hidden><ul>
       <li><b>16 teams</b>: 15 qualified through their leagues plus the Play-In winner.</li>
@@ -606,7 +608,7 @@ if (/^((www|ads)\.esportstracker\.app|philipsatterthwaite\.github\.io)$/.test(lo
   <div class="panel" id="panel-ko" hidden>
     <div class="stage-h">
       <h2>Knockout Stage <small>Allen, TX · Nov 3–8 &nbsp;·&nbsp; Final: Brooklyn, NY · Nov 14</small></h2>
-      <button class="info-btn" aria-expanded="false" aria-controls="info-ko">How it works</button>
+      <button class="info-btn info-ic" aria-expanded="false" aria-controls="info-ko" title="How it works" aria-label="How it works"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="4.6" r="1.1" fill="currentColor"/><path d="M8 7.2v5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
     </div>
     <div class="info" id="info-ko" hidden><ul>
       <li>The <b>8 teams</b> that reached 3 Swiss wins play a <b>single-elimination</b> bracket. Every series is <b>best of 5</b>.</li>
