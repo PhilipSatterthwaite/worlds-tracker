@@ -2430,14 +2430,27 @@ function stopStream() {
   LS.player = null;
   $('lsmStage').innerHTML = '';
 }
-// The live edge is the end of the stream so far.
-function streamSeek(from) {
-  const p = LS.player;
+// The live edge is the end of the stream so far. YouTube doesn't always know
+// a live stream's length yet (it reports 0); a fresh load starts at the edge.
+function markFrom(from) {
   LS.from = from;
   for (const b of $('lsmFrom').children) b.classList.toggle('on', b.dataset.lsmFrom === from);
+}
+function streamSeek(from) {
+  const p = LS.player;
+  markFrom(from);
   if (!p?.seekTo) return;
-  p.seekTo(from === 'start' ? 0 : Math.max(0, (p.getDuration?.() || 0) - 1), true);
+  if (from === 'start') p.seekTo(0, true);
+  else if ((p.getDuration?.() || 0) > 30) p.seekTo(p.getDuration(), true);
+  else { LS.settled = false; p.loadVideoById(LS.x.parameter); }
   p.playVideo();
+}
+// If a live start landed behind the edge anyway, move it up once playing.
+function streamState(e) {
+  if (e.data !== YT.PlayerState.PLAYING || LS.from !== 'live' || LS.settled) return;
+  LS.settled = true;
+  const p = LS.player, d = p.getDuration?.() || 0;
+  if (d > 30 && p.getCurrentTime() < d - 30) p.seekTo(d, true);
 }
 // Before the first stream plays: live, or from the beginning?
 function askStart(x) {
@@ -2465,7 +2478,7 @@ async function playStream(x, from = LS.from) {
   LS.player = new YT.Player('lsmPlayer', {
     videoId: x.parameter,
     playerVars: { autoplay: 1, rel: 0, playsinline: 1 },
-    events: { onReady: () => streamSeek(from) },
+    events: { onReady: () => { LS.settled = false; if (from === 'start') streamSeek('start'); else markFrom('live'); }, onStateChange: streamState },
   });
 }
 async function openStream() {
