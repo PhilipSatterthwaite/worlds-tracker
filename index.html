@@ -1617,8 +1617,13 @@ const icon = (k, style = '') => `<svg class="ico" viewBox="0 0 16 16" aria-hidde
 function liveStats(m) {
   const L = state.live;
   if (!L || L.matchId !== m.id) return `<div class="ls"><div class="ls-note">Loading live game stats…</div></div>`;
-  const note = L.starting ? 'Starting soon · live stats on the way' : L.between ? `Between games · Game ${L.nextNo || L.gameNo} up next`
-    : L.finished ? `Game ${L.gameNo} just ended${state.provisional[m.id]?.[L.gameNo] ? '' : ' · updating series score…'}` : '';
+  // A series is over once a team has won the majority of its games (the
+  // schedule can still list an unplayed game slot, e.g. game 2 of a Bo1).
+  const need = Math.floor(m.bo / 2) + 1, over = (m.s1 ?? 0) >= need || (m.s2 ?? 0) >= need;
+  const next = L.nextNo || L.gameNo;
+  const note = L.starting ? 'Starting soon · live stats on the way'
+    : L.between ? (over || next > m.bo ? 'Match over' : `Between games · Game ${next} up next`)
+    : L.finished ? `Game ${L.gameNo} just ended${over ? ' · match over' : state.provisional[m.id]?.[L.gameNo] ? '' : ' · updating series score…'}` : '';
   if (!L.players) {
     return `<div class="ls"><div class="ls-note">${note || `${L.gameNo ? `Game ${L.gameNo}` : 'Game'} in progress · live stats unavailable right now`}</div></div>`;
   }
