@@ -2637,7 +2637,11 @@ function loadGameEnd(g) {
       .then(w => { const f = w?.frames?.at(-1); return f?.gameState === 'finished' ? Date.parse(f.rfc460Timestamp) : null; }, () => null)
       .then(t => (W.ge[g.id] = t));
 }
-const GAME_END_PAD = 5; // seconds of the nexus explosion to show before the break screen
+// The game stops this long after the nexus falls: the victory screen and the
+// players leaving the stage, and none of the post-game after that.
+const GAME_END_PAD = 30;
+// Seconds into the video where the game stops, when the video's timing is known.
+const gameStop = v => { const e = gameEndPos(v); return e == null ? null : e + GAME_END_PAD; };
 // Seconds into the video where the nexus falls: the same wall-clock mapping
 // as draftEnd, so only for videos with a known first-frame time.
 function gameEndPos(v) {
@@ -2775,8 +2779,6 @@ async function playGame(n) {
   W.atBreak = false;
   W.vod = null;
   W.seekTo = null;
-  W.post = null;
-  W.postMode = false;
   renderSkip(null);
   renderMode();
   clearInterval(W.timer);
@@ -2811,7 +2813,6 @@ async function startVod() {
   W.vod = vod;
   W.played = null; // set once this video is really playing inside its game
   W.seekTo = null;
-  W.postMode = false;
   W.stuck = 0;
   setAd(false);
   renderWbLang();
@@ -2941,17 +2942,8 @@ function wbEnded() {
 function exitBreak() {
   if (!W.atBreak || !W.vod) return;
   W.atBreak = false;
-  W.postMode = true;
   renderWbTop();
 }
-// Play on from where the game ended, into whatever comes after it.
-function watchPost() {
-  if (!W.post || !W.player?.playVideo) return;
-  W.post = null;
-  exitBreak();
-  W.player.playVideo();
-}
-
 // Reveal results through game n, one game at a time (wbReveal also reveals the
 // whole match to the site once its last game is in).
 async function revealGamesTo(n) {
@@ -2973,7 +2965,6 @@ function intermission(n) {
     ${nx?.over ? '<p>Series over.</p>' : ''}
     <div class="acts">${nx?.reveal ? `<button class="main" data-wb="reveal">Reveal game ${nx.reveal} result</button>` : ''}
       ${nx?.next ? `<button class="main" data-wb-game="${nx.next}">Watch game ${nx.next} ▶</button>` : ''}
-      ${W.post?.n === n ? '<button data-wb="post">▶ Post-game</button>' : ''}
       <button data-wb="rewatch">↺ Rewatch game ${n}</button>
       <button data-wb="close">Close</button></div>
     <div class="ad-slot" hidden></div></div>`);
@@ -3079,17 +3070,11 @@ function wbTick() {
   W.lastT = t;
   if ((W.stuck >= 3) !== W.ad) setAd(W.stuck >= 3);
   if (!W.atBreak && v.end && W.played === v && t >= v.end - .5 && t <= v.end + 5) { p.pauseVideo(); wbEnded(); return; }
-  // When the video's timing is known, the game ends a few seconds after the
-  // nexus falls (so the explosion plays) rather than at the end of its video.
-  // Anything after that (a post-game) stays one click away on the break screen.
-  const ge = gameEndPos(v);
-  if (W.postMode && ge != null && t < ge) W.postMode = false;
-  if (ge != null && !W.atBreak && !W.postMode && W.played === v && t >= ge + GAME_END_PAD && t <= ge + 60) {
-    p.pauseVideo();
-    W.post = vodEnd(v) - t > 30 ? { n: W.gameNo } : null;
-    wbEnded();
-    return;
-  }
+  // When the video's timing is known, the game stops shortly after the nexus
+  // falls (see GAME_END_PAD) rather than at the end of its video, and playing
+  // or scrubbing past that point comes straight back here.
+  const stop = gameStop(v);
+  if (stop != null && !W.atBreak && W.played === v && t >= stop - .5) { p.pauseVideo(); wbEnded(); return; }
   if (p.getPlayerState() === YT.PlayerState.PLAYING) {
     W.edge = Math.max(W.edge, t);
     if (Date.now() - W.savedAt > 5e3) {
@@ -3107,7 +3092,10 @@ function wbTick() {
 const vodEnd = v => v.end ?? (W.player?.getDuration?.() || 0);
 // The scrubber's right end: the furthest you've watched, or with Show video
 // length on, the end of the game's video.
-const barEnd = () => replayMode() && vodEnd(W.vod) > W.vod.start ? vodEnd(W.vod) : W.edge;
+const barEnd = () => {
+  const end = gameStop(W.vod) ?? vodEnd(W.vod);
+  return replayMode() && end > W.vod.start ? end : W.edge;
+};
 
 function renderBar(t) {
   const v = W.vod;
@@ -3155,6 +3143,8 @@ function wbSeek(to) {
   const p = W.player, v = W.vod;
   if (!p?.seekTo || !v) return;
   to = Math.max(v.start, to);
+  const stop = gameStop(v);
+  if (stop != null) to = Math.min(stop, to);
   if (v.end) to = Math.min(v.end, to);
   else if (p.getDuration?.()) to = Math.min(p.getDuration() - .5, to);
   p.seekTo(to, true);
@@ -3173,7 +3163,6 @@ function wbAction(a) {
   if (a === 'settings') { $('wbMenu').hidden = !$('wbMenu').hidden; return; }
   if (a === 'reveal') return wbReveal();
   if (a === 'rewatch') { W.replayGame = W.gameNo; return playGame(W.gameNo); }
-  if (a === 'post') return watchPost();
   if (!p?.getCurrentTime || !W.vod) return;
   if (a === 'play') return p.getPlayerState() === YT.PlayerState.PLAYING ? p.pauseVideo() : p.playVideo();
   if (a === 'mute') return setMuted(!W.muted);
