@@ -3,7 +3,16 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Worlds 2026 Tracker</title>
+<title>Worlds 2026 Tracker · Esports Tracker</title>
+<meta name="description" content="Live Worlds 2026 brackets, in-game stats, a no-spoilers mode, and rewatches that hide the video length.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Esports Tracker">
+<meta property="og:title" content="Worlds 2026 Tracker · Esports Tracker">
+<meta property="og:description" content="Live brackets and in-game stats, a no-spoilers mode, and rewatches that hide the video length.">
+<meta property="og:url" content="https://esportstracker.app/lol/">
+<meta property="og:image" content="https://esportstracker.app/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
@@ -373,6 +382,8 @@
   .wb-cover { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; text-align: center; cursor: pointer; padding: 20px; }
   /* Opaque: YouTube's pause screen shows "More videos" thumbnails, which can spoil other matches. */
   .wb-cover.paused { background: #05070b; }
+  /* While playing, clicks go to YouTube's player so its own buttons (like "Skip ad") work. */
+  .wb-cover:not(.paused):not(.solid) { pointer-events: none; }
   .wb-cover.paused::before { content: '▶'; font-size: 54px; color: var(--text); opacity: .9; }
   .wb-cover.solid { background: #05070b; cursor: default; }
   .wb-cover p { margin: 0; color: var(--muted); max-width: 460px; }
@@ -392,6 +403,12 @@
   .wb-box:fullscreen { width: 100%; height: 100%; max-height: none; border-radius: 0; border: 0; justify-content: center; }
   .wb-box:fullscreen .wb-stage { aspect-ratio: auto; flex: 1; }
   .wb-box:fullscreen .note { display: none; }
+
+  /* Ad slots (filled by ads.js; hidden until configured) */
+  .ad-slot { display: flex; flex-direction: column; align-items: center; gap: 4px; margin: 0 0 26px; }
+  .ad-slot[hidden] { display: none; }
+  .ad-slot iframe { border: 0; display: block; max-width: 100%; }
+  .ad-label { font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
 
   .note { color: var(--muted); font-size: 12px; }
   .err-box { background: rgba(248,113,113,.08); border: 1px solid rgba(248,113,113,.35); color: #fecaca; border-radius: var(--radius); padding: 10px 14px; margin-bottom: 18px; display: none; }
@@ -462,6 +479,8 @@
     <div class="hero" id="hero"></div>
   </section>
 
+  <div class="ad-slot" hidden></div>
+
   <nav class="tabs" id="tabs" role="tablist"></nav>
 
   <div class="panel" id="panel-playin" hidden>
@@ -510,11 +529,15 @@
     <div id="koSched"></div>
   </div>
 
+  <div class="ad-slot" hidden></div>
+
   <footer>
     Data from the official <a href="https://lolesports.com" target="_blank" rel="noopener">LoL Esports</a> schedule and live stats feeds; champion art from Riot's Data Dragon.
     During live matches, game stats refresh every 10s and the schedule every 30s; every few minutes otherwise.
     Objective timers use 2026 rules (Dragon 5:00, Grubs 8:00, Herald 15:00, Baron 20:00) and don't account for pauses that happened before you opened the page.
     Watch at <a href="https://lolesports.com/live/worlds" target="_blank" rel="noopener">lolesports.com</a>; ▶ rewatches use the official LoL Esports YouTube videos.
+    <p>Esports Tracker was created under Riot Games' "Legal Jibber Jabber" policy using assets owned by Riot Games. Riot Games does not endorse or sponsor this project. Not affiliated with Riot Games or LoL Esports.
+    · <a href="../privacy.html">Privacy</a></p>
   </footer>
 </div>
 
@@ -2102,5 +2125,6 @@ render();
 load();
 loadDD();
 </script>
+<script src="../ads.js"></script>
 </body>
 </html>
