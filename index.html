@@ -2478,8 +2478,16 @@ function streamState(e) {
   if (e.data !== YT.PlayerState.PLAYING || LS.settled) return;
   LS.settled = true;
   const p = LS.player, t = p.getCurrentTime(), d = p.getDuration?.() || 0;
-  if (LS.from === 'start') { if (Math.abs(t - (LS.target || 0)) > 30) p.seekTo(LS.target || 0, true); }
+  if (LS.from === 'start') setTimeout(() => settleStart(5), 800);
   else if (d > 30 && t < d - 30) p.seekTo(d, true);
+}
+// A live stream can also ignore a seek in its first moments of playing, so
+// keep re-seeking to the saved spot for a few seconds until it takes.
+function settleStart(tries) {
+  const p = LS.player, at = LS.target || 0;
+  if (!p?.getCurrentTime || LS.from !== 'start' || Math.abs(p.getCurrentTime() - at) <= 30) return;
+  p.seekTo(at, true);
+  if (tries > 1) setTimeout(() => settleStart(tries - 1), 1500);
 }
 // Before the first stream plays: live, or from the beginning?
 function askStart(x) {
