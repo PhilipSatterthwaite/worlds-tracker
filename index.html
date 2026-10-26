@@ -438,11 +438,8 @@ if (/^((www|ads)\.esportstracker\.app|philipsatterthwaite\.github\.io)$/.test(lo
      YouTube's "Skip ad" button, and our controls step aside. */
   .wb-cover { position: absolute; inset: 0; z-index: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; text-align: center; cursor: pointer; padding: 20px; }
   .wb-cover.paused { background: rgba(0,0,0,.3); }
-  /* "Game N is over": sits above the controls while the post-game plays on. */
-  .wb-over { position: absolute; z-index: 4; right: 16px; bottom: 92px; display: flex; align-items: center; gap: 10px; padding: 8px 8px 8px 16px; background: rgba(12,15,22,.92); border: 1px solid var(--line-2); border-radius: 10px; font-weight: 700; box-shadow: 0 8px 30px rgba(0,0,0,.5); }
-  .wb-over[hidden] { display: none; }
-  .wb-over button.main { border-color: var(--gold); color: var(--gold); font-weight: 700; padding: 6px 14px; }
-  .wb-over-x { background: none; border: 0; color: var(--muted); padding: 4px 8px; }
+  /* Break screen over the paused video: scrub back or press play to leave it. */
+  .wb-cover.break { background: linear-gradient(rgba(9,12,20,.55), rgba(9,12,20,.82)); cursor: default; overflow-y: auto; }
   /* No tap flash: phones paint a highlight box over whatever is tapped, and
      the cover is one big tap target. The pause dim fades instead of snapping. */
   .wb-stage, .wb-stage * { -webkit-tap-highlight-color: transparent; }
@@ -547,13 +544,12 @@ if (/^((www|ads)\.esportstracker\.app|philipsatterthwaite\.github\.io)$/.test(lo
   .wb-rates { display: flex; gap: 4px; }
   .wb-rates button { flex: 1; font-size: 12px; padding: 4px 0; }
   .wb-rates button.on { border-color: var(--gold); color: var(--gold); }
-  .wb-opts { display: flex; flex-direction: column; gap: 6px; }
-  .wb-opt { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #dfe4ee; cursor: pointer; }
-  .wb-opt input { width: 16px; height: 16px; margin: 0; accent-color: var(--gold); }
-  .wb-na { color: var(--muted); font-size: 12px; }
-  .wb-na[hidden], .wb-skip[hidden], .wb-live[hidden] { display: none; }
-  .wb-skip { font-size: 12px; font-weight: 700; padding: 3px 10px; margin-left: 8px; border-radius: 999px; background: rgba(255,255,255,.14); border: 0; color: #fff; white-space: nowrap; }
-  .wb-skip:hover { background: rgba(255,255,255,.24); }
+  .wb-live[hidden] { display: none; }
+  /* "Skip to game" pop-up over the video while the draft plays */
+  .wb-pop { position: absolute; z-index: 4; right: 16px; bottom: 92px; display: flex; align-items: center; gap: 10px; padding: 8px 8px 8px 16px; background: rgba(12,15,22,.92); border: 1px solid var(--line-2); border-radius: 10px; font-weight: 700; box-shadow: 0 8px 30px rgba(0,0,0,.5); }
+  .wb-pop[hidden] { display: none; }
+  .wb-pop button.main { border-color: var(--gold); color: var(--gold); font-weight: 700; padding: 6px 14px; }
+  .wb-pop-x { background: none; border: 0; color: var(--muted); padding: 4px 8px; }
   .wb-lang:empty { display: none; }
   .wb-lang select { width: 100%; font: inherit; font-size: 13px; color: var(--text); background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 5px 8px; }
   .wb-lang .note { display: block; margin-top: 6px; font-size: 12px; }
@@ -782,7 +778,9 @@ if (/^((www|ads)\.esportstracker\.app|philipsatterthwaite\.github\.io)$/.test(lo
   <div class="wb-stage solid" id="wbStage">
     <div id="wbPlayer"></div>
     <div class="wb-cover solid" id="wbCover"><p>Loading…</p></div>
-    <div class="wb-over" id="wbOver" hidden></div>
+    <div class="wb-pop" id="wbSkip" hidden><span>Watching the draft</span>
+      <button class="main" data-wb="skip" title="Jump to the start of the game">Skip to game ⏭</button>
+      <button class="wb-pop-x" data-wb="skip-x" title="Keep watching the draft" aria-label="Dismiss">✕</button></div>
     <div class="wb-top">
       <span class="wb-sb" id="wbTitle"></span>
       <span class="wb-games" id="wbGames"></span>
@@ -815,7 +813,6 @@ if (/^((www|ads)\.esportstracker\.app|philipsatterthwaite\.github\.io)$/.test(lo
           </button>
           <input type="range" id="wbVol" min="0" max="100" value="100" aria-label="Volume">
         </span>
-        <button class="wb-skip" data-wb="skip" id="wbSkip" hidden title="Jump to the start of the game">Skip draft ⏭</button>
         <button class="wb-live" data-wb="live" id="wbLive" title="Jump to where you left off" aria-label="Jump to where you left off">LIVE</button>
         <span class="wb-time" id="wbTime" title="Game time">0:00</span>
         <span class="sp"></span>
@@ -835,9 +832,6 @@ if (/^((www|ads)\.esportstracker\.app|philipsatterthwaite\.github\.io)$/.test(lo
       <div><h5>Speed</h5><div class="wb-rates" id="wbRates">
         <button data-rate="1" class="on">1×</button><button data-rate="1.25">1.25×</button><button data-rate="1.5">1.5×</button><button data-rate="2">2×</button>
       </div></div>
-      <div class="wb-opts">
-        <label class="wb-opt"><input type="checkbox" id="wbOptSkip"> Skip the draft <span class="wb-na" id="wbSkipNa" hidden>· not for this video</span></label>
-      </div>
       <div class="wb-lang" id="wbLang"></div>
     </div>
   </div>
@@ -2364,7 +2358,8 @@ function wbSave(fn) {
 // Playback options, remembered per browser: full (Replay mode: show the
 // video's length; Live mode hides it) and skip (start each game after its
 // draft, where that's known exactly).
-W.opt = { full: false, skip: false, ...wbStore().opts };
+W.opt = { full: false, ...wbStore().opts };
+delete W.opt.skip; // the old "Skip the draft" setting; now a pop-up during the draft
 function setOpt(k, on) {
   W.opt[k] = on;
   wbSave(s => { s.opts = W.opt; });
@@ -2372,12 +2367,10 @@ function setOpt(k, on) {
   if (W.vod && W.player?.getCurrentTime) renderBar(W.player.getCurrentTime());
 }
 setOpt('full', W.opt.full);
-$('wbOptSkip').checked = W.opt.skip;
 $('wbMode').addEventListener('click', e => {
   const b = e.target.closest('[data-mode]');
   if (b) setOpt('full', b.dataset.mode === 'replay');
 });
-$('wbOptSkip').addEventListener('change', e => setOpt('skip', e.target.checked));
 
 // A full-day stream holds several games, so its positions are kept per game.
 const posKey = v => v.day ? `${v.id}@${Math.round(v.start)}` : v.id;
@@ -2453,6 +2446,7 @@ function loadGameEnd(g) {
       .then(w => { const f = w?.frames?.at(-1); return f?.gameState === 'finished' ? Date.parse(f.rfc460Timestamp) : null; }, () => null)
       .then(t => (W.ge[g.id] = t));
 }
+const GAME_END_PAD = 5; // seconds of the nexus explosion to show before the break screen
 // Seconds into the video where the nexus falls: the same wall-clock mapping
 // as draftEnd, so only for videos with a known first-frame time.
 function gameEndPos(v) {
@@ -2462,32 +2456,15 @@ function gameEndPos(v) {
   return p > v.start + 60 && (!v.end || p < v.end + 10) ? p : null;
 }
 
-// Once the nexus falls, offer the next step while the post-game keeps
-// playing. Until game N's result is revealed it only says Continue (to the
-// break screen): offering "Next game" here would give away that the series
-// goes on.
-function renderOver(t) {
-  const box = $('wbOver'), end = gameEndPos(W.vod), n = W.gameNo;
-  const show = end != null && t != null && t >= end && W.overGone !== W.game?.id;
-  const next = show && revealedGames() >= n && gameExists(n + 1);
-  const key = show ? `${n}:${next}` : '';
-  if (box.dataset.k === key) return;
-  box.dataset.k = key;
-  box.hidden = !show;
-  box.innerHTML = show ? `<span>Game ${n} is over</span>
-    <button class="main" data-wb="${next ? 'over-next' : 'continue'}">${next ? `Game ${n + 1} ▶` : 'Continue ▶'}</button>
-    <button class="wb-over-x" data-wb="over-x" title="Keep watching the post-game" aria-label="Dismiss">✕</button>` : '';
-}
-
 function loadGameStart(g) {
   return W.gs[g.id] !== undefined ? Promise.resolve(W.gs[g.id])
     : (W.gsP ||= {})[g.id] ||= gameStart(g.id).catch(() => null).then(t => (W.gs[g.id] = t));
 }
-// The Skip draft button and the "not for this video" note.
+// The "Skip to game" pop-up: shown while the draft plays (when the game's
+// start is known), until you skip or dismiss it for this game.
 function renderSkip(t) {
   const p = draftEnd(W.vod);
-  $('wbSkip').hidden = p == null || t == null || t > p - 3;
-  $('wbSkipNa').hidden = !W.vod || p != null || W.gs[W.game?.id] === undefined;
+  $('wbSkip').hidden = p == null || t == null || t > p - 3 || W.skipGone === W.game?.id;
 }
 
 const hms = ms => {
@@ -2606,8 +2583,9 @@ async function playGame(n) {
   W.atBreak = false;
   W.vod = null;
   W.seekTo = null;
-  W.overGone = null;
-  renderOver(null);
+  W.post = null;
+  W.postMode = false;
+  renderSkip(null);
   clearInterval(W.timer);
   try { W.player?.pauseVideo?.(); } catch {}
   wbSave(s => { (s.games[m.id] ||= {}).n = n; });
@@ -2640,19 +2618,15 @@ async function startVod() {
   W.vod = vod;
   W.played = null; // set once this video is really playing inside its game
   W.seekTo = null;
+  W.postMode = false;
   W.stuck = 0;
   setAd(false);
   renderWbLang();
   cover('solid', '<p>Loading video…</p>');
   try { await loadYT(); } catch { if (W.vod === vod) ytFailed(); return; }
   if (W.vod !== vod) return; // switched games while the player loaded
-  if (W.opt.skip && vod.fft) {
-    await Promise.race([loadGameStart(W.game), new Promise(r => setTimeout(r, 3000))]);
-    if (W.vod !== vod) return;
-  }
   const pos = wbStore().pos[posKey(vod)];
-  const skipTo = W.opt.skip ? draftEnd(vod) : null;
-  const at = pos && pos > vod.start + 15 ? Math.max(pos - 3, skipTo ?? 0) : skipTo ?? vod.start;
+  const at = pos && pos > vod.start + 15 ? pos - 3 : vod.start;
   W.edge = Math.max(wbStore().edge[posKey(vod)] || 0, pos || 0, at);
   const end = vod.end ? { end: Math.floor(vod.end) } : {};
   if (!W.player) {
@@ -2704,7 +2678,12 @@ function renderWbLang() {
   const box = $('wbLang'), v = W.vod;
   if (!W.cands?.length) { box.innerHTML = ''; return; }
   const en = W.cands.find(c => c.locale === 'en-US');
-  const opts = W.cands.map((c, i) => W.failed.has(i) ? '' : `<option value="${i}" ${i === W.cand ? 'selected' : ''}>${esc(c.lang)}${c.day ? ' (full-day stream)' : ''}</option>`).join('');
+  // Just the language; a second upload in the same language gets a number.
+  const seen = {};
+  const opts = W.cands.map((c, i) => {
+    const k = (seen[c.lang] = (seen[c.lang] || 0) + 1);
+    return W.failed.has(i) ? '' : `<option value="${i}" ${i === W.cand ? 'selected' : ''}>${esc(c.lang)}${k > 1 ? ` ${k}` : ''}</option>`;
+  }).join('');
   box.innerHTML = `<h5>Broadcast</h5><select id="wbLangSel" aria-label="Broadcast language">${opts}</select>
     ${v && en && v.locale !== 'en-US' && W.failed.has(W.cands.indexOf(en))
       ? `<span class="note">The English video won't play here · <a href="https://www.youtube.com/watch?v=${esc(en.id)}" target="_blank" rel="noopener" title="YouTube shows the video length">English on YouTube ↗</a></span>` : ''}`;
@@ -2739,26 +2718,55 @@ function wbState(s) {
   const t = W.player.getCurrentTime?.() ?? 0, v = W.vod;
   if (s === YT.PlayerState.PLAYING) {
     if (t >= v.start - 2 && (!v.end || t <= v.end + 2)) W.played = v;
+    exitBreak();
     cover('play');
   }
-  else if (s === YT.PlayerState.PAUSED || s === YT.PlayerState.CUED) cover('paused');
+  else if ((s === YT.PlayerState.PAUSED || s === YT.PlayerState.CUED) && !W.atBreak) cover('paused');
   else if (s === YT.PlayerState.ENDED && W.played === v && t >= vodEnd(v) - 3) wbEnded();
 }
 
-// Watched to the end: forget the position (a rewatch starts fresh) and mark
-// the game done, so reopening the match returns to the break screen.
+// Watched to the end: forget the position (a rewatch starts fresh), mark the
+// game done so reopening the match returns to the break screen, and reveal
+// its result: you just saw it end.
 function wbEnded() {
   const n = W.gameNo;
-  if (!W.vod) return;
+  if (!W.vod || W.atBreak) return;
+  W.atBreak = true; // the video stays loaded and paused behind the break screen
   wbSave(s => {
     delete s.pos[posKey(W.vod)];
     const r = s.games[W.match.id] ||= { n };
     r.done = Math.max(r.done || 0, n);
   });
-  W.vod = null;
-  clearInterval(W.timer);
-  renderOver(null);
-  intermission(n);
+  renderSkip(null);
+  cover('break', `<div class="wb-inter"><h3>Game ${n} complete</h3></div>`);
+  revealGamesTo(n).finally(() => { if (W.gameNo === n && W.atBreak) intermission(n); });
+}
+
+// Leave the break screen for the video behind it: scrubbing back through the
+// game, or playing on into the post-game. The game won't end again until
+// you're back before the nexus (or reach the end of its video).
+function exitBreak() {
+  if (!W.atBreak || !W.vod) return;
+  W.atBreak = false;
+  W.postMode = true;
+  renderWbTop();
+}
+// Play on from where the game ended, into whatever comes after it.
+function watchPost() {
+  if (!W.post || !W.player?.playVideo) return;
+  W.post = null;
+  exitBreak();
+  W.player.playVideo();
+}
+
+// Reveal results through game n, one game at a time (wbReveal also reveals the
+// whole match to the site once its last game is in).
+async function revealGamesTo(n) {
+  while (revealedGames() < Math.min(n, played())) {
+    const R = revealedGames();
+    await wbReveal();
+    if (revealedGames() === R) break;
+  }
 }
 
 // Between games: a break screen with the same next step as the top bar.
@@ -2767,11 +2775,12 @@ function intermission(n) {
   W.atBreak = true;
   renderWbTop();
   const nx = wbNext(revealedGames());
-  cover('solid', `<div class="wb-inter">
+  cover(W.vod ? 'break' : 'solid', `<div class="wb-inter">
     <h3>Game ${n} complete</h3>
     ${nx?.over ? '<p>Series over.</p>' : ''}
     <div class="acts">${nx?.reveal ? `<button class="main" data-wb="reveal">Reveal game ${nx.reveal} result</button>` : ''}
       ${nx?.next ? `<button class="main" data-wb-game="${nx.next}">Watch game ${nx.next} ▶</button>` : ''}
+      ${W.post?.n === n ? '<button data-wb="post">▶ Post-game</button>' : ''}
       <button data-wb-game="${n}">↺ Rewatch game ${n}</button>
       <button data-wb="close">Close</button></div>
     <div class="ad-slot" hidden></div></div>`);
@@ -2876,7 +2885,18 @@ function wbTick() {
   W.stuck = p.getPlayerState() === YT.PlayerState.PLAYING && Math.abs(t - W.lastT) < .05 ? (W.stuck || 0) + 1 : 0;
   W.lastT = t;
   if ((W.stuck >= 3) !== W.ad) setAd(W.stuck >= 3);
-  if (v.end && W.played === v && t >= v.end - .5 && t <= v.end + 5) { p.pauseVideo(); wbEnded(); return; }
+  if (!W.atBreak && v.end && W.played === v && t >= v.end - .5 && t <= v.end + 5) { p.pauseVideo(); wbEnded(); return; }
+  // When the video's timing is known, the game ends a few seconds after the
+  // nexus falls (so the explosion plays) rather than at the end of its video.
+  // Anything after that (a post-game) stays one click away on the break screen.
+  const ge = gameEndPos(v);
+  if (W.postMode && ge != null && t < ge) W.postMode = false;
+  if (ge != null && !W.atBreak && !W.postMode && W.played === v && t >= ge + GAME_END_PAD && t <= ge + 60) {
+    p.pauseVideo();
+    W.post = vodEnd(v) - t > 30 ? { n: W.gameNo } : null;
+    wbEnded();
+    return;
+  }
   if (p.getPlayerState() === YT.PlayerState.PLAYING) {
     W.edge = Math.max(W.edge, t);
     if (Date.now() - W.savedAt > 5e3) {
@@ -2885,7 +2905,6 @@ function wbTick() {
     }
   }
   if (!W.dragging) renderBar(t);
-  renderOver(t);
 }
 
 // The scrubber runs from the start of the game to the furthest point you've
@@ -2947,6 +2966,7 @@ function wbSeek(to) {
   else if (p.getDuration?.()) to = Math.min(p.getDuration() - .5, to);
   p.seekTo(to, true);
   W.seekTo = to; W.seekAt = Date.now();
+  if (W.atBreak) { exitBreak(); if (p.getPlayerState() !== YT.PlayerState.PLAYING) cover('paused'); }
   W.edge = Math.max(W.edge, to);
   renderBar(to);
 }
@@ -2959,14 +2979,13 @@ function wbAction(a) {
   if (a === 'fs') return toggleFs();
   if (a === 'settings') { $('wbMenu').hidden = !$('wbMenu').hidden; return; }
   if (a === 'reveal') return wbReveal();
+  if (a === 'post') return watchPost();
   if (!p?.getCurrentTime || !W.vod) return;
   if (a === 'play') return p.getPlayerState() === YT.PlayerState.PLAYING ? p.pauseVideo() : p.playVideo();
   if (a === 'mute') return setMuted(!W.muted);
   if (a === 'live') return wbSeek(W.edge);
   if (a === 'skip') { const p = draftEnd(W.vod); if (p != null) wbSeek(p); return; }
-  if (a === 'continue') { p.pauseVideo(); return wbEnded(); }
-  if (a === 'over-next') { const n = W.gameNo; p.pauseVideo(); wbEnded(); return playGame(n + 1); }
-  if (a === 'over-x') { W.overGone = W.game?.id; return renderOver(p.getCurrentTime()); }
+  if (a === 'skip-x') { W.skipGone = W.game?.id; return renderSkip(null); }
   wbSeek(p.getCurrentTime() + Number(a));
 }
 
