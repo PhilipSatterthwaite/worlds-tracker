@@ -540,6 +540,9 @@ if (/^((www|ads)\.esportstracker\.app|philipsatterthwaite\.github\.io)$/.test(lo
     background: rgba(14,18,27,.94); border: 1px solid rgba(255,255,255,.1); backdrop-filter: blur(8px); display: flex; flex-direction: column; gap: 10px;
   }
   .wb-menu[hidden] { display: none; }
+  .wb-menu-x { position: absolute; top: 6px; right: 6px; width: 26px; height: 26px; padding: 0; display: grid; place-items: center; border: 0; border-radius: 50%; background: transparent; color: var(--muted); }
+  .wb-menu-x:hover { background: rgba(255,255,255,.1); color: #fff; }
+  .wb-menu-x svg { width: 18px; height: 18px; }
   .wb-menu h5 { margin: 0 0 6px; font-size: 11px; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); }
   .wb-rates { display: flex; gap: 4px; }
   .wb-rates button { flex: 1; font-size: 12px; padding: 4px 0; }
@@ -826,6 +829,7 @@ if (/^((www|ads)\.esportstracker\.app|philipsatterthwaite\.github\.io)$/.test(lo
       </div>
     </div>
     <div class="wb-menu" id="wbMenu" hidden>
+      <button class="wb-menu-x" data-wb="settings" title="Hide settings" aria-label="Hide settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button>
       <div><h5>Mode</h5><div class="wb-rates" id="wbMode">
         <button data-mode="live" title="Like watching it live: the video's length stays hidden">Live</button><button data-mode="replay" title="A normal player: full-length scrubber and clock">Replay</button>
       </div></div>
