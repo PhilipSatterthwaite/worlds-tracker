@@ -285,6 +285,24 @@ if (/^((www|ads)\.esportstracker\.app|philipsatterthwaite\.github\.io)$/.test(lo
 
   /* Stage header + "how it works" */
   .stage-h { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+  /* Reveal a whole stage, day or round at once */
+  .bulk { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin: -4px 0 14px; font-size: 12px; color: var(--muted); }
+  .bulk[hidden] { display: none; }
+  .bulk .reveal { font-size: 12px; line-height: 22px; padding: 0 9px; }
+  /* Sticky bar: the next hidden match and a Reveal next button, always in reach */
+  .nextbar { position: sticky; top: 0; z-index: 30; display: flex; align-items: center; gap: 10px 14px; margin: 0 -16px 16px; padding: 8px 16px; background: rgba(10,13,20,.92); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); font-size: 13px; }
+  .nextbar[hidden] { display: none; }
+  .nextbar .nb-k { font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); white-space: nowrap; }
+  .nextbar .nb-m { display: inline-flex; align-items: center; gap: 7px; font-weight: 700; white-space: nowrap; min-width: 0; }
+  .nextbar .nb-m img { width: 20px; height: 20px; object-fit: contain; }
+  .nextbar .nb-m b { color: var(--gold); font-variant-numeric: tabular-nums; }
+  .nextbar .nb-m .l { opacity: .55; }
+  .nextbar .nb-vs { color: var(--muted); font-weight: 500; }
+  .nextbar .nb-s { color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+  .nextbar .nb-last { display: inline-flex; align-items: center; gap: 10px; padding-right: 14px; border-right: 1px solid var(--line); }
+  .nextbar .nb-acts { margin-left: auto; display: flex; gap: 6px; flex: none; }
+  .nextbar .reveal { font-size: 13px; line-height: 28px; padding: 0 14px; border-style: solid; }
+  .nextbar .wbtn { font-size: 12px; line-height: 26px; padding: 0 10px; }
   .stage-h h2 { margin: 0; }
   .info-btn { font-size: 12px; padding: 3px 10px; border-radius: 999px; color: var(--muted); }
   .info-btn[aria-expanded="true"] { color: var(--gold); border-color: var(--gold); }
@@ -606,6 +624,9 @@ if (/^((www|ads)\.esportstracker\.app|philipsatterthwaite\.github\.io)$/.test(lo
     .switch i::after { width: 14px; height: 14px; }
     .switch input:checked + i::after { transform: translateX(16px); }
     #updated { display: none; }
+    .nextbar { gap: 8px; padding: 7px 16px; }
+    .nextbar .nb-last, .nextbar .nb-s { display: none; }
+    .nextbar .nb-k { display: none; }
     #refresh { margin-left: auto; }
     .hero { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; gap: 10px; margin: 0 -16px; padding: 0 16px 4px; scrollbar-width: none; }
     .hero::-webkit-scrollbar { display: none; }
@@ -649,6 +670,8 @@ if (/^((www|ads)\.esportstracker\.app|philipsatterthwaite\.github\.io)$/.test(lo
     </div>
   </header>
 
+  <div class="nextbar" id="nextBar" hidden></div>
+
   <div class="err-box" id="err" aria-live="polite"></div>
   <div class="first" id="first" hidden><span><b>No spoilers</b> is on: results stay hidden until you reveal them. Already caught up?</span>
     <span class="acts"><button data-first="show">Show all results</button><button class="main" data-first="hide">Keep hidden</button></span></div>
@@ -666,6 +689,7 @@ if (/^((www|ads)\.esportstracker\.app|philipsatterthwaite\.github\.io)$/.test(lo
       <h2>Play-In <small>Los Angeles · Oct 15–18</small></h2>
       <button class="info-btn info-ic" aria-expanded="false" aria-controls="info-playin" title="How it works" aria-label="How it works"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="4.6" r="1.1" fill="currentColor"/><path d="M8 7.2v5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
     </div>
+    <div class="bulk" id="piBulk" hidden></div>
     <div class="info" id="info-playin" hidden><ul>
       <li><b>4 teams</b> (the lowest seeds from LEC, LCS, LCP and CBLOL) play for <b>one spot</b> in the Swiss Stage.</li>
       <li><b>Double elimination:</b> lose once and you drop to the lower bracket; lose twice and you're out.</li>
@@ -680,6 +704,7 @@ if (/^((www|ads)\.esportstracker\.app|philipsatterthwaite\.github\.io)$/.test(lo
       <h2>Swiss Stage <small>Allen, TX · Oct 23–31</small></h2>
       <button class="info-btn info-ic" aria-expanded="false" aria-controls="info-swiss" title="How it works" aria-label="How it works"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="4.6" r="1.1" fill="currentColor"/><path d="M8 7.2v5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
     </div>
+    <div class="bulk" id="swBulk" hidden></div>
     <div class="info" id="info-swiss" hidden><ul>
       <li><b>16 teams</b>: 15 qualified through their leagues plus the Play-In winner.</li>
       <li>Every round, teams play an opponent with the <b>same record</b> (1–0 vs 1–0, 0–2 vs 0–2…), drawn at random. Round 1 is drawn from seeding pots with no same-region matchups, and no one plays the same team twice.</li>
@@ -697,6 +722,7 @@ if (/^((www|ads)\.esportstracker\.app|philipsatterthwaite\.github\.io)$/.test(lo
       <h2>Knockout Stage <small>Allen, TX · Nov 3–8 &nbsp;·&nbsp; Final: Brooklyn, NY · Nov 14</small></h2>
       <button class="info-btn info-ic" aria-expanded="false" aria-controls="info-ko" title="How it works" aria-label="How it works"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="4.6" r="1.1" fill="currentColor"/><path d="M8 7.2v5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
     </div>
+    <div class="bulk" id="koBulk" hidden></div>
     <div class="info" id="info-ko" hidden><ul>
       <li>The <b>8 teams</b> that reached 3 Swiss wins play a <b>single-elimination</b> bracket. Every series is <b>best of 5</b>.</li>
       <li>Quarterfinal draw: the two 3–0 teams each get a 3–2 team; the other four are paired at random.</li>
@@ -1895,7 +1921,7 @@ function renderSwiss() {
     const [w, l] = key.split('–').map(Number);
     const ms = swiss.filter(m => m.pool === key);
     const bo = ms[0]?.bo || (w === 2 || l === 2 ? 3 : 1);
-    const what = w === 2 && l === 2 ? 'Bo3 · win or go home' : w === 2 && l === 0 ? 'Bo3 · win = 3–0' : w === 2 ? 'Bo3 · win to advance' : l === 2 ? 'Bo3 · lose = out' : `Bo${bo}`;
+    const what = `Bo${bo}`;
     const empty = Math.max(0, POOL_SIZE[key] - ms.length);
     const rows = ms.map(miniMatch).join('') + `<div class="mm"><span class="mt a tbd">TBD</span><span class="ms up">vs</span><span class="mt b tbd">TBD</span></div>`.repeat(empty);
     return `<div class="node pool ${w === 2 || l === 2 ? 'decider' : ''}" data-node="sw-${key}"><div class="pool-h"><b>${key}</b><span>${what}</span></div>${rows}</div>`;
@@ -2146,6 +2172,54 @@ function askReveal(msg, ok) {
 }
 
 
+// Reveal several matches at once (a stage, a day, a round). Earlier results
+// they depend on come with them, after one question for the lot.
+function revealGroup(ms, what) {
+  const set = new Set(ms.filter(m => started(m) && !isRevealed(m)));
+  if (!set.size) return;
+  const deps = new Set([...set].flatMap(m => revealDeps(m)).filter(x => !set.has(x)));
+  const go = () => revealIds(state.matches.filter(x => set.has(x) || deps.has(x)));
+  if (!deps.size || state.spoil.noAsk) return go();
+  askReveal(`Revealing ${what} also reveals ${plural(deps.size, 'earlier result')} it depends on.`, 'Reveal').then(yes => yes && go());
+}
+
+// A stage's reveal groups: the whole Play-In, each Swiss day (by the venue's
+// date, so a day of games stays together in every time zone), each Knockout round.
+const venueDay = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Chicago', year: 'numeric', month: '2-digit', day: '2-digit' });
+function bulkGroups(stage) {
+  const ms = state.matches.filter(m => m.stage === stage);
+  if (stage === 'playin') return [{ key: 'playin', label: 'All Play-In', what: 'the Play-In', ms }];
+  if (stage === 'ko') {
+    return [['qf', 'Quarterfinals'], ['sf', 'Semifinals'], ['f', 'Final']]
+      .map(([r, name]) => ({ key: 'ko-' + r, label: name, what: 'the ' + name.toLowerCase(), ms: ms.filter(m => m.koRound === r) }));
+  }
+  const days = [...new Set(ms.map(m => venueDay.format(m.time)))].sort();
+  return days.map((d, i) => ({ key: 'sw-' + d, label: `Day ${i + 1}`, what: `Swiss Day ${i + 1}`, title: fmtRange.format(new Date(d + 'T12:00:00')), ms: ms.filter(m => venueDay.format(m.time) === d) }));
+}
+function renderBulk() {
+  for (const [stage, id] of [['playin', 'piBulk'], ['swiss', 'swBulk'], ['ko', 'koBulk']]) {
+    const gs = state.spoil.on ? bulkGroups(stage).filter(g => g.ms.some(m => started(m) && !isRevealed(m))) : [];
+    $(id).hidden = !gs.length;
+    $(id).innerHTML = gs.length ? 'Reveal ' + gs.map(g => `<button class="reveal" data-bulk="${esc(g.key)}"${g.title ? ` title="${esc(g.title)}"` : ''}>${esc(g.label)}</button>`).join('') : '';
+  }
+}
+
+// The sticky bar: the last result you revealed and the next one to watch.
+function renderNextBar() {
+  const V = state.view;
+  const next = state.spoil.on && V.find(m => m.status === 'hidden');
+  $('nextBar').hidden = !next;
+  if (!next) return;
+  const logo = t => t?.image ? `<img src="${esc(t.image)}" alt="" onerror="this.remove()">` : '';
+  const ri = revealIdx(), last = ri >= 0 && V[ri]?.status === 'done' ? V[ri] : null;
+  const side = (m, k, t) => `<span class="${last === m && m.winner && m.winner !== k ? 'l' : ''}">${k === 1 ? logo(t) : ''}${esc(t?.short || 'TBD')}${k === 2 ? logo(t) : ''}</span>`;
+  $('nextBar').innerHTML = (last ? `<span class="nb-last"><span class="nb-k">Last</span><span class="nb-m">${side(last, 1, last.t1)}<b>${last.s1 ?? 0} – ${last.s2 ?? 0}</b>${side(last, 2, last.t2)}</span></span>` : '')
+    + `<span class="nb-k">${next.liveNow ? '<span class="live-pip"></span>Live' : 'Next'}</span>
+      <span class="nb-m">${logo(next.t1)}${esc(next.t1?.short || 'TBD')} <span class="nb-vs">vs</span> ${esc(next.t2?.short || 'TBD')}${logo(next.t2)}</span>
+      <span class="nb-s">${esc(stageLabel(next))} · ${fmtDate.format(next.time)}</span>
+      <span class="nb-acts"><button class="reveal" data-reveal="${esc(next.id)}">${next.liveNow ? 'Show live score' : 'Reveal next'}</button>${watchBtn(next, '▶ Watch')}</span>`;
+}
+
 // "Hide all again" sits beside the switch once something has been revealed.
 function renderSpoilBar() {
   $('nospoil').checked = state.spoil.on;
@@ -2191,6 +2265,8 @@ document.addEventListener('click', e => {
   if (sr) { const [id, s] = sr.dataset.sideRev.split(':'); revealTeam(id, +s); return; }
   const r = e.target.closest('[data-reveal]');
   if (r) { revealThrough(r.dataset.reveal); return; }
+  const bk = e.target.closest('[data-bulk]');
+  if (bk) { for (const s of STAGES) { const g = bulkGroups(s.key).find(x => x.key === bk.dataset.bulk); if (g) return revealGroup(g.ms, g.what); } return; }
   if (e.target.closest('[data-hide-all]')) { state.spoil.revealed = []; state.spoil.peek = []; state.spoil.noAsk = false; wbReset(); saveSpoil(); render(); return; }
   const f = e.target.closest('[data-first]');
   if (f) { if (f.dataset.first === 'show') { state.spoil.on = false; state.tab = null; } saveSpoil(); render(); return; }
@@ -2898,6 +2974,8 @@ function render() {
   playinSlots(state.matches);
   state.view = spoilerView();
   renderSpoilBar();
+  renderNextBar();
+  renderBulk();
   renderHero();
   renderTabs();
   renderPlayin();
