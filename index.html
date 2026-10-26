@@ -10,12 +10,12 @@ if (/^((www|ads)\.esportstracker\.app|philipsatterthwaite\.github\.io)$/.test(lo
 </script>
 <link rel="canonical" href="https://esportstracker.app/">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Worlds 2026 Tracker · Esports Tracker</title>
-<meta name="description" content="Live Worlds 2026 brackets, in-game stats, a no-spoilers mode, and rewatches that hide the video length.">
+<title>Worlds 2026 Bracket, Schedule &amp; Spoiler-Free VODs | Esports Tracker</title>
+<meta name="description" content="Follow the League of Legends Worlds 2026 bracket and schedule live, then rewatch every match without spoilers: results stay hidden until you reveal them.">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Esports Tracker">
-<meta property="og:title" content="Worlds 2026 Tracker · Esports Tracker">
-<meta property="og:description" content="Live brackets and in-game stats, a no-spoilers mode, and rewatches that hide the video length.">
+<meta property="og:title" content="Worlds 2026 Bracket, Schedule & Spoiler-Free VODs">
+<meta property="og:description" content="Follow the League of Legends Worlds 2026 bracket and schedule live, then rewatch every match without spoilers: results stay hidden until you reveal them.">
 <meta property="og:url" content="https://esportstracker.app/">
 <meta property="og:image" content="https://esportstracker.app/og.png">
 <meta name="twitter:card" content="summary_large_image">
@@ -543,6 +543,17 @@ if (/^((www|ads)\.esportstracker\.app|philipsatterthwaite\.github\.io)$/.test(lo
   footer { color: var(--muted); font-size: 12px; border-top: 1px solid var(--line); padding-top: 16px; margin-top: 30px; }
   footer a { color: var(--muted); }
 
+  /* About: plain, always-visible text about the event (spoiler-free), so
+     search engines have something to read besides the script-built brackets. */
+  .about { margin-top: 36px; padding-top: 22px; border-top: 1px solid var(--line); color: #c3cad6; font-size: 14px; line-height: 1.6; max-width: 820px; }
+  .about h2 { text-transform: none; letter-spacing: 0; font-size: 18px; color: var(--text); margin-bottom: 10px; }
+  .about h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); margin: 20px 0 6px; }
+  .about p { margin: 0 0 10px; }
+  .about ul { margin: 0 0 10px; padding-left: 18px; }
+  .about b { color: var(--text); }
+  .about .about-note { color: var(--muted); font-size: 12px; margin-bottom: 4px; }
+  .about .nw { white-space: nowrap; }
+
   /* Narrower: items drop to their own line under each laner. */
   @media (max-width: 1000px) {
     .lp { flex-wrap: wrap; row-gap: 5px; }
@@ -693,6 +704,29 @@ if (/^((www|ads)\.esportstracker\.app|philipsatterthwaite\.github\.io)$/.test(lo
   </div>
 
   <div class="ad-slot" hidden></div>
+
+  <section class="about" id="about">
+    <h2>Worlds 2026: bracket, schedule and spoiler-free VODs</h2>
+    <p>The 2026 League of Legends World Championship runs from October 15 to November 14. The Play-In is in Los Angeles (October 15–18). The Swiss Stage (October 23–31) and the quarterfinals and semifinals (November 3–8) are in Allen, Texas, and the Grand Final is at Barclays Center in Brooklyn, New York, on November 14.</p>
+    <p>This tracker follows the whole event live: the Play-In and Knockout brackets, the Swiss Stage chart, the schedule in your own time zone, and live in-game stats during matches. No-spoilers mode is on by default, so results stay hidden until you choose to reveal them, and you can rewatch every match's VOD without seeing the score or how long the video runs.</p>
+    <h3>Teams at Worlds 2026</h3>
+    <p class="about-note">By league, in seed order.</p>
+    <ul>
+      <li><b>LCK (Korea):</b> Gen.G Esports, Hanwha Life Esports, T1, Dplus KIA</li>
+      <li><b>LPL (China):</b> Anyone's Legend, Bilibili Gaming, Top Esports, Invictus Gaming</li>
+      <li><b>LEC (EMEA):</b> G2 Esports, Movistar KOI, Karmine Corp</li>
+      <li><b>LCS (North America):</b> Team Liquid Alienware, LYON, Cloud9 Kia</li>
+      <li><b>LCP (Asia-Pacific):</b> Team Secret Whales, CTBC Flying Oyster, MVK Esports</li>
+      <li><b>CBLOL (Brazil):</b> LOS, FURIA</li>
+    </ul>
+    <p>Karmine Corp, Cloud9 Kia, MVK Esports and FURIA start in the Play-In, which sends one team to the Swiss Stage.</p>
+    <h3>How the tournament works</h3>
+    <ul>
+      <li><b>Play-In:</b> four teams in a double-elimination bracket; every series is best of 5.</li>
+      <li><b>Swiss Stage:</b> 16 teams, each round paired against a team with the same record. Three wins qualifies for the Knockout Stage and three losses eliminates. Matches are best of 1, or best of 3 when a team can qualify or be eliminated.</li>
+      <li><b>Knockout Stage:</b> the 8 qualified teams play single elimination, every series best of 5. In the quarterfinal draw, the two <span class="nw">3–0</span> teams each face a <span class="nw">3–2</span> team.</li>
+    </ul>
+  </section>
 
   <footer>
     Data from the official <a href="https://lolesports.com" target="_blank" rel="noopener">LoL Esports</a> schedule and live stats feeds; champion art from Riot's Data Dragon. Times are shown in your local time zone.
