@@ -2364,23 +2364,30 @@ function wbSave(fn) {
 // draft, where that's known exactly).
 W.opt = { full: false, ...wbStore().opts };
 delete W.opt.skip; // the old "Skip the draft" setting; now a pop-up during the draft
+// Replay mode for this game: your saved mode, or a rewatch (↺ Rewatch game N
+// plays that game in Replay without changing the saved mode).
+const replayMode = () => W.opt.full || W.replayGame === W.gameNo;
+function renderMode() {
+  for (const b of $('wbMode').children) b.classList.toggle('on', (b.dataset.mode === 'replay') === replayMode());
+  if (W.vod && W.player?.getCurrentTime) renderBar(W.player.getCurrentTime());
+}
 function setOpt(k, on) {
   W.opt[k] = on;
   wbSave(s => { s.opts = W.opt; });
-  for (const b of $('wbMode').children) b.classList.toggle('on', (b.dataset.mode === 'replay') === W.opt.full);
-  if (W.vod && W.player?.getCurrentTime) renderBar(W.player.getCurrentTime());
+  renderMode();
 }
 setOpt('full', W.opt.full);
 $('wbMode').addEventListener('click', e => {
   const b = e.target.closest('[data-mode]');
-  if (b) setOpt('full', b.dataset.mode === 'replay');
+  if (b) { W.replayGame = null; setOpt('full', b.dataset.mode === 'replay'); }
 });
 
 // A full-day stream holds several games, so its positions are kept per game.
 const posKey = v => v.day ? `${v.id}@${Math.round(v.start)}` : v.id;
 function savePos() {
   const p = W.player, v = W.vod;
-  if (!v || !p?.getCurrentTime) return;
+  // At the break the game is finished (wbEnded cleared its spot), so a rewatch starts over.
+  if (!v || W.atBreak || !p?.getCurrentTime) return;
   const t = p.getCurrentTime();
   if (t > v.start) wbSave(s => { s.pos[posKey(v)] = t; s.edge[posKey(v)] = Math.max(W.edge, t); });
 }
@@ -2581,6 +2588,7 @@ function renderWbGames(R = revealedGames()) {
 }
 
 async function playGame(n) {
+  if (W.replayGame !== n) W.replayGame = null; // a rewatch's Replay mode ends with that game
   const m = W.match, g = W.games.find(x => x.number === n);
   savePos(); // switching games: keep your place in the one you're leaving
   W.gameNo = n;
@@ -2590,6 +2598,7 @@ async function playGame(n) {
   W.post = null;
   W.postMode = false;
   renderSkip(null);
+  renderMode();
   clearInterval(W.timer);
   try { W.player?.pauseVideo?.(); } catch {}
   wbSave(s => { (s.games[m.id] ||= {}).n = n; });
@@ -2785,7 +2794,7 @@ function intermission(n) {
     <div class="acts">${nx?.reveal ? `<button class="main" data-wb="reveal">Reveal game ${nx.reveal} result</button>` : ''}
       ${nx?.next ? `<button class="main" data-wb-game="${nx.next}">Watch game ${nx.next} ▶</button>` : ''}
       ${W.post?.n === n ? '<button data-wb="post">▶ Post-game</button>' : ''}
-      <button data-wb-game="${n}">↺ Rewatch game ${n}</button>
+      <button data-wb="rewatch">↺ Rewatch game ${n}</button>
       <button data-wb="close">Close</button></div>
     <div class="ad-slot" hidden></div></div>`);
   window.renderAds?.();
@@ -2918,7 +2927,7 @@ function wbTick() {
 const vodEnd = v => v.end ?? (W.player?.getDuration?.() || 0);
 // The scrubber's right end: the furthest you've watched, or with Show video
 // length on, the end of the game's video.
-const barEnd = () => W.opt.full && vodEnd(W.vod) > W.vod.start ? vodEnd(W.vod) : W.edge;
+const barEnd = () => replayMode() && vodEnd(W.vod) > W.vod.start ? vodEnd(W.vod) : W.edge;
 
 function renderBar(t) {
   const v = W.vod;
@@ -2929,12 +2938,12 @@ function renderBar(t) {
   $('wbFill').style.width = `${frac * 100}%`;
   $('wbKnob').style.left = `${frac * 100}%`;
   const behind = W.edge - t, live = behind < 4;
-  $('wbLive').hidden = W.opt.full;
+  $('wbLive').hidden = replayMode();
   $('wbLive').classList.toggle('on', live);
   $('wbLive').textContent = live ? 'LIVE' : `−${hms(behind * 1000)}`;
   $('wbLive').title = live ? "You're caught up" : 'Jump back to where you left off';
-  $('wbTime').textContent = hms(Math.max(0, t - v.start) * 1000) + (W.opt.full && span > 5 ? ` / ${hms(span * 1000)}` : '');
-  $('wbBar').title = W.opt.full ? '' : "Scrub back through what you've watched";
+  $('wbTime').textContent = hms(Math.max(0, t - v.start) * 1000) + (replayMode() && span > 5 ? ` / ${hms(span * 1000)}` : '');
+  $('wbBar').title = replayMode() ? '' : "Scrub back through what you've watched";
   renderSkip(t);
 }
 
@@ -2983,6 +2992,7 @@ function wbAction(a) {
   if (a === 'fs') return toggleFs();
   if (a === 'settings') { $('wbMenu').hidden = !$('wbMenu').hidden; return; }
   if (a === 'reveal') return wbReveal();
+  if (a === 'rewatch') { W.replayGame = W.gameNo; return playGame(W.gameNo); }
   if (a === 'post') return watchPost();
   if (!p?.getCurrentTime || !W.vod) return;
   if (a === 'play') return p.getPlayerState() === YT.PlayerState.PLAYING ? p.pauseVideo() : p.playVideo();
