@@ -447,11 +447,11 @@ if (/^((www|ads)\.esportstracker\.app|philipsatterthwaite\.github\.io)$/.test(lo
      the cover is one big tap target. The pause dim fades instead of snapping. */
   .wb-stage, .wb-stage * { -webkit-tap-highlight-color: transparent; }
   .wb-cover:not(.solid) { transition: background-color .2s ease; }
-  .wb-cover.solid { background: #05070b; cursor: default; overflow-y: auto; }
+  .wb-cover.solid { background: radial-gradient(ellipse 75% 65% at 50% 42%, rgba(200,170,110,.08), transparent 70%), linear-gradient(160deg, #131b2b 0%, #0c111b 55%, #090c14 100%); cursor: default; overflow-y: auto; }
   .wb-stage.ad .wb-cover { pointer-events: none; }
   .wb-stage.ad .wb-bottom { display: none; }
   .wb-cover button.main { border-color: var(--gold); color: var(--gold); font-weight: 700; padding: 8px 18px; font-size: 15px; }
-  .wb-inter { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+  .wb-inter { display: flex; flex-direction: column; align-items: center; gap: 12px; align-self: stretch; }
   .wb-inter h3 { font-size: 22px; }
   .wb-inter .ad-slot { margin: 14px 0 0; }
   /* Full width so the banner can size to the stage (ads.js measures the parent). */
@@ -2564,6 +2564,9 @@ async function openWatch(matchId) {
   };
   W.start = start;
   renderWbTop();
+  // Already started this match: straight back to where you were (mid-game or
+  // the break screen), not the opening screen.
+  if (wbStore().games[m.id]) return start();
   cover('solid', `<div class="wb-inter wb-pre">
     <button class="wb-start" data-wb="start" title="Play" aria-label="Play">${BIG_PLAY}</button>
     <div class="ad-slot" hidden></div></div>`);
@@ -2635,6 +2638,7 @@ async function playGame(n) {
 async function startVod() {
   const vod = W.cands[W.cand];
   W.vod = vod;
+  W.played = null; // set once this video is really playing inside its game
   W.seekTo = null;
   W.stuck = 0;
   setAd(false);
@@ -2732,9 +2736,13 @@ function wbState(s) {
     try { W.player.pauseVideo(); } catch {}
     return wbError();
   }
-  if (s === YT.PlayerState.PLAYING) cover('play');
+  const t = W.player.getCurrentTime?.() ?? 0, v = W.vod;
+  if (s === YT.PlayerState.PLAYING) {
+    if (t >= v.start - 2 && (!v.end || t <= v.end + 2)) W.played = v;
+    cover('play');
+  }
   else if (s === YT.PlayerState.PAUSED || s === YT.PlayerState.CUED) cover('paused');
-  else if (s === YT.PlayerState.ENDED) wbEnded();
+  else if (s === YT.PlayerState.ENDED && W.played === v && t >= vodEnd(v) - 3) wbEnded();
 }
 
 // Watched to the end: forget the position (a rewatch starts fresh) and mark
@@ -2762,7 +2770,7 @@ function intermission(n) {
   cover('solid', `<div class="wb-inter">
     <h3>Game ${n} complete</h3>
     ${nx?.over ? '<p>Series over.</p>' : ''}
-    <div class="acts">${nx?.reveal ? `<button class="main" data-wb="reveal">Reveal game ${nx.reveal}</button>` : ''}
+    <div class="acts">${nx?.reveal ? `<button class="main" data-wb="reveal">Reveal game ${nx.reveal} result</button>` : ''}
       ${nx?.next ? `<button class="main" data-wb-game="${nx.next}">Watch game ${nx.next} ▶</button>` : ''}
       <button data-wb-game="${n}">↺ Rewatch game ${n}</button>
       <button data-wb="close">Close</button></div>
@@ -2868,7 +2876,7 @@ function wbTick() {
   W.stuck = p.getPlayerState() === YT.PlayerState.PLAYING && Math.abs(t - W.lastT) < .05 ? (W.stuck || 0) + 1 : 0;
   W.lastT = t;
   if ((W.stuck >= 3) !== W.ad) setAd(W.stuck >= 3);
-  if (v.end && t >= v.end - .5) { p.pauseVideo(); wbEnded(); return; }
+  if (v.end && W.played === v && t >= v.end - .5 && t <= v.end + 5) { p.pauseVideo(); wbEnded(); return; }
   if (p.getPlayerState() === YT.PlayerState.PLAYING) {
     W.edge = Math.max(W.edge, t);
     if (Date.now() - W.savedAt > 5e3) {
