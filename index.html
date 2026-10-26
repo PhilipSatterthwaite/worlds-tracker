@@ -1519,7 +1519,7 @@ const seedLabel = t => {
 // kind: 'live', 'next' (not played yet), 'result' (the last result you
 // revealed; `opts.next` is the match after it, offered as "Reveal next"), or
 // 'watch' (a hidden result in the queue; `opts.first` marks the next one to
-// watch, and `opts.reveal` puts a Reveal button on it when no result card does).
+// watch, and `opts.reveal` puts a Reveal button on it).
 function heroCard(m, kind, opts = {}) {
   const live = kind === 'live', hidden = m.status === 'hidden', done = kind === 'result';
   const next = opts.next;
@@ -1559,10 +1559,11 @@ function renderHero() {
     // moves the next match's result into slot 1 and shifts the rest along.
     const ri = revealIdx();
     const last = ri >= 0 ? V[ri] : null;
-    const queue = V.slice(ri + 1);
+    // Everything not yet revealed, in schedule order (reveals needn't go in order).
+    const queue = V.filter((m, i) => !isRevealed(state.matches[i]));
     const cards = last ? [last.status === 'live' ? heroCard(last, 'live') : heroCard(last, 'result', { next: queue[0] })] : [];
     queue.slice(0, 3 - cards.length).forEach((m, k) => cards.push(m.status === 'hidden'
-      ? heroCard(m, 'watch', { first: k === 0, reveal: k === 0 && !last })
+      ? heroCard(m, 'watch', { first: k === 0, reveal: true })
       : heroCard(m, m.status === 'live' ? 'live' : 'next')));
     html = cards.join('');
   } else {
@@ -1848,21 +1849,40 @@ function renderKnockout() {
 
 /* ---------- no spoilers ---------- */
 
-// Results are revealed in schedule order: `through` is the last revealed
-// match, and everything started after it stays hidden. On by default; a
-// viewer's saved choice wins.
+// `revealed` lists the results you've revealed, in the order you revealed
+// them. Any match can be revealed on its own unless its pairing depends on a
+// result that's still hidden (see revealThrough). On by default; a viewer's
+// saved choice wins.
 const SPOIL_KEY = 'worlds2026.nospoil.v1';
 state.spoil = (() => {
-  try { return { on: true, through: null, ...JSON.parse(localStorage.getItem(SPOIL_KEY)) }; }
-  catch { return { on: true, through: null }; }
+  try { return { on: true, revealed: [], ...JSON.parse(localStorage.getItem(SPOIL_KEY)) }; }
+  catch { return { on: true, revealed: [] }; }
 })();
 function saveSpoil() {
   try { localStorage.setItem(SPOIL_KEY, JSON.stringify(state.spoil)); } catch {}
 }
 
 const started = m => m.status !== 'upcoming';
-const revealIdx = () => state.spoil.through ? state.matches.findIndex(m => m.id === state.spoil.through) : -1;
-const isRevealed = m => !state.spoil.on || state.matches.findIndex(x => x.id === m.id) <= revealIdx();
+const isRevealed = m => !state.spoil.on || state.spoil.revealed.includes(m.id);
+// Index in state.matches of the most recently revealed match, or -1.
+function revealIdx() {
+  const r = state.spoil.revealed;
+  for (let k = r.length - 1; k >= 0; k--) {
+    const i = state.matches.findIndex(m => m.id === r[k]);
+    if (i >= 0) return i;
+  }
+  return -1;
+}
+
+// Older saves kept one marker, `through`, with everything up to it revealed.
+function migrateSpoil() {
+  const s = state.spoil;
+  if (!s.through || !state.matches.length) return;
+  const i = state.matches.findIndex(m => m.id === s.through);
+  s.revealed = [...new Set([...(s.revealed || []), ...state.matches.slice(0, i + 1).filter(started).map(m => m.id)])];
+  delete s.through;
+  saveSpoil();
+}
 
 // Bracket depth: who plays in a round depends on every earlier round's results.
 function roundOf(m) {
@@ -1876,12 +1896,12 @@ function roundOf(m) {
 // round still has a hidden result, since the pairing itself would give that
 // result away (Swiss round 2 pairs the round 1 winners, and so on).
 function spoilerView() {
+  migrateSpoil();
   if (!state.spoil.on) return state.matches;
-  const ri = revealIdx();
-  const hiddenRounds = state.matches.filter((m, i) => i > ri && started(m)).map(roundOf);
+  const hiddenRounds = state.matches.filter(m => started(m) && !isRevealed(m)).map(roundOf);
   const minHidden = Math.min(Infinity, ...hiddenRounds);
-  return state.matches.map((m, i) => {
-    if (i <= ri) return m;
+  return state.matches.map(m => {
+    if (isRevealed(m)) return m;
     const teams = roundOf(m) <= minHidden ? {} : { t1: null, t2: null, pool: null };
     if (!started(m)) return { ...m, ...teams };
     return { ...m, ...teams, status: 'hidden', liveNow: m.status === 'live', s1: null, s2: null, winner: 0 };
@@ -1895,19 +1915,23 @@ function renderSpoilBar() {
   bar.hidden = !state.spoil.on;
   if (!state.spoil.on) return;
   // Revealing happens on the hero's result card; the bar only offers to start over.
-  const ri = revealIdx();
-  const hidden = state.matches.filter((m, i) => i > ri && started(m));
-  bar.hidden = ri < 0 && hidden.length > 0;
+  const any = state.spoil.revealed.length > 0;
+  const hidden = state.matches.filter(m => started(m) && !isRevealed(m));
+  bar.hidden = !any && hidden.length > 0;
   bar.innerHTML = `${hidden.length ? '' : '<span class="sp-text">Caught up.</span>'}<span class="sp-acts">
-    ${ri >= 0 ? '<button class="linkish" data-hide-all>Hide all again</button>' : ''}</span>`;
+    ${any ? '<button class="linkish" data-hide-all>Hide all again</button>' : ''}</span>`;
 }
 
+// Reveals one result. Matches in the same round don't depend on each other,
+// so they can be revealed in any order; a later-round match's pairing gives
+// away earlier results, so revealing it also reveals any still-hidden
+// matches from earlier rounds (after asking).
 function revealThrough(id) {
-  const i = state.matches.findIndex(m => m.id === id), ri = revealIdx();
-  if (i <= ri) return;
-  const skipped = state.matches.slice(ri + 1, i).filter(started).length;
-  if (skipped && !confirm(`Also reveals ${skipped} earlier result${skipped > 1 ? 's' : ''}. Continue?`)) return;
-  state.spoil.through = id;
+  const m = state.matches.find(x => x.id === id);
+  if (!m || isRevealed(m)) return;
+  const deps = state.matches.filter(x => x !== m && started(x) && !isRevealed(x) && roundOf(x) < roundOf(m));
+  if (deps.length && !confirm(`This also reveals ${deps.length} earlier result${deps.length > 1 ? 's' : ''} it depends on. Continue?`)) return;
+  state.spoil.revealed.push(...deps.map(x => x.id), m.id);
   saveSpoil();
   render();
 }
@@ -1921,7 +1945,7 @@ $('nospoil').addEventListener('change', e => {
 document.addEventListener('click', e => {
   const r = e.target.closest('[data-reveal]');
   if (r) { revealThrough(r.dataset.reveal); return; }
-  if (e.target.closest('[data-hide-all]')) { state.spoil.through = null; saveSpoil(); render(); return; }
+  if (e.target.closest('[data-hide-all]')) { state.spoil.revealed = []; saveSpoil(); render(); return; }
   const w = e.target.closest('[data-watch]');
   if (w) openWatch(w.dataset.watch);
 });
