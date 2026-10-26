@@ -347,6 +347,17 @@ if (/^((www|ads)\.esportstracker\.app|philipsatterthwaite\.github\.io)$/.test(lo
   .side-rev:hover { color: #e5cc94; border-bottom-style: solid; }
   .side-rev svg { width: 1em; height: 1em; flex: none; font-style: normal; }
 
+  /* "This also reveals…" question, with Don't ask again (askReveal). Above the player. */
+  .ask { position: fixed; inset: 0; z-index: 80; background: rgba(4,6,10,.7); display: flex; align-items: center; justify-content: center; padding: 16px; }
+  .ask[hidden] { display: none; }
+  .ask-box { width: min(420px, 100%); background: var(--panel-2); border: 1px solid var(--line-2); border-radius: 12px; padding: 18px 20px; box-shadow: 0 20px 60px rgba(0,0,0,.55); }
+  .ask-box p { margin: 0 0 14px; font-size: 15px; line-height: 1.45; }
+  .ask-no { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); font-size: 13px; cursor: pointer; }
+  .ask-no input { width: 16px; height: 16px; accent-color: var(--gold); margin: 0; }
+  .ask-acts { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+  .ask-acts button { font-size: 14px; font-weight: 600; padding: 8px 16px; }
+  .ask-acts .main { background: var(--gold); border-color: var(--gold); color: #0a0d14; font-weight: 700; }
+
   /* Hidden results */
   .linkish { background: none; border: 0; padding: 0; color: var(--muted); text-decoration: underline; font-size: 12px; }
   .linkish:hover { color: var(--gold); }
@@ -665,6 +676,14 @@ if (/^((www|ads)\.esportstracker\.app|philipsatterthwaite\.github\.io)$/.test(lo
     <p>Esports Tracker was created under Riot Games' "Legal Jibber Jabber" policy using assets owned by Riot Games. Riot Games does not endorse or sponsor this project. Not affiliated with Riot Games or LoL Esports.
     · <a href="privacy.html">Privacy</a></p>
   </footer>
+</div>
+
+<div class="ask" id="ask" hidden role="dialog" aria-modal="true" aria-labelledby="askMsg">
+  <div class="ask-box">
+    <p id="askMsg"></p>
+    <label class="ask-no"><input type="checkbox" id="askNo"> Don't ask again</label>
+    <div class="ask-acts"><button id="askCancel">Cancel</button><button class="main" id="askOk">Reveal</button></div>
+  </div>
 </div>
 
 <div class="wb" id="wb" hidden role="dialog" aria-modal="true" aria-labelledby="wbTitle">
@@ -2012,10 +2031,39 @@ function revealTeam(id, s) {
   if (!t) return;
   const deps = revealDeps(m, [t]);
   if (!deps.length) return;
-  if (!confirm(`Showing this team reveals ${deps.length} earlier result${deps.length > 1 ? 's' : ''} (how they got here). This match's result stays hidden. Continue?`)) return;
-  state.spoil.revealed.push(...deps.map(x => x.id));
+  askReveal(`Showing this team reveals ${plural(deps.length, 'earlier result')} (how they got here). This match's result stays hidden.`, 'Show team')
+    .then(yes => yes && revealIds(deps));
+}
+
+const plural = (n, word) => `${n} ${word}${n > 1 ? 's' : ''}`;
+function revealIds(ms) {
+  state.spoil.revealed.push(...ms.filter(x => !isRevealed(x)).map(x => x.id));
   saveSpoil();
   render();
+}
+
+// Asks before revealing results beyond the one you picked, with a "Don't ask
+// again" box (remembered with your no-spoilers progress; "Hide all again"
+// turns asking back on). Resolves true to go ahead.
+function askReveal(msg, ok) {
+  if (state.spoil.noAsk) return Promise.resolve(true);
+  return new Promise(resolve => {
+    const box = $('ask');
+    $('askMsg').textContent = msg;
+    $('askOk').textContent = ok;
+    $('askNo').checked = false;
+    box.hidden = false;
+    $('askOk').focus();
+    const done = yes => {
+      box.hidden = true;
+      if (yes && $('askNo').checked) { state.spoil.noAsk = true; saveSpoil(); }
+      resolve(yes);
+    };
+    $('askOk').onclick = () => done(true);
+    $('askCancel').onclick = () => done(false);
+    box.onclick = e => { if (e.target === box) done(false); };
+    box.onkeydown = e => { if (e.key === 'Escape') { e.stopPropagation(); done(false); } };
+  });
 }
 
 
@@ -2034,10 +2082,10 @@ function revealThrough(id) {
   if (!m || isRevealed(m)) return;
   const deps = revealDeps(m);
   const watching = !$('wb').hidden && W.match?.id === id;
-  if (deps.length && !watching && !confirm(`This also reveals ${deps.length} earlier result${deps.length > 1 ? 's' : ''} it depends on. Continue?`)) return;
-  state.spoil.revealed.push(...deps.map(x => x.id), m.id);
-  saveSpoil();
-  render();
+  // No question needed: reveal right away (the player relies on this being immediate).
+  if (!deps.length || watching || state.spoil.noAsk) return revealIds([...deps, m]);
+  askReveal(`This also reveals ${plural(deps.length, 'earlier result')} it depends on.`, 'Reveal')
+    .then(yes => yes && revealIds([...deps, m]));
 }
 
 // Watching a match shows who's playing, which gives away the earlier results
@@ -2046,13 +2094,9 @@ function watchMatch(id) {
   const m = state.matches.find(x => x.id === id);
   if (!m) return;
   const deps = state.spoil.on ? revealDeps(m) : [];
-  if (deps.length) {
-    if (!confirm(`Watching this shows who's playing, which gives away ${deps.length} earlier result${deps.length > 1 ? 's' : ''}. Reveal ${deps.length > 1 ? 'them' : 'it'} and watch?`)) return;
-    state.spoil.revealed.push(...deps.map(x => x.id));
-    saveSpoil();
-    render();
-  }
-  openWatch(id);
+  if (!deps.length) return openWatch(id);
+  askReveal(`Watching this shows who's playing, which gives away ${plural(deps.length, 'earlier result')}.`, 'Reveal & watch')
+    .then(yes => { if (yes) { revealIds(deps); openWatch(id); } });
 }
 
 $('nospoil').addEventListener('change', e => {
@@ -2066,7 +2110,7 @@ document.addEventListener('click', e => {
   if (sr) { const [id, s] = sr.dataset.sideRev.split(':'); revealTeam(id, +s); return; }
   const r = e.target.closest('[data-reveal]');
   if (r) { revealThrough(r.dataset.reveal); return; }
-  if (e.target.closest('[data-hide-all]')) { state.spoil.revealed = []; wbReset(); saveSpoil(); render(); return; }
+  if (e.target.closest('[data-hide-all]')) { state.spoil.revealed = []; state.spoil.noAsk = false; wbReset(); saveSpoil(); render(); return; }
   const w = e.target.closest('[data-watch]');
   if (w) watchMatch(w.dataset.watch);
 });
