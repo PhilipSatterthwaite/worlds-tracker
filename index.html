@@ -154,15 +154,17 @@ if (/^((www|ads)\.esportstracker\.app|philipsatterthwaite\.github\.io)$/.test(lo
   .bc-st { display: inline-flex; align-items: center; gap: 5px; font-weight: 700; font-size: 16px; color: var(--muted); }
   .bc-st b { color: var(--text); }
   .bc-st.gold b { color: var(--gold); }
-  .bc-st.baron { color: #b48cff; }
   .bc-code { font-weight: 800; font-size: 15px; display: inline-flex; align-items: center; margin-right: auto; }
   .bc-side.r .bc-code { margin-right: 0; margin-left: auto; }
   .bc-mid { text-align: center; }
   .bc-k { font-size: 26px; font-weight: 800; line-height: 1.1; display: flex; align-items: center; gap: 10px; justify-content: center; }
   .bc-k .ico { width: 18px; height: 18px; color: var(--muted); }
   .bc-clock { font-size: 12px; color: var(--muted); font-weight: 600; letter-spacing: .04em; }
-  .drakes { display: inline-flex; gap: 3px; align-items: center; }
-  .drakes .ico { width: 15px; height: 15px; }
+  .drakes { display: inline-flex; gap: 4px; align-items: center; }
+  .drk { width: 20px; height: 20px; border-radius: 50%; display: inline-grid; place-items: center; flex: none;
+    background: radial-gradient(circle at 50% 35%, color-mix(in srgb, var(--c) 38%, #0b1018), #0b1018 75%);
+    border: 1.5px solid var(--c); box-shadow: 0 0 6px color-mix(in srgb, var(--c) 35%, transparent); }
+  .drk svg { width: 12px; height: 12px; fill: var(--c); }
   .soul { font-size: 10px; font-weight: 800; letter-spacing: .06em; color: var(--gold); border: 1px solid var(--gold); border-radius: 4px; padding: 0 4px; margin-left: 3px; }
   .ls-h { font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin: 14px 0 6px; display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
   .ls-h small { text-transform: none; letter-spacing: 0; font-weight: 500; }
@@ -194,8 +196,13 @@ if (/^((www|ads)\.esportstracker\.app|philipsatterthwaite\.github\.io)$/.test(lo
   .lp.dead .ch { filter: grayscale(1); opacity: .4; }
   .lp-t { min-width: 0; display: flex; flex-direction: column; line-height: 1.25; }
   .lp-t b { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .lp-t span { font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
-  .lp-t i { font-style: normal; }
+  .lp-s { display: inline-flex; align-items: baseline; flex-wrap: wrap; column-gap: 7px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .lp.r .lp-s { justify-content: flex-end; }
+  .lp-s .kda { font-size: 12px; font-weight: 700; color: #e6eaf2; flex: none; overflow: visible; text-overflow: clip; }
+  .lp-s .cs { font-size: 11px; color: var(--muted); }
+  .chw .lv { position: absolute; right: -4px; bottom: 1px; min-width: 15px; height: 15px; padding: 0 3px; box-sizing: border-box; border-radius: 4px;
+    background: #0b1018; border: 1px solid var(--line-2); color: var(--gold); font-size: 9.5px; font-weight: 800; line-height: 13px; text-align: center; font-variant-numeric: tabular-nums; }
+  .lp.r .chw .lv { right: auto; left: -4px; }
   .lp-items { display: flex; gap: 2px; flex: none; }
   .lp-items img, .lp-items span { width: 22px; height: 22px; border-radius: 3px; background: var(--panel-2); display: block; }
   .lp.r .lp-items { flex-direction: row-reverse; }
@@ -216,8 +223,6 @@ if (/^((www|ads)\.esportstracker\.app|philipsatterthwaite\.github\.io)$/.test(lo
     position: absolute; top: -6px; transform: translate(-50%, -100%); background: var(--panel-2); border: 1px solid var(--line-2);
     border-radius: 6px; padding: 3px 8px; font-size: 11px; font-weight: 700; white-space: nowrap; pointer-events: none; font-variant-numeric: tabular-nums;
   }
-  .lp-g { margin-left: auto; font-weight: 700; font-size: 13px; font-variant-numeric: tabular-nums; }
-  .lp.r .lp-g { margin-left: 0; margin-right: auto; }
   .ln-mid { display: flex; flex-direction: column; align-items: center; gap: 3px; }
   .ln-role { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
   .ln-diff { font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--muted); }
@@ -636,7 +641,6 @@ if (/^((www|ads)\.esportstracker\.app|philipsatterthwaite\.github\.io)$/.test(lo
     .ln { grid-template-columns: minmax(0, 1fr) 58px minmax(0, 1fr); gap: 6px; }
     .lp { gap: 6px; }
     .ch { width: 28px; height: 28px; }
-    .lp-g, .lp-t .xs { display: none; }
     .lp-items { padding-left: 0; }
     .lp.r .lp-items { padding: 0; }
     .lp-items { gap: 1px; }
@@ -887,9 +891,21 @@ const TOURNAMENT_SLUG = 'worlds_2026';
 const CACHE_KEY = 'worlds2026.events.v2';
 
 const DRAKE_COLOR = {
-  infernal: '#f97316', ocean: '#38bdf8', mountain: '#a16207', cloud: '#cbd5e1',
+  infernal: '#f97316', ocean: '#38bdf8', mountain: '#c08a4a', cloud: '#cbd5e1',
   hextech: '#22d3ee', chemtech: '#84cc16', elder: '#e9d5ff',
 };
+// Each drake as the broadcast shows it: a round badge in the element's colour
+// with that element's mark.
+const DRAKE_MARK = {
+  infernal: '<path d="M8 1.5c.6 2.4 3.5 3.9 3.5 7.2a3.5 3.5 0 0 1-7 0c0-1.5.7-2.5 1.6-3.3.1 1.2.7 2 1.5 2.3C7 6 7.3 3.6 8 1.5z"/>',
+  ocean: '<path d="M8 1.8c2.1 2.8 4 5.2 4 7.4a4 4 0 0 1-8 0c0-2.2 1.9-4.6 4-7.4z"/>',
+  mountain: '<path d="M1.5 13 6 4.5l2.4 4.2L10 6l4.5 7z"/>',
+  cloud: '<path d="M4.6 12.5a3 3 0 0 1-.4-6A4 4 0 0 1 12 5.7a3.4 3.4 0 0 1-.4 6.8z"/>',
+  hextech: '<path d="M8 1.5 13.6 4.7v6.6L8 14.5l-5.6-3.2V4.7zm0 3.2L5.2 6.3v3.4L8 11.3l2.8-1.6V6.3z" fill-rule="evenodd"/>',
+  chemtech: '<path d="M6 1.5h4v1.2h-.8v3.2l3.6 6.3A1.2 1.2 0 0 1 11.8 14H4.2a1.2 1.2 0 0 1-1-1.8l3.6-6.3V2.7H6z"/>',
+  elder: '<path d="m8 1.5 1.9 4 4.3.5-3.2 3 .9 4.3L8 11.1l-3.9 2.2.9-4.3-3.2-3 4.3-.5z"/>',
+};
+const drakeBadge = d => `<span class="drk" style="--c:${DRAKE_COLOR[d] || '#94a3b8'}" title="${esc(d[0].toUpperCase() + d.slice(1))} drake"><svg viewBox="0 0 16 16" aria-hidden="true">${DRAKE_MARK[d] || DRAKE_MARK.elder}</svg></span>`;
 const STAGES = [
   { key: 'playin', name: 'Play-In' },
   { key: 'swiss', name: 'Swiss' },
@@ -1579,12 +1595,11 @@ function liveStats(m) {
 
   // One half of the scoreboard; the right half is the same list mirrored.
   const half = (t, code, side, lead, r) => {
-    const drakes = t.dragons.map(d => icon('dragon', `color:${DRAKE_COLOR[d] || '#94a3b8'}`)).join('');
+    const drakes = t.dragons.map(drakeBadge).join('');
     const soul = t.dragons.length - elders(t) >= 4;
     return `<div class="bc-side ${r ? 'r' : ''}">
       <span class="bc-code">${esc(code)}<span class="side ${side}">${side.toUpperCase()}</span></span>
-      ${t.dragons.length ? `<span class="drakes" title="${esc(t.dragons.join(', '))}">${drakes}${soul ? '<span class="soul">SOUL</span>' : ''}</span>` : ''}
-      <span class="bc-st baron" title="Barons">${icon('baron')}<b>${t.barons}</b></span>
+      ${t.dragons.length ? `<span class="drakes">${drakes}${soul ? '<span class="soul">SOUL</span>' : ''}</span>` : ''}
       ${t.inhibitors ? `<span class="bc-st" title="Inhibitors destroyed">${icon('inhib')}<b>${t.inhibitors}</b></span>` : ''}
       <span class="bc-st" title="Towers destroyed">${icon('tower')}<b>${t.towers}</b></span>
       <span class="bc-st gold" title="Gold lead" ${lead > 0 ? '' : 'style="visibility:hidden"'}>${icon('gold')}<b>+${kGold(Math.abs(lead))}</b></span>
@@ -1709,13 +1724,12 @@ function lanes(L) {
   const [s1, s2] = L.t1Blue ? ['blue', 'red'] : ['red', 'blue'];
   const laner = (p, r) => {
     const hp = p.maxHealth ? Math.round(p.currentHealth / p.maxHealth * 100) : 100;
-    const line = L.loading ? esc(champName(p.champ))
-      : `<i class="xs">${esc(champName(p.champ))} · Lv ${p.level} · </i>${p.kills}/${p.deaths}/${p.assists} · ${p.creepScore} CS`;
+    const line = L.loading ? ''
+      : `<span class="lp-s"><b class="kda">${p.kills}/${p.deaths}/${p.assists}</b><span class="cs">${p.creepScore} cs</span></span>`;
     return `<div class="lp ${r ? 'r' : ''} ${!L.loading && p.maxHealth && !p.currentHealth ? 'dead' : ''}">
-      <span class="chw">${champImg(p.champ)}${L.loading ? '' : `<span class="hp"><i style="width:${hp}%"></i></span>`}</span>
-      <span class="lp-t"><b>${esc(p.name)}</b><span>${line}</span></span>
-      ${L.loading || !p.items ? '' : `<span class="lp-items">${itemIcons(p.items, true)}</span>`}
-      ${L.loading ? '' : `<span class="lp-g">${kGold(p.totalGold || 0)}</span>`}</div>`;
+      <span class="chw">${champImg(p.champ)}${L.loading ? '' : `<span class="lv" title="Level">${p.level}</span><span class="hp"><i style="width:${hp}%"></i></span>`}</span>
+      <span class="lp-t"><b>${esc(p.name)}</b>${line}</span>
+      ${L.loading || !p.items ? '' : `<span class="lp-items">${itemIcons(p.items, true)}</span>`}</div>`;
   };
   return ROLES.map(role => {
     const a = L.players.find(p => p.side === s1 && p.role === role), b = L.players.find(p => p.side === s2 && p.role === role);
