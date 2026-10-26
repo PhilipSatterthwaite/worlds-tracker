@@ -289,6 +289,7 @@ if (/^((www|ads)\.esportstracker\.app|philipsatterthwaite\.github\.io)$/.test(lo
   .koq-b { display: flex; align-items: center; gap: 10px; }
   .koq-b b { color: var(--win); font-variant-numeric: tabular-nums; min-width: 30px; }
   .koq-b .out-teams { padding: 0; }
+  .koq-n { font-size: 11px; color: var(--muted); white-space: nowrap; min-width: 34px; }
   .legend { display: flex; gap: 18px; flex-wrap: wrap; color: var(--muted); font-size: 12px; margin: -4px 0 14px; }
   .legend i { display: inline-block; width: 22px; height: 0; border-top: 2px solid; vertical-align: middle; margin-right: 6px; }
   /* Hover/tap a team to trace its path through the Swiss chart */
@@ -437,6 +438,11 @@ if (/^((www|ads)\.esportstracker\.app|philipsatterthwaite\.github\.io)$/.test(lo
      YouTube's "Skip ad" button, and our controls step aside. */
   .wb-cover { position: absolute; inset: 0; z-index: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; text-align: center; cursor: pointer; padding: 20px; }
   .wb-cover.paused { background: rgba(0,0,0,.3); }
+  /* "Game N is over": sits above the controls while the post-game plays on. */
+  .wb-over { position: absolute; z-index: 4; right: 16px; bottom: 92px; display: flex; align-items: center; gap: 10px; padding: 8px 8px 8px 16px; background: rgba(12,15,22,.92); border: 1px solid var(--line-2); border-radius: 10px; font-weight: 700; box-shadow: 0 8px 30px rgba(0,0,0,.5); }
+  .wb-over[hidden] { display: none; }
+  .wb-over button.main { border-color: var(--gold); color: var(--gold); font-weight: 700; padding: 6px 14px; }
+  .wb-over-x { background: none; border: 0; color: var(--muted); padding: 4px 8px; }
   /* No tap flash: phones paint a highlight box over whatever is tapped, and
      the cover is one big tap target. The pause dim fades instead of snapping. */
   .wb-stage, .wb-stage * { -webkit-tap-highlight-color: transparent; }
@@ -776,6 +782,7 @@ if (/^((www|ads)\.esportstracker\.app|philipsatterthwaite\.github\.io)$/.test(lo
   <div class="wb-stage solid" id="wbStage">
     <div id="wbPlayer"></div>
     <div class="wb-cover solid" id="wbCover"><p>Loading…</p></div>
+    <div class="wb-over" id="wbOver" hidden></div>
     <div class="wb-top">
       <span class="wb-sb" id="wbTitle"></span>
       <span class="wb-games" id="wbGames"></span>
@@ -2048,11 +2055,10 @@ function renderKnockout() {
   const records = swissRecords();
   const drawn = qf.length && qf.every(m => m.t1 && m.t2);
   $('koQual').hidden = drawn;
-  $('koQual').innerHTML = drawn ? '' : `<div class="koq-h">Qualified so far <span>Quarterfinal pairings are drawn after the Swiss Stage: the two 3–0 teams each draw a 3–2 team, and the other four are paired at random.</span></div>
-    <div class="koq-g">${[['3–0', 2], ['3–1', 3], ['3–2', 3]].map(([k, n]) => {
-      const [w, l] = k.split('–').map(Number);
-      const teams = awaitingDraw(records, w, l);
-      return `<div class="koq-b"><b>${k}</b><div class="out-teams">${teams.map(r => teamChip(r.team)).join('')}${'<span class="tchip tbd">TBD</span>'.repeat(Math.max(0, n - teams.length))}</div></div>`;
+  const quals = [['3–0', 2], ['3–1', 3], ['3–2', 3]].map(([k, n]) => { const [w, l] = k.split('–').map(Number); return [k, n, awaitingDraw(records, w, l)]; });
+  $('koQual').innerHTML = drawn ? '' : `<div class="koq-h">${quals.reduce((a, q) => a + q[2].length, 0)} of 8 teams qualified <span>Quarterfinal pairings are drawn after the Swiss Stage: the two 3–0 teams each draw a 3–2 team, and the other four are paired at random.</span></div>
+    <div class="koq-g">${quals.map(([k, n, teams]) => {
+      return `<div class="koq-b"><b>${k}</b><span class="koq-n">${teams.length} of ${n}</span><div class="out-teams">${teams.map(r => teamChip(r.team)).join('')}${'<span class="tchip tbd">TBD</span>'.repeat(Math.max(0, n - teams.length))}</div></div>`;
     }).join('')}</div>`;
   const slot = (id, m, ph) => `<div class="node" data-node="${id}">${matchCard(m, ph)}</div>`;
   const champ = fin && fin.winner ? (fin.winner === 1 ? fin.t1 : fin.t2) : null;
@@ -2340,7 +2346,7 @@ const canWatch = m => m.status === 'done' || m.status === 'hidden' || m.status =
 // progress bar or length, and the next game is offered without saying
 // whether the series went that far.
 const WB_KEY = 'worlds2026.watch.v1';
-const W = { player: null, match: null, games: [], side: {}, win: {}, gs: {}, gameNo: 1, vod: null, timer: null, cover: 'solid', savedAt: 0, rate: 1, edge: 0 };
+const W = { player: null, match: null, games: [], side: {}, win: {}, gs: {}, ge: {}, gameNo: 1, vod: null, timer: null, cover: 'solid', savedAt: 0, rate: 1, edge: 0 };
 const stageEl = $('wbStage');
 
 // pos: where you left off in each video; edge: the furthest point you've
@@ -2439,6 +2445,40 @@ function draftEnd(v) {
   const p = t / 1000 - v.fft - 5;
   return p > v.start + 30 && (!v.end || p < v.end) ? p : null;
 }
+// When the game ended (wall clock, ms): its last live-stats frame, which is
+// when the nexus fell. Fetched once per game.
+function loadGameEnd(g) {
+  return W.ge[g.id] !== undefined ? Promise.resolve(W.ge[g.id])
+    : (W.geP ||= {})[g.id] ||= feedJson(`${FEED}/window/${g.id}?startingTime=${feedTime(state.feedLag + 60e3)}`)
+      .then(w => { const f = w?.frames?.at(-1); return f?.gameState === 'finished' ? Date.parse(f.rfc460Timestamp) : null; }, () => null)
+      .then(t => (W.ge[g.id] = t));
+}
+// Seconds into the video where the nexus falls: the same wall-clock mapping
+// as draftEnd, so only for videos with a known first-frame time.
+function gameEndPos(v) {
+  const t = W.ge[W.game?.id];
+  if (!v?.fft || !t) return null;
+  const p = t / 1000 - v.fft;
+  return p > v.start + 60 && (!v.end || p < v.end + 10) ? p : null;
+}
+
+// Once the nexus falls, offer the next step while the post-game keeps
+// playing. Until game N's result is revealed it only says Continue (to the
+// break screen): offering "Next game" here would give away that the series
+// goes on.
+function renderOver(t) {
+  const box = $('wbOver'), end = gameEndPos(W.vod), n = W.gameNo;
+  const show = end != null && t != null && t >= end && W.overGone !== W.game?.id;
+  const next = show && revealedGames() >= n && gameExists(n + 1);
+  const key = show ? `${n}:${next}` : '';
+  if (box.dataset.k === key) return;
+  box.dataset.k = key;
+  box.hidden = !show;
+  box.innerHTML = show ? `<span>Game ${n} is over</span>
+    <button class="main" data-wb="${next ? 'over-next' : 'continue'}">${next ? `Game ${n + 1} ▶` : 'Continue ▶'}</button>
+    <button class="wb-over-x" data-wb="over-x" title="Keep watching the post-game" aria-label="Dismiss">✕</button>` : '';
+}
+
 function loadGameStart(g) {
   return W.gs[g.id] !== undefined ? Promise.resolve(W.gs[g.id])
     : (W.gsP ||= {})[g.id] ||= gameStart(g.id).catch(() => null).then(t => (W.gs[g.id] = t));
@@ -2562,6 +2602,9 @@ async function playGame(n) {
   W.gameNo = n;
   W.atBreak = false;
   W.vod = null;
+  W.seekTo = null;
+  W.overGone = null;
+  renderOver(null);
   clearInterval(W.timer);
   try { W.player?.pauseVideo?.(); } catch {}
   wbSave(s => { (s.games[m.id] ||= {}).n = n; });
@@ -2577,7 +2620,10 @@ async function playGame(n) {
   }
   if (g.state !== 'completed') return cover('solid', `<h3>Game ${n} hasn't started yet</h3>`);
   W.game = g;
-  if (W.cands = vodsFor(g).filter(c => !badVods.has(c.id)), W.cands.some(c => c.fft)) loadGameStart(g).then(() => W.game === g && renderSkip(W.player?.getCurrentTime?.()));
+  if (W.cands = vodsFor(g).filter(c => !badVods.has(c.id)), W.cands.some(c => c.fft)) {
+    loadGameStart(g).then(() => W.game === g && renderSkip(W.player?.getCurrentTime?.()));
+    loadGameEnd(g);
+  }
   W.failed = new Set();
   if (!W.cands.length) return cover('solid', `<h3>Game ${n}</h3><p>No video yet. Usually up within a few hours.</p>`);
   // Start with the language picked last time, if this game has it.
@@ -2589,6 +2635,7 @@ async function playGame(n) {
 async function startVod() {
   const vod = W.cands[W.cand];
   W.vod = vod;
+  W.seekTo = null;
   W.stuck = 0;
   setAd(false);
   renderWbLang();
@@ -2702,6 +2749,7 @@ function wbEnded() {
   });
   W.vod = null;
   clearInterval(W.timer);
+  renderOver(null);
   intermission(n);
 }
 
@@ -2808,6 +2856,13 @@ function wbTick() {
   const p = W.player, v = W.vod;
   if (!v || !p?.getCurrentTime) return;
   const t = p.getCurrentTime();
+  // Right after a seek YouTube still reports the old time for a second or so:
+  // show the target until it catches up (or 3s pass), and don't save that
+  // stale time or count it toward the ad check.
+  if (W.seekTo != null) {
+    if (Math.abs(t - W.seekTo) < 1.5 || Date.now() - W.seekAt > 3000) W.seekTo = null;
+    else { if (!W.dragging) renderBar(W.seekTo); W.lastT = W.seekTo; return; }
+  }
   // An ad plays inside the same player: it reports PLAYING while the video's
   // own clock stands still.
   W.stuck = p.getPlayerState() === YT.PlayerState.PLAYING && Math.abs(t - W.lastT) < .05 ? (W.stuck || 0) + 1 : 0;
@@ -2822,6 +2877,7 @@ function wbTick() {
     }
   }
   if (!W.dragging) renderBar(t);
+  renderOver(t);
 }
 
 // The scrubber runs from the start of the game to the furthest point you've
@@ -2882,6 +2938,7 @@ function wbSeek(to) {
   if (v.end) to = Math.min(v.end, to);
   else if (p.getDuration?.()) to = Math.min(p.getDuration() - .5, to);
   p.seekTo(to, true);
+  W.seekTo = to; W.seekAt = Date.now();
   W.edge = Math.max(W.edge, to);
   renderBar(to);
 }
@@ -2899,6 +2956,9 @@ function wbAction(a) {
   if (a === 'mute') return setMuted(!W.muted);
   if (a === 'live') return wbSeek(W.edge);
   if (a === 'skip') { const p = draftEnd(W.vod); if (p != null) wbSeek(p); return; }
+  if (a === 'continue') { p.pauseVideo(); return wbEnded(); }
+  if (a === 'over-next') { const n = W.gameNo; p.pauseVideo(); wbEnded(); return playGame(n + 1); }
+  if (a === 'over-x') { W.overGone = W.game?.id; return renderOver(p.getCurrentTime()); }
   wbSeek(p.getCurrentTime() + Number(a));
 }
 
