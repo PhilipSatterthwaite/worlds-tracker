@@ -203,6 +203,7 @@ if (/^((www|ads)\.esportstracker\.app|philipsatterthwaite\.github\.io)$/.test(lo
 
   .live-pip { width: 8px; height: 8px; border-radius: 50%; background: var(--live); display: inline-block; animation: pulse 1.4s infinite; flex: none; }
   @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .3; } }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
 
   /* Stage tabs */
   .tabs {
@@ -236,7 +237,7 @@ if (/^((www|ads)\.esportstracker\.app|philipsatterthwaite\.github\.io)$/.test(lo
   .mc-row .tn { flex: 1; min-width: 0; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .mc-row .sc { font-weight: 700; font-variant-numeric: tabular-nums; min-width: 14px; text-align: right; color: var(--muted); }
   .mc-row.w .sc { color: var(--gold); }
-  .mc-row.l .tn, .mc-row.l .sc, .mc-row.l .lg { opacity: .5; }
+  .mc-row.l .tn, .mc-row.l .sc, .mc-row.l .lg { opacity: .6; }
   .mc-row.tbd .tn { color: var(--muted); font-weight: 500; font-style: italic; }
   .mc-foot { display: flex; justify-content: space-between; gap: 6px; padding: 4px 10px; background: rgba(255,255,255,.02); border-top: 1px solid var(--line); font-size: 11px; color: var(--muted); }
   .mc.live .mc-foot { color: var(--live); font-weight: 600; }
@@ -258,7 +259,7 @@ if (/^((www|ads)\.esportstracker\.app|philipsatterthwaite\.github\.io)$/.test(lo
   .mm .lg { width: 16px; height: 16px; }
   .mm .mw { grid-column: 1 / -1; text-align: center; font-size: 11px; color: var(--muted); margin-top: -1px; }
   .mm .mt.a { justify-content: flex-end; }
-  .mm .mt.l { opacity: .42; font-weight: 500; }
+  .mm .mt.l { opacity: .55; font-weight: 500; }
   .mm .mt.tbd { color: var(--muted); font-weight: 500; font-style: italic; }
   .mm .ms { font-variant-numeric: tabular-nums; font-weight: 700; color: var(--gold); text-align: center; min-width: 30px; display: flex; align-items: center; justify-content: center; gap: 4px; }
   .mm .ms.up { color: var(--muted); font-weight: 500; font-size: 12px; }
@@ -531,6 +532,13 @@ if (/^((www|ads)\.esportstracker\.app|philipsatterthwaite\.github\.io)$/.test(lo
   .note { color: var(--muted); font-size: 12px; }
   .err-box { background: rgba(248,113,113,.08); border: 1px solid rgba(248,113,113,.35); color: #fecaca; border-radius: var(--radius); padding: 10px 14px; margin-bottom: 18px; display: none; }
   .err-box.show { display: block; }
+  /* First visit: pick a mode */
+  .first { display: flex; align-items: center; justify-content: space-between; gap: 10px 16px; flex-wrap: wrap; background: var(--gold-soft); border: 1px solid rgba(200,170,110,.4); border-radius: var(--radius); padding: 10px 14px; margin-bottom: 18px; font-size: 14px; color: #d8cfbd; }
+  .first[hidden] { display: none; }
+  .first b { color: var(--gold); }
+  .first .acts { display: flex; gap: 8px; flex-wrap: wrap; }
+  .first button { font-size: 13px; padding: 6px 12px; }
+  .first button.main { background: var(--gold); border-color: var(--gold); color: #0a0d14; font-weight: 700; }
   footer { color: var(--muted); font-size: 12px; border-top: 1px solid var(--line); padding-top: 16px; margin-top: 30px; }
   footer a { color: var(--muted); }
 
@@ -626,7 +634,9 @@ if (/^((www|ads)\.esportstracker\.app|philipsatterthwaite\.github\.io)$/.test(lo
     </div>
   </header>
 
-  <div class="err-box" id="err"></div>
+  <div class="err-box" id="err" aria-live="polite"></div>
+  <div class="first" id="first" hidden><span><b>No spoilers</b> is on: results stay hidden until you reveal them. Already caught up?</span>
+    <span class="acts"><button data-first="show">Show all results</button><button class="main" data-first="hide">Keep hidden</button></span></div>
 
   <section>
     <div class="hero" id="hero"></div>
@@ -684,7 +694,7 @@ if (/^((www|ads)\.esportstracker\.app|philipsatterthwaite\.github\.io)$/.test(lo
   <div class="ad-slot" hidden></div>
 
   <footer>
-    Data from the official <a href="https://lolesports.com" target="_blank" rel="noopener">LoL Esports</a> schedule and live stats feeds; champion art from Riot's Data Dragon.
+    Data from the official <a href="https://lolesports.com" target="_blank" rel="noopener">LoL Esports</a> schedule and live stats feeds; champion art from Riot's Data Dragon. Times are shown in your local time zone.
     Watch at <a href="https://lolesports.com/live/worlds" target="_blank" rel="noopener">lolesports.com</a>; ▶ rewatches use the official LoL Esports YouTube videos.
     <p>Esports Tracker was created under Riot Games' "Legal Jibber Jabber" policy using assets owned by Riot Games. Riot Games does not endorse or sponsor this project. Not affiliated with Riot Games or LoL Esports.
     · <a href="privacy.html">Privacy</a></p>
@@ -735,7 +745,7 @@ if (/^((www|ads)\.esportstracker\.app|philipsatterthwaite\.github\.io)$/.test(lo
           </button>
           <input type="range" id="wbVol" min="0" max="100" value="100" aria-label="Volume">
         </span>
-        <button class="wb-live" data-wb="live" id="wbLive" title="Jump to where you left off">LIVE</button>
+        <button class="wb-live" data-wb="live" id="wbLive" title="Jump to where you left off" aria-label="Jump to where you left off">LIVE</button>
         <span class="wb-time" id="wbTime" title="Game time">0:00</span>
         <span class="sp"></span>
         <button class="wb-ic sm" data-wb="settings" id="wbSet" title="Settings" aria-label="Settings">
@@ -861,6 +871,8 @@ function toMatch(e) {
 }
 
 async function load() {
+  if (state.loading) return;
+  state.loading = true;
   setStatus('busy', 'Updating…');
   try {
     state.events = await getEvents();
@@ -877,6 +889,7 @@ async function load() {
     $('err').classList.add('show');
     if (!state.matches.length) setStatus('err', 'Not loaded');
   }
+  state.loading = false;
   render();
   schedule();
   syncLive();
@@ -1115,6 +1128,7 @@ async function fetchLive(match) {
     if (win.frames.at(-1).gameState !== 'finished') break;
   }
   if (!w) {
+    if (!games.length) return { matchId: match.id, starting: true };
     // Between games: keep the last game's final scoreboard up until the next one loads.
     const gameNo = open[0]?.number || games.filter(g => g.state === 'completed').length + 1;
     const prev = games.filter(g => g.state === 'completed').at(-1);
@@ -1222,7 +1236,7 @@ async function fillGold(G, gameId, start, until) {
 }
 
 async function syncLive() {
-  const m = state.matches.find(x => x.status === 'live');
+  const m = state.matches.find(x => x.status === 'live' && isRevealed(x)); // hidden in no-spoilers mode: nothing to show, so don't fetch
   if (!m) { clearTimeout(state.liveTimer); if (state.live) { state.live = null; renderHero(); } return; }
   // The first poll of a game can take a few seconds (finding past objective
   // kills), so don't start a second one alongside it.
@@ -1257,7 +1271,7 @@ function whenLabel(t) {
 }
 
 function ago(t) {
-  const s = Math.round((Date.now() - t) / 1000);
+  const s = Math.max(0, Math.round((Date.now() - t) / 1000));
   if (s < 60) return `${s}s ago`;
   if (s < 3600) return `${Math.floor(s / 60)}m ago`;
   return `${Math.floor(s / 3600)}h ago`;
@@ -1386,7 +1400,7 @@ function upcomingList(ms, emptyText) {
     for (const m of day) {
       const live = m.status === 'live' || m.liveNow, hidden = m.status === 'hidden';
       const pip = live ? '<span class="live-pip"></span>LIVE' : '';
-      const st = hidden ? `<span class="tag">${pip}<button class="reveal" data-reveal="${esc(m.id)}">Reveal</button>${watchBtn(m, '▶ Watch')}</span>`
+      const st = hidden ? `<span class="tag">${pip}<button class="reveal" data-reveal="${esc(m.id)}">${m.liveNow ? 'Show live score' : 'Reveal'}</button>${watchBtn(m, '▶ Watch')}</span>`
         : live ? `<span class="tag">${pip}${watchBtn(m, '▶ Watch')}</span>` : '';
       html += `<div class="srow ${live ? 'live' : ''}">
         <span class="t">${fmtTime.format(m.time)}</span>
@@ -1420,10 +1434,10 @@ const icon = (k, style = '') => `<svg class="ico" viewBox="0 0 16 16" aria-hidde
 function liveStats(m) {
   const L = state.live;
   if (!L || L.matchId !== m.id) return `<div class="ls"><div class="ls-note">Loading live game stats…</div></div>`;
-  const note = L.between ? `Between games · Game ${L.nextNo || L.gameNo} up next`
+  const note = L.starting ? 'Starting soon · live stats on the way' : L.between ? `Between games · Game ${L.nextNo || L.gameNo} up next`
     : L.finished ? `Game ${L.gameNo} just ended · updating series score…` : '';
   if (!L.players) {
-    return `<div class="ls"><div class="ls-note">${note || `Game ${L.gameNo || ''} in progress · live stats unavailable right now`}</div></div>`;
+    return `<div class="ls"><div class="ls-note">${note || `${L.gameNo ? `Game ${L.gameNo}` : 'Game'} in progress · live stats unavailable right now`}</div></div>`;
   }
   const [s1, s2] = L.t1Blue ? ['blue', 'red'] : ['red', 'blue'];
   const run = L.gameState === 'in_game' ? 1 : 0;
@@ -1620,7 +1634,7 @@ function heroCard(m, kind, opts = {}) {
       ${liveLink}</span>`
     : `<span>${esc(stageLabel(m))} · Bo${m.bo}</span>${live ? liveLink : ''}`;
   const body = hidden
-    ? `<div class="hero-hidden"><div class="acts"><button class="reveal" data-reveal="${esc(m.id)}">Reveal</button>${watchBtn(m, '▶ Watch')}</div></div>`
+    ? `<div class="hero-hidden"><div class="acts"><button class="reveal" data-reveal="${esc(m.id)}">${m.liveNow ? 'Show live score' : 'Reveal'}</button>${watchBtn(m, '▶ Watch')}</div></div>`
     : done
     ? `<div class="hero-hidden"><div class="acts">${next?.status === 'hidden' ? `<button class="reveal" data-reveal="${esc(next.id)}">Reveal next ▸</button>` : ''}${watchBtn(m, '↺ Rewatch')}</div></div>`
     : live ? liveStats(m) : '';
@@ -1628,7 +1642,7 @@ function heroCard(m, kind, opts = {}) {
   const date = `<span class="when">${fmtDate.format(m.time)}</span>`;
   const label = live ? '<span class="live-pip"></span>Live now'
     : done ? `Result · ${date}`
-    : hidden ? `${m.liveNow ? '<span class="live-pip"></span>' : ''}${opts.first ? 'Next to watch' : 'After that'} · ${date}`
+    : hidden ? `${m.liveNow ? '<span class="live-pip"></span>' : ''}${m.liveNow ? 'Live now' : opts.first ? 'Next to watch' : 'After that'} · ${date}`
     : `Up next · <span class="when">${whenLabel(m.time)}</span>`;
   const dim = r => done && m.winner && m.winner !== (r ? 2 : 1);
   return `<div class="hero-card ${live ? 'live' : ''} ${done ? 'result' : ''}">
@@ -1664,7 +1678,9 @@ function renderHero() {
       ? `<div class="hero-card"><div class="hero-label">Tournament over</div><div class="hero-empty">No more matches scheduled.</div></div>`
       : `<div class="hero-card"><div class="hero-empty">Loading matches…</div></div>`;
   }
+  const sl = $('hero').scrollLeft;
   $('hero').innerHTML = html;
+  $('hero').scrollLeft = sl;
   drawGoldHover();
   tick();
 }
@@ -1697,6 +1713,7 @@ function activeTab() {
   if (!state.tab) {
     const h = location.hash.slice(1);
     state.tab = STAGES.some(s => s.key === h) ? h : null;
+    if (!state.tab && state.matches.length) state.tab = currentStage(); // chosen once, so it doesn't jump mid-read
   }
   return state.tab || currentStage();
 }
@@ -1830,7 +1847,7 @@ function miniMatch(m) {
   };
   const live = m.status === 'live' || m.liveNow;
   const wb = canWatch(m) ? watchBtn(m) : '';
-  const mid = m.status === 'hidden' ? `<span class="ms">${live ? '<span class="live-pip"></span>' : ''}<button class="reveal" data-reveal="${esc(m.id)}" title="Reveal result">?</button>${wb}</span>`
+  const mid = m.status === 'hidden' ? `<span class="ms">${live ? '<span class="live-pip"></span>' : ''}<button class="reveal" data-reveal="${esc(m.id)}" title="Reveal result" aria-label="Reveal result">?</button>${wb}</span>`
     : m.status === 'done' ? `<span class="ms">${m.s1 ?? 0}–${m.s2 ?? 0}${wb}</span>`
     : live ? `<span class="ms"><span class="live-pip"></span>${m.s1 ?? 0}–${m.s2 ?? 0}${wb}</span>`
     : `<span class="ms up">vs</span>`;
@@ -1961,16 +1978,30 @@ function renderKnockout() {
 // result that's still hidden (see revealThrough). On by default; a viewer's
 // saved choice wins.
 const SPOIL_KEY = 'worlds2026.nospoil.v1';
+// revealed: match ids whose results you've chosen to see. peek: live matches
+// whose score you looked at; those go back to hidden once they finish.
+// fresh: nothing saved yet (a first visit), until any change is saved.
 state.spoil = (() => {
-  try { return { on: true, revealed: [], ...JSON.parse(localStorage.getItem(SPOIL_KEY)) }; }
-  catch { return { on: true, revealed: [] }; }
+  let s = null;
+  try { s = JSON.parse(localStorage.getItem(SPOIL_KEY)); } catch {}
+  const o = s && typeof s === 'object' ? s : {};
+  return {
+    on: typeof o.on === 'boolean' ? o.on : true,
+    revealed: Array.isArray(o.revealed) ? o.revealed.filter(x => typeof x === 'string') : [],
+    peek: Array.isArray(o.peek) ? o.peek.filter(x => typeof x === 'string') : [],
+    ...(typeof o.through === 'string' ? { through: o.through } : {}),
+    ...(o.noAsk ? { noAsk: true } : {}),
+    fresh: !s,
+  };
 })();
 function saveSpoil() {
-  try { localStorage.setItem(SPOIL_KEY, JSON.stringify(state.spoil)); } catch {}
+  state.spoil.fresh = false;
+  try { localStorage.setItem(SPOIL_KEY, JSON.stringify({ ...state.spoil, fresh: undefined })); } catch {}
 }
 
 const started = m => m.status !== 'upcoming';
-const isRevealed = m => !state.spoil.on || state.spoil.revealed.includes(m.id);
+const realStatus = m => (state.matches.find(x => x.id === m.id) || m).status;
+const isRevealed = m => !state.spoil.on || state.spoil.revealed.includes(m.id) || (state.spoil.peek.includes(m.id) && realStatus(m) !== 'done');
 // Index in state.matches of the most recently revealed match, or -1.
 function revealIdx() {
   const r = state.spoil.revealed;
@@ -1984,6 +2015,11 @@ function revealIdx() {
 // Older saves kept one marker, `through`, with everything up to it revealed.
 function migrateSpoil() {
   const s = state.spoil;
+  // Peeked live matches drop off once their result is in.
+  if (s.peek.length && state.matches.length) {
+    const keep = s.peek.filter(id => state.matches.find(m => m.id === id)?.status !== 'done');
+    if (keep.length !== s.peek.length) { s.peek = keep; saveSpoil(); }
+  }
   if (!s.through || !state.matches.length) return;
   const i = state.matches.findIndex(m => m.id === s.through);
   s.revealed = [...new Set([...(s.revealed || []), ...state.matches.slice(0, i + 1).filter(started).map(m => m.id)])];
@@ -2054,7 +2090,10 @@ function revealTeam(id, s) {
 
 const plural = (n, word) => `${n} ${word}${n > 1 ? 's' : ''}`;
 function revealIds(ms) {
-  state.spoil.revealed.push(...ms.filter(x => !isRevealed(x)).map(x => x.id));
+  for (const x of ms) {
+    if (isRevealed(x)) continue;
+    (realStatus(x) === 'live' ? state.spoil.peek : state.spoil.revealed).push(x.id);
+  }
   saveSpoil();
   render();
 }
@@ -2087,7 +2126,8 @@ function askReveal(msg, ok) {
 // "Hide all again" sits beside the switch once something has been revealed.
 function renderSpoilBar() {
   $('nospoil').checked = state.spoil.on;
-  $('hideAll').hidden = !state.spoil.on || !state.spoil.revealed.length;
+  $('hideAll').hidden = !state.spoil.on || !(state.spoil.revealed.length || state.spoil.peek.length);
+  $('first').hidden = !state.spoil.on || !state.spoil.fresh || !state.matches.length;
 }
 
 // Reveals one result, in any order. If either team still has an earlier
@@ -2118,6 +2158,7 @@ function watchMatch(id) {
 
 $('nospoil').addEventListener('change', e => {
   state.spoil.on = e.target.checked;
+  state.tab = null; // the best default tab depends on the mode
   saveSpoil();
   render();
 });
@@ -2127,12 +2168,14 @@ document.addEventListener('click', e => {
   if (sr) { const [id, s] = sr.dataset.sideRev.split(':'); revealTeam(id, +s); return; }
   const r = e.target.closest('[data-reveal]');
   if (r) { revealThrough(r.dataset.reveal); return; }
-  if (e.target.closest('[data-hide-all]')) { state.spoil.revealed = []; state.spoil.noAsk = false; wbReset(); saveSpoil(); render(); return; }
+  if (e.target.closest('[data-hide-all]')) { state.spoil.revealed = []; state.spoil.peek = []; state.spoil.noAsk = false; wbReset(); saveSpoil(); render(); return; }
+  const f = e.target.closest('[data-first]');
+  if (f) { if (f.dataset.first === 'show') { state.spoil.on = false; state.tab = null; } saveSpoil(); render(); return; }
   const w = e.target.closest('[data-watch]');
   if (w) watchMatch(w.dataset.watch);
 });
 
-const watchBtn = (m, label = '▶') => `<button class="wbtn" data-watch="${esc(m.id)}" title="Rewatch without spoilers">${label}</button>`;
+const watchBtn = (m, label = '▶') => `<button class="wbtn" data-watch="${esc(m.id)}" title="Rewatch without spoilers" aria-label="Rewatch">${label}</button>`;
 const canWatch = m => m.status === 'done' || m.status === 'hidden' || m.status === 'live';
 
 /* ---------- watch-back ---------- */
@@ -2170,13 +2213,27 @@ function wbReset() {
 }
 
 let ytReady = null;
+// Rejects if YouTube's script is blocked (tracker blockers, some networks) or
+// just never answers, so the player can say so instead of loading forever.
 function loadYT() {
-  return ytReady ||= new Promise(res => {
+  return ytReady ||= new Promise((res, rej) => {
     window.onYouTubeIframeAPIReady = res;
     const s = document.createElement('script');
     s.src = 'https://www.youtube.com/iframe_api';
+    s.onerror = () => rej(new Error('blocked'));
+    setTimeout(() => rej(new Error('timeout')), 12e3);
     document.head.append(s);
-  });
+  }).catch(e => { ytReady = null; throw e; });
+}
+
+// YouTube itself didn't load: offer the video on YouTube instead.
+function ytFailed() {
+  const en = W.cands?.find(c => c.locale === 'en-US') || W.cands?.[0];
+  W.vod = null;
+  clearInterval(W.timer);
+  cover('solid', `<h3>YouTube didn't load</h3><p>Something in this browser or network is blocking YouTube's player.</p>
+    <div class="acts">${en ? `<a class="watch" href="https://www.youtube.com/watch?v=${esc(en.id)}" target="_blank" rel="noopener">Open on YouTube ↗</a>` : ''}<button data-wb="close">Close</button></div>
+    ${en ? '<p>YouTube shows the video length.</p>' : ''}`);
 }
 
 // Every YouTube upload of a game, best first: English, then other
@@ -2184,13 +2241,13 @@ function loadYT() {
 // to the game by start/end times). If an upload won't play embedded (some
 // block embedding, or block certain sites), playback falls through to the
 // next one that does.
-const langName = new Intl.DisplayNames(['en'], { type: 'language' });
+const langName = (() => { try { return new Intl.DisplayNames(['en'], { type: 'language' }); } catch { return { of: x => x }; } })();
 function vodsFor(game) {
   const yt = (game?.vods || []).filter(v => v.provider === 'youtube');
   const rank = v => (v.locale === 'en-US' ? 0 : 2) + (v.startMillis == null ? 0 : 1);
   return yt.sort((a, b) => rank(a) - rank(b)).map(v => ({
     // The feed tags Serbian as sr-SR (SR is Suriname), so name it by language alone.
-    id: v.parameter, locale: v.locale, lang: langName.of(v.locale === 'sr-SR' ? 'sr' : v.locale) || v.locale, day: v.startMillis != null,
+    id: v.parameter, locale: v.locale, lang: (() => { try { return langName.of(v.locale === 'sr-SR' ? 'sr' : v.locale) || v.locale; } catch { return v.locale; } })(), day: v.startMillis != null,
     start: v.startMillis != null ? v.startMillis / 1000 : v.offset || 0, end: v.endMillis != null ? v.endMillis / 1000 : null,
   }));
 }
@@ -2237,19 +2294,26 @@ async function openWatch(matchId) {
   W.atBreak = false;
   W.match = m;
   W.games = [];
+  W.cands = []; // the last match's broadcast list mustn't linger in Settings
+  W.failed = new Set();
+  renderWbLang();
+  W.opener = document.activeElement;
   $('wb').hidden = false;
+  $('wbClose').focus();
   document.body.style.overflow = 'hidden';
   // Opens on a play button with a banner under it; the videos load meanwhile.
-  const ev = api('getEventDetails', { id: matchId }).then(d => d.event.match);
-  ev.catch(() => {});
-  W.start = async () => {
+  const fetchEv = () => { const p = api('getEventDetails', { id: matchId }).then(d => d.event.match); p.catch(() => {}); return p; };
+  let ev = fetchEv();
+  const start = async () => {
     W.start = null;
     cover('solid', '<p>Loading…</p>');
     let em;
     try {
-      em = await ev;
+      em = await (ev ||= fetchEv());
     } catch {
-      cover('solid', "<p>Couldn't load this match's videos. Try again in a minute.</p>");
+      W.start = start;
+      ev = null; // Try again fetches afresh
+      cover('solid', `<p>Couldn't load this match's videos.</p><div class="acts"><button class="main" data-wb="start">Try again</button><button data-wb="close">Close</button></div>`);
       return;
     }
     if (W.match !== m || $('wb').hidden) return;
@@ -2266,6 +2330,7 @@ async function openWatch(matchId) {
     if (r?.done && r.done >= (r.n || 1)) intermission(r.done);
     else playGame(r?.n || 1);
   };
+  W.start = start;
   renderWbTop();
   cover('solid', `<div class="wb-inter wb-pre">
     <button class="wb-start" data-wb="start" title="Play" aria-label="Play">${BIG_PLAY}</button>
@@ -2277,11 +2342,12 @@ function closeWatch() {
   savePos();
   try { W.player?.pauseVideo?.(); } catch {}
   clearInterval(W.timer);
-  if (document.fullscreenElement) document.exitFullscreen();
+  if (document.fullscreenElement || document.webkitFullscreenElement) (document.exitFullscreen || document.webkitExitFullscreen).call(document);
   setFakeFs(false);
   $('wbMenu').hidden = true;
   $('wb').hidden = true;
   document.body.style.overflow = '';
+  if (W.opener?.isConnected) W.opener.focus();
 }
 
 // Game buttons: the games you've revealed plus the one after them (if the
@@ -2334,7 +2400,7 @@ async function startVod() {
   setAd(false);
   renderWbLang();
   cover('solid', '<p>Loading video…</p>');
-  await loadYT();
+  try { await loadYT(); } catch { if (W.vod === vod) ytFailed(); return; }
   if (W.vod !== vod) return; // switched games while the player loaded
   const pos = wbStore().pos[posKey(vod)];
   const at = pos && pos > vod.start + 15 ? pos - 3 : vod.start;
@@ -2351,8 +2417,6 @@ async function startVod() {
           e.target.setPlaybackRate(W.rate);
           if (W.muted) e.target.mute();
           e.target.playVideo();
-          // Autoplay can be blocked; offer a click to start instead of a blank screen.
-          setTimeout(() => { if (W.cover === 'solid' && W.vod) cover('paused'); }, 1500);
         },
         onStateChange: e => wbState(e.data),
         onError: wbError,
@@ -2362,6 +2426,11 @@ async function startVod() {
     W.player.loadVideoById({ videoId: vod.id, startSeconds: at, ...(vod.end ? { endSeconds: vod.end } : {}) });
     W.player.setPlaybackRate(W.rate);
   }
+  // Autoplay can be blocked (always on iOS after a non-tap start): offer a
+  // click to start instead of a blank screen. If the player never even
+  // reports ready, YouTube's embed is blocked here.
+  setTimeout(() => { if (W.vod === vod && W.cover === 'solid') cover('paused'); }, 2500);
+  setTimeout(() => { if (W.vod === vod && !W.player?.getPlayerState) ytFailed(); }, 12e3);
   clearInterval(W.timer);
   W.timer = setInterval(wbTick, 500);
 }
@@ -2490,6 +2559,7 @@ function wbNext(R) {
 
 // Top bar: both teams with the score so far, the game buttons, and the next step.
 function renderWbTop() {
+  if (W.revealing) return;
   const m = liveMatch(), R = revealedGames();
   const [a, b] = wbScore(R);
   const logo = t => t?.image ? `<img src="${esc(t.image)}" alt="" onerror="this.remove()">` : '';
@@ -2508,7 +2578,9 @@ async function wbReveal() {
   const m = liveMatch(), R = revealedGames(), g = W.games.find(x => x.number === R + 1);
   if (!g || g.state !== 'completed') return;
   $('wbStep').innerHTML = '<span class="over">…</span>';
+  W.revealing = true;
   await gameWinner(g);
+  W.revealing = false;
   if (W.match?.id !== m.id) return;
   wbSave(s => { (s.games[m.id] ||= { n: W.gameNo }).rev = R + 1; });
   if (!gameExists(R + 2) && m.status === 'done' && !isRevealed(m)) revealThrough(m.id);
@@ -2636,13 +2708,14 @@ for (const el of stageEl.querySelectorAll('.wb-top, .wb-bottom, .wb-menu')) {
   el.addEventListener('pointerleave', () => { W.overCtrl = false; wake(); });
 }
 $('wbCover').addEventListener('pointerup', e => {
+  W.lastPtr = e.pointerType;
   if (W.cover !== 'play' && W.cover !== 'paused') return;
   if (!$('wbMenu').hidden) { $('wbMenu').hidden = true; return wake(); }
   if (e.pointerType === 'mouse') return e.button === 0 && wbAction('play');
   if (W.cover === 'paused') return wbAction('play');
   stageEl.classList.contains('idle') ? wake() : hideControls();
 });
-$('wbCover').addEventListener('dblclick', e => { if (W.cover === 'play' || W.cover === 'paused') toggleFs(); });
+$('wbCover').addEventListener('dblclick', e => { if (W.lastPtr === 'mouse' && (W.cover === 'play' || W.cover === 'paused')) toggleFs(); });
 
 // Drag the scrubber to go back through what you've watched.
 const wbBar = $('wbBar');
@@ -2691,7 +2764,7 @@ $('wbVol').oninput = e => {
   if (+e.target.value > 0 && W.muted) setMuted(false);
 };
 document.addEventListener('keydown', e => {
-  if ($('wb').hidden || e.target.closest('select, input')) return;
+  if ($('wb').hidden || e.target.closest('select, input') || e.ctrlKey || e.metaKey || e.altKey) return;
   const k = e.key.toLowerCase();
   const act = { ' ': 'play', k: 'play', arrowleft: '-10', j: '-10', arrowright: e.shiftKey ? '60' : '10', l: '10', f: 'fs', m: 'mute' }[k];
   wake();
@@ -2723,6 +2796,9 @@ async function pool(items, n, fn) {
 /* ---------- render loop ---------- */
 
 function render() {
+  // A re-render replaces the buttons; keep keyboard focus on the same one.
+  const a = document.activeElement, d = a?.dataset || {};
+  const key = d.reveal ? ['data-reveal', d.reveal] : d.watch ? ['data-watch', d.watch] : d.tab ? ['data-tab', d.tab] : null;
   // Stamp rounds, pools and slots from the real results first; the
   // spoiler-free view copies them.
   computeSwiss(state.matches);
@@ -2735,6 +2811,7 @@ function render() {
   renderSwiss();
   renderKnockout();
   if (!$('wb').hidden) renderWbTop(); // a match being watched may have just finished
+  if (key && !a.isConnected) document.querySelector(`[${key[0]}="${CSS.escape(key[1])}"]`)?.focus({ preventScroll: true });
   requestAnimationFrame(drawAll);
   tick();
 }
@@ -2754,18 +2831,23 @@ function tick() {
     el.parentElement.classList.toggle('up', left <= 0);
     el.parentElement.hidden = left <= 0 && !el.dataset.zero;
   }
-  if (state.fetchedAt) setStatus(state.failures ? 'err' : 'ok', `Updated ${ago(state.fetchedAt)}`);
+  if (state.fetchedAt && !state.loading) setStatus(state.failures ? 'err' : 'ok', `Updated ${ago(state.fetchedAt)}`);
 }
 setInterval(() => {
   tick();
   const minute = Math.floor(Date.now() / 60e3);
-  if (minute !== lastMinute) { lastMinute = minute; if (state.matches.length) render(); }
+  if (minute !== lastMinute && !document.hidden) { lastMinute = minute; if (state.matches.length) render(); }
 }, 1000);
 
 $('refresh').onclick = () => load();
 
 loadCache();
-render();
+try { render(); } catch (e) {
+  console.error(e);
+  try { localStorage.removeItem(CACHE_KEY); } catch {}
+  state.events = []; state.matches = [];
+  render();
+}
 load();
 loadDD();
 </script>

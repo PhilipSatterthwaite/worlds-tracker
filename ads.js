@@ -38,6 +38,7 @@ function renderAds() {
     frame.width = unit.width;
     frame.height = unit.height;
     frame.setAttribute('scrolling', 'no');
+    frame.setAttribute('referrerpolicy', 'no-referrer'); // the ad origin needn't see which tab you're on
     frame.setAttribute('sandbox', ADS.sandbox);
     frame.src = `${ADS.frame}?unit=${name}`;
     slot.replaceChildren(Object.assign(document.createElement('span'), { className: 'ad-label', textContent: 'Advertisement' }), frame);
