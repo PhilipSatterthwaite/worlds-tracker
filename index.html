@@ -339,6 +339,14 @@ if (/^((www|ads)\.esportstracker\.app|philipsatterthwaite\.github\.io)$/.test(lo
   .switch input:checked + i::after { transform: translateX(18px); background: var(--bg); }
   .switch input:focus-visible + i { outline: 2px solid var(--gold); outline-offset: 2px; }
 
+  /* A TBD side hidden for spoilers: tap to show who it is (not the result). */
+  .side-rev {
+    display: inline-flex; align-items: center; gap: 4px; font: inherit; font-style: italic; color: var(--gold);
+    background: none; border: 0; border-bottom: 1px dashed rgba(200,170,110,.6); border-radius: 0; padding: 0; cursor: pointer;
+  }
+  .side-rev:hover { color: #e5cc94; border-bottom-style: solid; }
+  .side-rev svg { width: 1em; height: 1em; flex: none; font-style: normal; }
+
   /* Hidden results */
   .linkish { background: none; border: 0; padding: 0; color: var(--muted); text-decoration: underline; font-size: 12px; }
   .linkish:hover { color: var(--gold); }
@@ -1309,7 +1317,7 @@ function matchCard(m, placeholder) {
   const row = (t, s, side) => {
     const cls = !t ? 'tbd' : m.winner === side ? 'w' : m.winner ? 'l' : '';
     const sc = m.status === 'upcoming' || m.status === 'hidden' ? '' : s ?? '';
-    return `<div class="mc-row ${cls}">${logo(t)}<span class="tn" title="${esc(t?.name || 'TBD')}">${esc(t?.short || 'TBD')}</span><span class="sc">${sc}</span></div>`;
+    return `<div class="mc-row ${cls}">${logo(t)}<span class="tn" ${t ? `title="${esc(t.name)}"` : ''}>${t ? esc(t.short) : tbdName(m, side)}</span><span class="sc">${sc}</span></div>`;
   };
   const live = m.status === 'live' || m.liveNow;
   const bo = `<span class="tag">${canWatch(m) ? watchBtn(m, '▶ Watch') : ''}Bo${m.bo}</span>`;
@@ -1332,8 +1340,8 @@ function upcomingList(ms, emptyText) {
     if (!days.has(k)) days.set(k, []);
     days.get(k).push(m);
   }
-  const cell = (t, side) => {
-    const name = `<span title="${esc(t?.name || 'TBD')}">${esc(t?.short || 'TBD')}</span>`;
+  const cell = (t, side, m) => {
+    const name = t ? `<span title="${esc(t.name)}">${esc(t.short)}</span>` : `<span>${tbdName(m, side)}</span>`;
     return `<span class="${side === 1 ? 'a' : 'b'} ${t ? '' : 'tbd'}">${side === 1 ? name + logo(t) : logo(t) + name}</span>`;
   };
   let html = `<h3 class="sub">${state.spoil.on ? 'To watch & upcoming' : 'Upcoming'}</h3>`;
@@ -1347,9 +1355,9 @@ function upcomingList(ms, emptyText) {
       html += `<div class="srow ${live ? 'live' : ''}">
         <span class="t">${fmtTime.format(m.time)}</span>
         <span class="stg">${esc(stageLabel(m))} · Bo${m.bo}</span>
-        ${cell(m.t1, 1)}
+        ${cell(m.t1, 1, m)}
         <span class="vs ${live && !hidden ? '' : 'up'}">${hidden ? '?' : live ? `${m.s1 ?? 0} – ${m.s2 ?? 0}` : 'vs'}</span>
-        ${cell(m.t2, 2)}
+        ${cell(m.t2, 2, m)}
         <span class="st">${st}</span>
       </div>`;
     }
@@ -1558,8 +1566,8 @@ const seedLabel = t => {
 };
 
 // One side of a hero matchup; `dim` greys out the loser.
-const heroSide = (t, r, dim) => `<div class="hero-team ${r ? 'r' : ''} ${dim ? 'l' : ''}">${t?.image ? `<img src="${esc(t.image)}" alt="" onerror="this.remove()">` : ''}
-      <div class="nm">${esc(t?.short || 'TBD')}<span class="full">${t && t.name !== t.short ? esc(t.name) : ''}</span><span class="seed">${seedLabel(t)}</span></div></div>`;
+const heroSide = (t, r, dim, tbd = 'TBD') => `<div class="hero-team ${r ? 'r' : ''} ${dim ? 'l' : ''}">${t?.image ? `<img src="${esc(t.image)}" alt="" onerror="this.remove()">` : ''}
+      <div class="nm">${t ? esc(t.short) : tbd}<span class="full">${t && t.name !== t.short ? esc(t.name) : ''}</span><span class="seed">${seedLabel(t)}</span></div></div>`;
 
 // kind: 'live', 'next' (not played yet), 'result' (the last result you
 // revealed; `opts.next` is the match after it, offered as "Reveal next"), or
@@ -1589,7 +1597,7 @@ function heroCard(m, kind, opts = {}) {
   const dim = r => done && m.winner && m.winner !== (r ? 2 : 1);
   return `<div class="hero-card ${live ? 'live' : ''} ${done ? 'result' : ''}">
     <div class="hero-label">${label}</div>
-    <div class="hero-teams">${heroSide(m.t1, false, dim(false))}<div class="hero-score">${score}</div>${heroSide(m.t2, true, dim(true))}</div>
+    <div class="hero-teams">${heroSide(m.t1, false, dim(false), tbdName(m, 1))}<div class="hero-score">${score}</div>${heroSide(m.t2, true, dim(true), tbdName(m, 2))}</div>
     ${body}
     <div class="hero-meta">${meta}</div></div>`;
 }
@@ -1781,7 +1789,7 @@ const SWISS_COLS = [
 function miniMatch(m) {
   const side = (t, s) => {
     const cls = !t ? 'tbd' : m.winner && m.winner !== s ? 'l' : '';
-    const name = `<span title="${esc(t?.name || 'TBD')}">${esc(t?.short || 'TBD')}</span>`;
+    const name = t ? `<span title="${esc(t.name)}">${esc(t.short)}</span>` : `<span>${tbdName(m, s)}</span>`;
     return `<span class="mt ${s === 1 ? 'a' : 'b'} ${cls}" ${t ? `data-team="${esc(t.id)}"` : ''}>${s === 1 ? name + logo(t) : logo(t) + name}</span>`;
   };
   const live = m.status === 'live' || m.liveNow;
@@ -1967,23 +1975,47 @@ function spoilerView() {
   return state.matches.map((m, i) => {
     if (isRevealed(m)) return m;
     const sides = { t1: sideKnown(m.t1, i) ? m.t1 : null, t2: sideKnown(m.t2, i) ? m.t2 : null };
+    // hid1/hid2: the side is known but hidden for spoilers (not just undrawn).
+    sides.hid1 = !!m.t1 && !sides.t1;
+    sides.hid2 = !!m.t2 && !sides.t2;
     if (!started(m)) return { ...m, ...sides };
     return { ...m, ...sides, status: 'hidden', liveNow: m.status === 'live', s1: null, s2: null, winner: 0 };
   });
 }
 
-// Hidden results a match depends on: both teams' earlier matches, and in turn
-// whatever those depend on, so that both sides can be shown.
-function revealDeps(m) {
+// Hidden results a match depends on: the earlier matches of its teams (both,
+// or just the ones given), and in turn whatever those depend on, so that
+// those sides can be shown.
+function revealDeps(m, teams = [m.t1, m.t2]) {
   const out = new Set();
-  const visit = x => {
+  const visit = (x, ts) => {
     const i = state.matches.indexOf(x);
     state.matches.forEach((y, j) => {
-      if (j < i && started(y) && !isRevealed(y) && !out.has(y) && (plays(y, x.t1) || plays(y, x.t2))) { out.add(y); visit(y); }
+      if (j < i && started(y) && !isRevealed(y) && !out.has(y) && ts.some(t => plays(y, t))) { out.add(y); visit(y, [y.t1, y.t2]); }
     });
   };
-  visit(m);
+  visit(m, teams);
   return state.matches.filter(y => out.has(y)); // schedule order
+}
+
+// A side shown as TBD only to avoid spoilers gets a marker that reveals who
+// it is: it reveals that team's earlier results (how they got here), never
+// this match's result.
+const EYE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>';
+const tbdName = (m, s) => m?.[`hid${s}`]
+  ? `<button class="side-rev" data-side-rev="${esc(m.id)}:${s}" title="Show this team (reveals how they got here, not this match's result)">TBD${EYE}</button>`
+  : 'TBD';
+
+function revealTeam(id, s) {
+  const m = state.matches.find(x => x.id === id);
+  const t = m?.[`t${s}`];
+  if (!t) return;
+  const deps = revealDeps(m, [t]);
+  if (!deps.length) return;
+  if (!confirm(`Showing this team reveals ${deps.length} earlier result${deps.length > 1 ? 's' : ''} (how they got here). This match's result stays hidden. Continue?`)) return;
+  state.spoil.revealed.push(...deps.map(x => x.id));
+  saveSpoil();
+  render();
 }
 
 
@@ -2030,6 +2062,8 @@ $('nospoil').addEventListener('change', e => {
 });
 
 document.addEventListener('click', e => {
+  const sr = e.target.closest('[data-side-rev]');
+  if (sr) { const [id, s] = sr.dataset.sideRev.split(':'); revealTeam(id, +s); return; }
   const r = e.target.closest('[data-reveal]');
   if (r) { revealThrough(r.dataset.reveal); return; }
   if (e.target.closest('[data-hide-all]')) { state.spoil.revealed = []; wbReset(); saveSpoil(); render(); return; }
