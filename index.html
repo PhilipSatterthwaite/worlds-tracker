@@ -354,7 +354,7 @@ if (/^((www|ads)\.esportstracker\.app|philipsatterthwaite\.github\.io)$/.test(lo
   }
   .spoil-bar[hidden] { display: none; }
   .spoil-bar b { color: var(--gold); }
-  .spoil-bar .sp-text { flex: 1; min-width: 220px; color: #d8cfbd; }
+  .spoil-bar .sp-text { color: #d8cfbd; }
   .spoil-bar .sp-acts { display: flex; flex-wrap: wrap; gap: 6px; }
   .spoil-bar button { font-size: 12px; padding: 4px 10px; }
   .spoil-bar button.main { border-color: var(--gold); color: var(--gold); }
@@ -374,45 +374,102 @@ if (/^((www|ads)\.esportstracker\.app|philipsatterthwaite\.github\.io)$/.test(lo
   .hero-hidden { text-align: center; padding: 14px 0 6px; border-top: 1px solid var(--line); margin-top: 6px; color: var(--muted); font-size: 13px; }
   .hero-hidden .acts { display: flex; gap: 8px; justify-content: center; margin-top: 8px; flex-wrap: wrap; }
 
-  /* Watch-back player */
-  .wb { position: fixed; inset: 0; z-index: 50; background: rgba(4,6,10,.88); display: flex; align-items: center; justify-content: center; padding: 16px; }
+  /* Watch-back player: a stream-style player with overlaid controls that fade out while playing. */
+  .wb { position: fixed; inset: 0; z-index: 50; background: rgba(4,6,10,.92); display: flex; align-items: center; justify-content: center; padding: 16px; }
   .wb[hidden] { display: none; }
-  .wb-box { width: min(1100px, 100%); max-height: 100%; display: flex; flex-direction: column; gap: 10px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; }
-  .wb-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-  .wb-head b { font-size: 16px; }
-  .wb-head .wb-x { margin-left: auto; }
-  .wb-games { display: inline-flex; gap: 4px; flex-wrap: wrap; }
-  .wb-games button { font-size: 12px; padding: 3px 9px; }
-  .wb-games button.on { border-color: var(--gold); color: var(--gold); }
-  .wb-box { overflow: hidden; }
-  /* Leaves room for the header and controls so the whole player fits on short screens. */
-  .wb-stage { position: relative; aspect-ratio: 16 / 9; max-height: calc(100dvh - 230px); min-height: 140px; background: #000; border-radius: 6px; overflow: hidden; }
-  .wb-stage iframe, .wb-stage > div:first-child { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
-  /* Sits over the video so YouTube's own hover UI (and its end screen) never shows. */
-  .wb-cover { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; text-align: center; cursor: pointer; padding: 20px; }
-  /* Opaque: YouTube's pause screen shows "More videos" thumbnails, which can spoil other matches. */
-  .wb-cover.paused { background: #05070b; }
-  /* While playing, clicks go to YouTube's player so its own buttons (like "Skip ad") work. */
-  .wb-cover:not(.paused):not(.solid) { pointer-events: none; }
-  .wb-cover.paused::before { content: '▶'; font-size: 54px; color: var(--text); opacity: .9; }
-  .wb-cover.solid { background: #05070b; cursor: default; }
+  .wb-stage {
+    position: relative; width: min(1280px, 100%, calc((100dvh - 32px) * 16 / 9)); aspect-ratio: 16 / 9;
+    background: #000; border-radius: 10px; overflow: hidden; box-shadow: 0 24px 70px rgba(0,0,0,.6); user-select: none; -webkit-user-select: none;
+  }
+  .wb-stage:fullscreen { width: 100%; height: 100%; aspect-ratio: auto; border-radius: 0; box-shadow: none; }
+  /* iPhone Safari can't fullscreen an element, so fill the screen instead. */
+  .wb-stage.fake-fs { position: fixed; inset: 0; z-index: 60; width: 100vw; height: 100dvh; aspect-ratio: auto; border-radius: 0; }
+  #wbPlayer { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+  /* Sits over the video so YouTube's own hover UI and end screen never show, and
+     takes taps/clicks for the player. During an ad it lets clicks through to
+     YouTube's "Skip ad" button, and our controls step aside. */
+  .wb-cover { position: absolute; inset: 0; z-index: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; text-align: center; cursor: pointer; padding: 20px; }
+  .wb-cover.paused { background: rgba(0,0,0,.3); }
+  .wb-cover.solid { background: #05070b; cursor: default; overflow-y: auto; }
+  .wb-stage.ad .wb-cover { pointer-events: none; }
+  .wb-stage.ad .wb-bottom { display: none; }
+  .wb-cover button.main { border-color: var(--gold); color: var(--gold); font-weight: 700; padding: 8px 18px; font-size: 15px; }
+  .wb-inter { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+  .wb-inter h3 { font-size: 22px; }
+  .wb-inter .ad-slot { margin: 14px 0 0; }
+  .wb-big { width: 76px; height: 76px; border-radius: 50%; background: rgba(10,13,20,.6); border: 1px solid rgba(255,255,255,.18); display: grid; place-items: center; color: #fff; backdrop-filter: blur(4px); }
+  .wb-big svg { width: 34px; height: 34px; margin-left: 4px; }
   .wb-cover p { margin: 0; color: var(--muted); max-width: 460px; }
   .wb-cover h3 { margin: 0; font-size: 18px; }
   .wb-cover .acts { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
-  .wb-ctrl { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-  .wb-ctrl button { padding: 5px 10px; font-variant-numeric: tabular-nums; }
-  .wb-ctrl .play { min-width: 64px; font-weight: 700; border-color: var(--gold); color: var(--gold); }
-  .wb-time { font-variant-numeric: tabular-nums; font-weight: 700; margin: 0 6px; }
+
+  .wb-top, .wb-bottom { position: absolute; left: 0; right: 0; z-index: 2; transition: opacity .25s; }
+  .wb-top { top: 0; display: flex; align-items: center; gap: 12px; padding: 10px 10px 30px 18px; background: linear-gradient(rgba(0,0,0,.72), transparent); }
+  .wb-top b { font-size: 16px; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,.6); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+  .wb-games { display: inline-flex; gap: 4px; flex-wrap: wrap; }
+  .wb-games button { font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 999px; background: rgba(255,255,255,.1); border-color: transparent; color: #dfe4ee; }
+  .wb-games button.on { background: var(--gold); color: #0a0d14; }
+  .wb-top .wb-x { margin-left: auto; }
+  .wb-bottom { bottom: 0; padding: 34px 10px 6px; background: linear-gradient(transparent, rgba(0,0,0,.82)); }
+  .wb-stage.solid .wb-bottom { display: none; }
+  .wb-stage.idle { cursor: none; }
+  .wb-stage.idle .wb-top, .wb-stage.idle .wb-bottom { opacity: 0; pointer-events: none; }
+
+  /* Scrubber: spans only what you've already watched; the right end is "live". */
+  .wb-bar { position: relative; height: 18px; margin: 0 8px; cursor: pointer; touch-action: none; display: flex; align-items: center; }
+  .wb-bar::before { content: ''; position: absolute; left: 0; right: 0; height: 4px; border-radius: 2px; background: rgba(255,255,255,.25); transition: height .12s; }
+  .wb-fill { position: absolute; left: 0; height: 4px; border-radius: 2px; background: var(--live); transition: height .12s; }
+  .wb-knob { position: absolute; width: 14px; height: 14px; margin-left: -7px; border-radius: 50%; background: var(--live); transform: scale(0); transition: transform .12s; }
+  .wb-bar:hover::before, .wb-bar:hover .wb-fill, .wb-bar.drag::before, .wb-bar.drag .wb-fill { height: 6px; }
+  .wb-bar:hover .wb-knob, .wb-bar.drag .wb-knob { transform: scale(1); }
+  .wb-bar.empty { visibility: hidden; }
+
+  .wb-ctrl { display: flex; align-items: center; gap: 2px; }
   .wb-ctrl .sp { flex: 1; }
-  .wb-ctrl select { font: inherit; color: var(--text); background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 5px 8px; }
-  .wb-ctrl input[type=range] { width: 90px; accent-color: var(--gold); }
-  .wb-lang { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .wb-ic {
+    width: 42px; height: 42px; padding: 0; border: 0; border-radius: 8px; background: none; color: #fff;
+    display: inline-grid; place-items: center; flex: none; cursor: pointer;
+  }
+  .wb-ic:hover { background: rgba(255,255,255,.12); border: 0; }
+  .wb-ic svg { width: 26px; height: 26px; }
+  .wb-ic.sm svg { width: 22px; height: 22px; }
+  .wb-ic .alt, .wb-stage.playing #wbPlay .main, .wb-stage.muted #wbMute .main, .wb-stage.fs #wbFs .main { display: none; }
+  .wb-stage.playing #wbPlay .alt, .wb-stage.muted #wbMute .alt, .wb-stage.fs #wbFs .alt { display: block; }
+  .wb-volw { display: inline-flex; align-items: center; }
+  .wb-volw input { width: 0; opacity: 0; accent-color: #fff; transition: width .15s, opacity .15s; }
+  .wb-volw:hover input, .wb-volw:focus-within input { width: 80px; opacity: 1; margin-right: 8px; }
+  .wb-live {
+    display: inline-flex; align-items: center; gap: 6px; margin-left: 8px; padding: 3px 9px; border-radius: 5px; border: 0;
+    font-size: 12px; font-weight: 800; letter-spacing: .06em; background: rgba(255,255,255,.14); color: #dfe4ee; cursor: pointer; font-variant-numeric: tabular-nums;
+  }
+  .wb-live::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: #8b95a8; }
+  .wb-live.on { background: var(--live); color: #fff; cursor: default; }
+  .wb-live.on::before { background: #fff; }
+  .wb-live:not(.on):hover { background: rgba(255,255,255,.24); border: 0; }
+  .wb-time { color: #dfe4ee; font-size: 13px; font-weight: 600; margin-left: 10px; font-variant-numeric: tabular-nums; }
+
+  .wb-menu {
+    position: absolute; right: 12px; bottom: 72px; z-index: 3; min-width: 230px; padding: 10px; border-radius: 10px;
+    background: rgba(14,18,27,.94); border: 1px solid rgba(255,255,255,.1); backdrop-filter: blur(8px); display: flex; flex-direction: column; gap: 10px;
+  }
+  .wb-menu[hidden] { display: none; }
+  .wb-menu h5 { margin: 0 0 6px; font-size: 11px; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); }
+  .wb-rates { display: flex; gap: 4px; }
+  .wb-rates button { flex: 1; font-size: 12px; padding: 4px 0; }
+  .wb-rates button.on { border-color: var(--gold); color: var(--gold); }
   .wb-lang:empty { display: none; }
-  .wb-lang select { font: inherit; font-size: 12px; color: var(--text); background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 4px 8px; }
+  .wb-lang select { width: 100%; font: inherit; font-size: 13px; color: var(--text); background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 5px 8px; }
+  .wb-lang .note { display: block; margin-top: 6px; font-size: 12px; }
   .wb-lang a { color: var(--gold); }
-  .wb-box:fullscreen { width: 100%; height: 100%; max-height: none; border-radius: 0; border: 0; justify-content: center; }
-  .wb-box:fullscreen .wb-stage { aspect-ratio: auto; flex: 1; }
-  .wb-box:fullscreen .note { display: none; }
+
+  @media (max-width: 600px) {
+    .wb { padding: 0; }
+    .wb-stage { border-radius: 0; }
+    .wb-ic { width: 38px; height: 38px; }
+    .wb-ic svg { width: 23px; height: 23px; }
+    .wb-volw input, .wb-time { display: none; }
+    .wb-top { padding-left: 12px; }
+  }
 
   /* Ad slots (filled by ads.js; hidden until configured) */
   .ad-slot { display: flex; flex-direction: column; align-items: center; gap: 4px; margin: 0 0 26px; }
@@ -549,32 +606,58 @@ if (/^((www|ads)\.esportstracker\.app|philipsatterthwaite\.github\.io)$/.test(lo
 </div>
 
 <div class="wb" id="wb" hidden role="dialog" aria-modal="true" aria-labelledby="wbTitle">
-  <div class="wb-box" id="wbBox">
-    <div class="wb-head">
+  <div class="wb-stage solid" id="wbStage">
+    <div id="wbPlayer"></div>
+    <div class="wb-cover solid" id="wbCover"><p>Loading…</p></div>
+    <div class="wb-top">
       <b id="wbTitle"></b>
       <span class="wb-games" id="wbGames"></span>
-      <button class="wb-x" id="wbClose" aria-label="Close">✕ Close</button>
+      <button class="wb-ic sm wb-x" id="wbClose" data-wb="close" title="Close (Esc)" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
     </div>
-    <div class="wb-stage">
-      <div id="wbPlayer"></div>
-      <div class="wb-cover solid" id="wbCover"><p>Loading…</p></div>
+    <div class="wb-bottom">
+      <div class="wb-bar empty" id="wbBar" title="Scrub back through what you've watched"><div class="wb-fill" id="wbFill"></div><div class="wb-knob" id="wbKnob"></div></div>
+      <div class="wb-ctrl">
+        <button class="wb-ic" data-wb="play" id="wbPlay" title="Play / pause (Space)" aria-label="Play or pause">
+          <svg class="main" viewBox="0 0 24 24" fill="currentColor"><path d="M7 4.8v14.4a1 1 0 0 0 1.53.85l11.3-7.2a1 1 0 0 0 0-1.7L8.53 3.95A1 1 0 0 0 7 4.8z"/></svg>
+          <svg class="alt" viewBox="0 0 24 24" fill="currentColor"><rect x="5.5" y="4" width="4.5" height="16" rx="1.2"/><rect x="14" y="4" width="4.5" height="16" rx="1.2"/></svg>
+        </button>
+        <button class="wb-ic" data-wb="-10" title="Back 10 seconds (←)" aria-label="Back 10 seconds">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 12a8.5 8.5 0 1 0 2.6-6.1L3.5 8.4"/><path d="M3.5 3.6v4.8h4.8"/><text x="12.3" y="15.3" text-anchor="middle" font-size="8" font-weight="800" fill="currentColor" stroke="none" font-family="Inter,system-ui,sans-serif">10</text></svg>
+        </button>
+        <button class="wb-ic" data-wb="10" title="Forward 10 seconds (→)" aria-label="Forward 10 seconds">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 12a8.5 8.5 0 1 1-2.6-6.1l2.6 2.5"/><path d="M20.5 3.6v4.8h-4.8"/><text x="11.7" y="15.3" text-anchor="middle" font-size="8" font-weight="800" fill="currentColor" stroke="none" font-family="Inter,system-ui,sans-serif">10</text></svg>
+        </button>
+        <button class="wb-ic" data-wb="60" title="Forward 1 minute (Shift+→)" aria-label="Forward 1 minute">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 12a8.5 8.5 0 1 1-2.6-6.1l2.6 2.5"/><path d="M20.5 3.6v4.8h-4.8"/><text x="11.7" y="15.2" text-anchor="middle" font-size="7.4" font-weight="800" fill="currentColor" stroke="none" font-family="Inter,system-ui,sans-serif">1m</text></svg>
+        </button>
+        <button class="wb-ic" data-wb="600" title="Forward 10 minutes" aria-label="Forward 10 minutes">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 12a8.5 8.5 0 1 1-2.6-6.1l2.6 2.5"/><path d="M20.5 3.6v4.8h-4.8"/><text x="11.7" y="14.9" text-anchor="middle" font-size="6.2" font-weight="800" fill="currentColor" stroke="none" font-family="Inter,system-ui,sans-serif">10m</text></svg>
+        </button>
+        <span class="wb-volw">
+          <button class="wb-ic" data-wb="mute" id="wbMute" title="Mute (M)" aria-label="Mute">
+            <svg class="main" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z" fill="currentColor"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/></svg>
+            <svg class="alt" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z" fill="currentColor"/><path d="m16 9 6 6M22 9l-6 6"/></svg>
+          </button>
+          <input type="range" id="wbVol" min="0" max="100" value="100" aria-label="Volume">
+        </span>
+        <button class="wb-live" data-wb="live" id="wbLive" title="Jump to where you left off">LIVE</button>
+        <span class="wb-time" id="wbTime" title="Game time">0:00</span>
+        <span class="sp"></span>
+        <button class="wb-ic sm" data-wb="settings" id="wbSet" title="Settings" aria-label="Settings">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        </button>
+        <button class="wb-ic" data-wb="fs" id="wbFs" title="Fullscreen (F)" aria-label="Fullscreen">
+          <svg class="main" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V5a1 1 0 0 1 1-1h4M15 4h4a1 1 0 0 1 1 1v4M20 15v4a1 1 0 0 1-1 1h-4M9 20H5a1 1 0 0 1-1-1v-4"/></svg>
+          <svg class="alt" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4v4a1 1 0 0 1-1 1H4M20 9h-4a1 1 0 0 1-1-1V4M15 20v-4a1 1 0 0 1 1-1h4M4 15h4a1 1 0 0 1 1 1v4"/></svg>
+        </button>
+      </div>
     </div>
-    <div class="wb-ctrl">
-      <button data-wb="-30" title="Back 30s">−30s</button>
-      <button data-wb="-10" title="Back 10s (←)">−10s</button>
-      <button data-wb="play" class="play" id="wbPlay" title="Play / pause (space)">Play</button>
-      <button data-wb="10" title="Forward 10s (→)">+10s</button>
-      <button data-wb="30" title="Forward 30s">+30s</button>
-      <span class="wb-time" id="wbTime" title="Time watched in this video">0:00</span>
-      <button class="linkish" data-wb="restart" id="wbRestart" hidden>Start over</button>
-      <span class="sp"></span>
-      <select id="wbRate" aria-label="Speed"><option value="1">1×</option><option value="1.25">1.25×</option><option value="1.5">1.5×</option><option value="2">2×</option></select>
-      <button data-wb="mute" id="wbMute" title="Mute (M)">Mute</button>
-      <input type="range" id="wbVol" min="0" max="100" value="100" aria-label="Volume">
-      <button data-wb="fs" title="Fullscreen (F)">Fullscreen</button>
+    <div class="wb-menu" id="wbMenu" hidden>
+      <div><h5>Speed</h5><div class="wb-rates" id="wbRates">
+        <button data-rate="1" class="on">1×</button><button data-rate="1.25">1.25×</button><button data-rate="1.5">1.5×</button><button data-rate="2">2×</button>
+      </div></div>
+      <div class="wb-lang" id="wbLang"></div>
     </div>
-    <div class="wb-lang" id="wbLang"></div>
-    <p class="note">No progress bar or video length, so you can't tell how long a game goes. Keys: space play/pause · ←/→ 10s · F fullscreen · M mute · Esc close.</p>
   </div>
 </div>
 
@@ -1196,7 +1279,7 @@ function upcomingList(ms, emptyText) {
     const name = `<span title="${esc(t?.name || 'TBD')}">${esc(t?.short || 'TBD')}</span>`;
     return `<span class="${side === 1 ? 'a' : 'b'} ${t ? '' : 'tbd'}">${side === 1 ? name + logo(t) : logo(t) + name}</span>`;
   };
-  let html = `<h3 class="sub">${state.spoil.on ? 'Still to watch & upcoming' : 'Upcoming schedule'} · your local time</h3>`;
+  let html = `<h3 class="sub">${state.spoil.on ? 'To watch & upcoming' : 'Upcoming'} · local time</h3>`;
   for (const [k, day] of days) {
     html += `<div class="day"><div class="day-h ${k === today ? 'today' : ''}">${fmtDay.format(day[0].time)}${k === today ? ' · Today' : ''}</div><div class="rows">`;
     for (const m of day) {
@@ -1415,8 +1498,8 @@ function heroCard(m, kind) {
       ${liveLink}</span>`
     : `<span>${esc(stageLabel(m))} · Bo${m.bo}</span>${live ? liveLink : ''}`;
   const body = hidden
-    ? `<div class="hero-hidden">${live ? 'Series score and game stats are hidden.' : 'Result hidden.'}
-        <div class="acts"><button class="reveal" data-reveal="${esc(m.id)}">${live ? 'Reveal live score & stats' : 'Reveal result'}</button>${watchBtn(m, live ? '▶ Watch finished games' : '▶ Watch')}</div></div>`
+    ? `<div class="hero-hidden">
+        <div class="acts"><button class="reveal" data-reveal="${esc(m.id)}">Reveal</button>${watchBtn(m, '▶ Watch')}</div></div>`
     : live ? liveStats(m) : '';
   const label = live ? '<span class="live-pip"></span>Live now'
     : kind === 'watch' ? `Next to watch · <span class="when">${fmtDate.format(m.time)}</span>`
@@ -1763,21 +1846,16 @@ function renderSpoilBar() {
   const ri = revealIdx();
   const hidden = state.matches.filter((m, i) => i > ri && started(m));
   const next = hidden[0] && state.view[state.matches.indexOf(hidden[0])];
-  const last = ri >= 0 ? state.view[ri] : null;
-  const text = hidden.length
-    ? `<b>No spoilers.</b> ${hidden.length} result${hidden.length > 1 ? 's' : ''} hidden. ${last ? `Revealed through ${esc(matchName(last))}.` : 'Nothing revealed yet.'}`
-    : `<b>No spoilers.</b> You're caught up; new results stay hidden until you reveal them.`;
-  bar.innerHTML = `<span class="sp-text">${text}</span><span class="sp-acts">
+  bar.innerHTML = `${hidden.length ? '' : '<span class="sp-text">Caught up.</span>'}<span class="sp-acts">
     ${next ? `<button class="main" data-reveal="${esc(next.id)}">Reveal next: ${esc(matchName(next))}</button>` : ''}
-    ${hidden.length > 1 ? '<button data-reveal-all>Reveal all</button>' : ''}
-    ${ri >= 0 ? '<button class="linkish" data-hide-all>Hide everything again</button>' : ''}</span>`;
+    ${ri >= 0 ? '<button class="linkish" data-hide-all>Hide all again</button>' : ''}</span>`;
 }
 
 function revealThrough(id) {
   const i = state.matches.findIndex(m => m.id === id), ri = revealIdx();
   if (i <= ri) return;
   const skipped = state.matches.slice(ri + 1, i).filter(started).length;
-  if (skipped && !confirm(`This also reveals ${skipped} earlier result${skipped > 1 ? 's' : ''} you haven't revealed yet. Continue?`)) return;
+  if (skipped && !confirm(`Also reveals ${skipped} earlier result${skipped > 1 ? 's' : ''}. Continue?`)) return;
   state.spoil.through = id;
   saveSpoil();
   render();
@@ -1792,11 +1870,6 @@ $('nospoil').addEventListener('change', e => {
 document.addEventListener('click', e => {
   const r = e.target.closest('[data-reveal]');
   if (r) { revealThrough(r.dataset.reveal); return; }
-  if (e.target.closest('[data-reveal-all]')) {
-    const last = state.matches.filter(started).at(-1);
-    if (last) { state.spoil.through = last.id; saveSpoil(); render(); }
-    return;
-  }
   if (e.target.closest('[data-hide-all]')) { state.spoil.through = null; saveSpoil(); render(); return; }
   const w = e.target.closest('[data-watch]');
   if (w) openWatch(w.dataset.watch);
@@ -1811,10 +1884,13 @@ const canWatch = m => m.status === 'done' || m.status === 'hidden' || m.status =
 // progress bar or length, and the next game is offered without saying
 // whether the series went that far.
 const WB_KEY = 'worlds2026.watch.v1';
-const W = { player: null, match: null, games: [], gameNo: 1, vod: null, timer: null, cover: 'solid', savedAt: 0 };
+const W = { player: null, match: null, games: [], gameNo: 1, vod: null, timer: null, cover: 'solid', savedAt: 0, rate: 1, edge: 0 };
+const stageEl = $('wbStage');
 
+// pos: where you left off in each video; edge: the furthest point you've
+// watched (the scrubber's "live" end).
 function wbStore() {
-  try { return { pos: {}, games: {}, ...JSON.parse(localStorage.getItem(WB_KEY)) }; } catch { return { pos: {}, games: {} }; }
+  try { return { pos: {}, games: {}, edge: {}, ...JSON.parse(localStorage.getItem(WB_KEY)) }; } catch { return { pos: {}, games: {}, edge: {} }; }
 }
 function wbSave(fn) {
   const s = wbStore();
@@ -1853,10 +1929,34 @@ const hms = ms => {
   return s >= 3600 ? `${Math.floor(s / 3600)}:${String(Math.floor(s / 60) % 60).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}` : clock(ms);
 };
 
-function cover(kind, html = '') {
+const BIG_PLAY = '<span class="wb-big"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4.8v14.4a1 1 0 0 0 1.53.85l11.3-7.2a1 1 0 0 0 0-1.7L8.53 3.95A1 1 0 0 0 7 4.8z"/></svg></span>';
+
+// kind: 'solid' (a message over a dark screen), 'paused' (the frame stays
+// visible, dimmed) or 'play'. YouTube only draws its pause UI ("More videos")
+// on hover, and the cover keeps the pointer off its player, so pausing doesn't
+// need to black the video out.
+function cover(kind, html = kind === 'paused' ? BIG_PLAY : '') {
   W.cover = kind;
-  $('wbCover').className = `wb-cover ${kind === 'play' ? '' : kind}`;
+  $('wbCover').className = `wb-cover ${kind === 'play' ? 'playing' : kind}`;
   $('wbCover').innerHTML = html;
+  stageEl.classList.toggle('solid', kind === 'solid');
+  stageEl.classList.toggle('playing', kind === 'play');
+  wake();
+}
+
+// Controls fade out while playing; mouse movement, a tap or a key brings them back.
+function wake() {
+  stageEl.classList.remove('idle');
+  clearTimeout(W.idleT);
+  W.idleT = setTimeout(() => {
+    if (W.cover === 'play' && $('wbMenu').hidden && !W.overCtrl) stageEl.classList.add('idle');
+  }, 2800);
+}
+function hideControls() {
+  if (W.cover !== 'play') return;
+  clearTimeout(W.idleT);
+  $('wbMenu').hidden = true;
+  stageEl.classList.add('idle');
 }
 
 async function openWatch(matchId) {
@@ -1875,13 +1975,19 @@ async function openWatch(matchId) {
     cover('solid', "<p>Couldn't load this match's videos. Try again in a minute.</p>");
     return;
   }
-  playGame(wbStore().games[m.id]?.n || 1);
+  // Pick up where you left off: mid-game resumes the video; after finishing a
+  // game you're back on the break screen.
+  const r = wbStore().games[m.id];
+  if (r?.done && r.done >= (r.n || 1)) intermission(r.done);
+  else playGame(r?.n || 1);
 }
 
 function closeWatch() {
   try { W.player?.pauseVideo?.(); } catch {}
   clearInterval(W.timer);
   if (document.fullscreenElement) document.exitFullscreen();
+  setFakeFs(false);
+  $('wbMenu').hidden = true;
   $('wb').hidden = true;
   document.body.style.overflow = '';
 }
@@ -1894,8 +2000,9 @@ function renderWbGames() {
   const max = Math.min(m.bo, isRevealed(m)
     ? Math.max(W.gameNo, ...played)
     : Math.max(W.gameNo, wbStore().games[m.id]?.max || 1));
+  const done = wbStore().games[m.id]?.done || 0;
   $('wbGames').innerHTML = m.bo > 1 ? Array.from({ length: max }, (_, i) =>
-    `<button class="${i + 1 === W.gameNo ? 'on' : ''}" data-wb-game="${i + 1}">Game ${i + 1}</button>`).join('') : '';
+    `<button class="${i + 1 === W.gameNo ? 'on' : ''}" data-wb-game="${i + 1}" title="${i + 1 <= done ? 'Watched' : ''}">Game ${i + 1}${i + 1 <= done ? ' ✓' : ''}</button>`).join('') : '';
 }
 
 async function playGame(n) {
@@ -1907,10 +2014,10 @@ async function playGame(n) {
   wbSave(s => { const r = s.games[m.id] ||= { n: 1, max: 1 }; r.n = n; r.max = Math.max(r.max, n); });
   renderWbGames();
   $('wbTime').textContent = '0:00';
-  $('wbRestart').hidden = true;
+  $('wbBar').classList.add('empty');
   const reveal = isRevealed(m) ? '' : `<button class="reveal" data-reveal="${esc(m.id)}">Reveal result</button>`;
   if (!g || g.state === 'unneeded') {
-    return cover('solid', `<h3>No game ${n}</h3><p>The series was over after game ${n - 1}.</p><div class="acts">${reveal}<button data-wb="close">Close</button></div>`);
+    return cover('solid', `<h3>No game ${n}</h3><p>Series ended after game ${n - 1}.</p><div class="acts">${reveal}<button data-wb="close">Close</button></div>`);
   }
   if (g.state === 'inProgress') {
     return cover('solid', `<h3>Game ${n} is live right now</h3><p>The video comes after it ends.</p>
@@ -1919,7 +2026,7 @@ async function playGame(n) {
   if (g.state !== 'completed') return cover('solid', `<h3>Game ${n} hasn't started yet</h3>`);
   W.cands = vodsFor(g);
   W.failed = new Set();
-  if (!W.cands.length) return cover('solid', `<h3>Game ${n}</h3><p>No video for this game yet. LoL Esports usually uploads it within a few hours.</p>`);
+  if (!W.cands.length) return cover('solid', `<h3>Game ${n}</h3><p>No video yet. Usually up within a few hours.</p>`);
   // Start with the language picked last time, if this game has it.
   const pref = wbStore().lang;
   W.cand = Math.max(0, W.cands.findIndex(c => c.locale === pref && !c.day));
@@ -1929,13 +2036,15 @@ async function playGame(n) {
 async function startVod() {
   const vod = W.cands[W.cand];
   W.vod = vod;
+  W.stuck = 0;
+  setAd(false);
   renderWbLang();
   cover('solid', '<p>Loading video…</p>');
   await loadYT();
   if (W.vod !== vod) return; // switched games while the player loaded
   const pos = wbStore().pos[vod.id];
   const at = pos && pos > vod.start + 15 ? pos - 3 : vod.start;
-  $('wbRestart').hidden = at <= vod.start;
+  W.edge = Math.max(wbStore().edge[vod.id] || 0, pos || 0, at);
   const end = vod.end ? { end: Math.floor(vod.end) } : {};
   if (!W.player) {
     W.player = new YT.Player('wbPlayer', {
@@ -1943,8 +2052,9 @@ async function startVod() {
       playerVars: { controls: 0, disablekb: 1, rel: 0, modestbranding: 1, iv_load_policy: 3, playsinline: 1, fs: 0, autoplay: 1, start: Math.floor(at), ...end },
       events: {
         onReady: e => {
+          layoutPlayer();
           e.target.setVolume(+$('wbVol').value);
-          e.target.setPlaybackRate(+$('wbRate').value);
+          e.target.setPlaybackRate(W.rate);
           if (W.muted) e.target.mute();
           e.target.playVideo();
           // Autoplay can be blocked; offer a click to start instead of a blank screen.
@@ -1956,7 +2066,7 @@ async function startVod() {
     });
   } else {
     W.player.loadVideoById({ videoId: vod.id, startSeconds: at, ...(vod.end ? { endSeconds: vod.end } : {}) });
-    W.player.setPlaybackRate(+$('wbRate').value);
+    W.player.setPlaybackRate(W.rate);
   }
   clearInterval(W.timer);
   W.timer = setInterval(wbTick, 500);
@@ -1983,7 +2093,7 @@ function renderWbLang() {
   if (!W.cands?.length) { box.innerHTML = ''; return; }
   const en = W.cands.find(c => c.locale === 'en-US');
   const opts = W.cands.map((c, i) => W.failed.has(i) ? '' : `<option value="${i}" ${i === W.cand ? 'selected' : ''}>${esc(c.lang)}${c.day ? ' (full-day stream)' : ''}</option>`).join('');
-  box.innerHTML = `<select id="wbLangSel" aria-label="Broadcast language">${opts}</select>
+  box.innerHTML = `<h5>Broadcast</h5><select id="wbLangSel" aria-label="Broadcast language">${opts}</select>
     ${v && en && v.locale !== 'en-US' && W.failed.has(W.cands.indexOf(en))
       ? `<span class="note">The English video won't play here · <a href="https://www.youtube.com/watch?v=${esc(en.id)}" target="_blank" rel="noopener" title="YouTube shows the video length">English on YouTube ↗</a></span>` : ''}`;
 }
@@ -1996,65 +2106,210 @@ $('wbLang').addEventListener('change', e => {
 
 function wbState(s) {
   if (!W.vod) return;
-  if (s === YT.PlayerState.PLAYING) { cover('play'); $('wbPlay').textContent = 'Pause'; }
-  else if (s === YT.PlayerState.PAUSED || s === YT.PlayerState.CUED) { cover('paused'); $('wbPlay').textContent = 'Play'; }
+  if (s === YT.PlayerState.PLAYING) cover('play');
+  else if (s === YT.PlayerState.PAUSED || s === YT.PlayerState.CUED) cover('paused');
   else if (s === YT.PlayerState.ENDED) wbEnded();
 }
 
+// Watched to the end: forget the position (a rewatch starts fresh) and mark
+// the game done, so reopening the match returns to the break screen.
 function wbEnded() {
-  const m = W.match, n = W.gameNo;
+  const n = W.gameNo;
   if (!W.vod) return;
-  wbSave(s => { delete s.pos[W.vod.id]; }); // watched to the end: start fresh next time
+  wbSave(s => {
+    delete s.pos[W.vod.id];
+    const r = s.games[W.match.id] ||= { n, max: n };
+    r.done = Math.max(r.done || 0, n);
+  });
   W.vod = null;
   clearInterval(W.timer);
-  $('wbPlay').textContent = 'Play';
-  const more = n < m.bo;
-  cover('solid', `<h3>End of game ${n}</h3>
-    <p>${more ? `Game ${n + 1} is next, if the series went that far.` : 'That was the last possible game of the series.'}</p>
-    <div class="acts">${more ? `<button class="main" data-wb-game="${n + 1}">▶ Game ${n + 1}</button>` : ''}
+  intermission(n);
+}
+
+// Between games: a break screen. Whether the series went on stays hidden
+// until you ask for the next game.
+function intermission(n) {
+  const m = W.match, more = n < m.bo;
+  W.gameNo = n;
+  renderWbGames();
+  cover('solid', `<div class="wb-inter">
+    <h3>Game ${n} complete</h3>
+    ${more ? '' : '<p>Last possible game of the series.</p>'}
+    <div class="acts">${more ? `<button class="main" data-wb-game="${n + 1}">Is there a Game ${n + 1}? ▶</button>` : ''}
+      <button data-wb-game="${n}">↺ Rewatch Game ${n}</button>
       ${isRevealed(m) ? '' : `<button class="reveal" data-reveal="${esc(m.id)}">Reveal result</button>`}
-      <button data-wb="close">Close</button></div>`);
+      <button data-wb="close">Watch later</button></div>
+    <div class="ad-slot" hidden></div></div>`);
+  window.renderAds?.();
 }
 
 function wbTick() {
   const p = W.player, v = W.vod;
   if (!v || !p?.getCurrentTime) return;
   const t = p.getCurrentTime();
-  $('wbTime').textContent = hms(Math.max(0, t - v.start) * 1000);
+  // An ad plays inside the same player: it reports PLAYING while the video's
+  // own clock stands still.
+  W.stuck = p.getPlayerState() === YT.PlayerState.PLAYING && Math.abs(t - W.lastT) < .05 ? (W.stuck || 0) + 1 : 0;
+  W.lastT = t;
+  if ((W.stuck >= 3) !== W.ad) setAd(W.stuck >= 3);
   if (v.end && t >= v.end - .5) { p.pauseVideo(); wbEnded(); return; }
-  if (p.getPlayerState() === YT.PlayerState.PLAYING && Date.now() - W.savedAt > 5e3) {
-    W.savedAt = Date.now();
-    wbSave(s => { s.pos[v.id] = t; });
+  if (p.getPlayerState() === YT.PlayerState.PLAYING) {
+    W.edge = Math.max(W.edge, t);
+    if (Date.now() - W.savedAt > 5e3) {
+      W.savedAt = Date.now();
+      wbSave(s => { s.pos[v.id] = t; s.edge[v.id] = W.edge; });
+    }
   }
+  if (!W.dragging) renderBar(t);
+}
+
+// The scrubber runs from the start of the game to the furthest point you've
+// watched, like a live stream's DVR window, so it never shows the video's
+// length. At that edge you're "LIVE"; behind it, the badge says how far.
+function renderBar(t) {
+  const v = W.vod;
+  if (!v) return;
+  const span = W.edge - v.start;
+  const frac = span > 1 ? Math.min(1, Math.max(0, (t - v.start) / span)) : 1;
+  $('wbBar').classList.toggle('empty', span < 5);
+  $('wbFill').style.width = `${frac * 100}%`;
+  $('wbKnob').style.left = `${frac * 100}%`;
+  const behind = W.edge - t, live = behind < 4;
+  $('wbLive').classList.toggle('on', live);
+  $('wbLive').textContent = live ? 'LIVE' : `−${hms(behind * 1000)}`;
+  $('wbLive').title = live ? "You're caught up" : 'Jump back to where you left off';
+  $('wbTime').textContent = hms(Math.max(0, t - v.start) * 1000);
+}
+
+// YouTube draws a paused video's title along the top edge of its player and a
+// "More videos" shelf (which can show other matches' results) along the bottom.
+// The player is made taller than the video and the extra strips are clipped,
+// so those overlays fall out of view while the video still fills the stage.
+// During an ad the crop comes off so "Skip ad" can be reached.
+function layoutPlayer() {
+  const f = $('wbPlayer');
+  if (!f || f.tagName !== 'IFRAME') return;
+  const w = stageEl.clientWidth, h = stageEl.clientHeight;
+  const vw = Math.min(w, h * 16 / 9), vh = vw * 9 / 16;
+  const pad = W.ad ? 0 : Math.round(Math.max(110, vh * .16));
+  Object.assign(f.style, {
+    left: `${(w - vw) / 2}px`, top: `${(h - vh) / 2 - pad}px`, width: `${vw}px`, height: `${vh + 2 * pad}px`,
+    clipPath: `inset(${pad}px 0)`,
+  });
+}
+new ResizeObserver(layoutPlayer).observe(stageEl);
+function setAd(on) {
+  W.ad = on;
+  stageEl.classList.toggle('ad', on);
+  layoutPlayer();
+}
+
+// Skipping ahead moves the live edge with you; it stops at the end of the game.
+function wbSeek(to) {
+  const p = W.player, v = W.vod;
+  if (!p?.seekTo || !v) return;
+  to = Math.max(v.start, to);
+  if (v.end) to = Math.min(v.end, to);
+  else if (p.getDuration?.()) to = Math.min(p.getDuration() - .5, to);
+  p.seekTo(to, true);
+  W.edge = Math.max(W.edge, to);
+  renderBar(to);
 }
 
 function wbAction(a) {
   const p = W.player;
+  wake();
   if (a === 'close') return closeWatch();
-  if (a === 'fs') return document.fullscreenElement ? document.exitFullscreen() : $('wbBox').requestFullscreen?.();
+  if (a === 'fs') return toggleFs();
+  if (a === 'settings') { $('wbMenu').hidden = !$('wbMenu').hidden; return; }
   if (!p?.getCurrentTime || !W.vod) return;
   if (a === 'play') return p.getPlayerState() === YT.PlayerState.PLAYING ? p.pauseVideo() : p.playVideo();
   if (a === 'mute') return setMuted(!W.muted);
-  if (a === 'restart') { p.seekTo(W.vod.start, true); $('wbRestart').hidden = true; return; }
-  const to = p.getCurrentTime() + Number(a);
-  p.seekTo(Math.max(W.vod.start, W.vod.end ? Math.min(W.vod.end, to) : to), true);
+  if (a === 'live') return wbSeek(W.edge);
+  wbSeek(p.getCurrentTime() + Number(a));
 }
+
+// Fullscreen the player itself. iPhone Safari can't fullscreen an element,
+// so there it fills the screen instead; phones turn to landscape where allowed.
+function lockLandscape() {
+  try { screen.orientation?.lock?.('landscape')?.catch(() => {}); } catch {}
+}
+function setFakeFs(on) {
+  stageEl.classList.toggle('fake-fs', on);
+  stageEl.classList.toggle('fs', on || !!document.fullscreenElement);
+  if (on) lockLandscape();
+}
+function toggleFs() {
+  if (document.fullscreenElement || document.webkitFullscreenElement) return (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+  if (stageEl.classList.contains('fake-fs')) return setFakeFs(false);
+  const req = stageEl.requestFullscreen || stageEl.webkitRequestFullscreen;
+  if (!req) return setFakeFs(true);
+  Promise.resolve(req.call(stageEl, { navigationUI: 'hide' })).then(lockLandscape, () => setFakeFs(true));
+}
+for (const ev of ['fullscreenchange', 'webkitfullscreenchange']) {
+  document.addEventListener(ev, () => {
+    stageEl.classList.toggle('fs', !!(document.fullscreenElement || document.webkitFullscreenElement) || stageEl.classList.contains('fake-fs'));
+    wake();
+  });
+}
+
+// Mouse: moving shows the controls, clicking the video plays/pauses and
+// double-clicking toggles fullscreen. Touch: a tap shows or hides the controls.
+stageEl.addEventListener('pointermove', e => { if (e.pointerType === 'mouse') wake(); });
+for (const el of stageEl.querySelectorAll('.wb-top, .wb-bottom, .wb-menu')) {
+  el.addEventListener('pointerenter', e => { if (e.pointerType === 'mouse') W.overCtrl = true; });
+  el.addEventListener('pointerleave', () => { W.overCtrl = false; wake(); });
+}
+$('wbCover').addEventListener('pointerup', e => {
+  if (W.cover !== 'play' && W.cover !== 'paused') return;
+  if (!$('wbMenu').hidden) { $('wbMenu').hidden = true; return wake(); }
+  if (e.pointerType === 'mouse') return e.button === 0 && wbAction('play');
+  if (W.cover === 'paused') return wbAction('play');
+  stageEl.classList.contains('idle') ? wake() : hideControls();
+});
+$('wbCover').addEventListener('dblclick', e => { if (W.cover === 'play' || W.cover === 'paused') toggleFs(); });
+
+// Drag the scrubber to go back through what you've watched.
+const wbBar = $('wbBar');
+wbBar.addEventListener('pointerdown', e => {
+  if (!W.vod || !W.player?.seekTo) return;
+  const at = x => {
+    const r = wbBar.getBoundingClientRect();
+    return W.vod.start + Math.min(1, Math.max(0, (x - r.left) / r.width)) * (W.edge - W.vod.start);
+  };
+  let x = e.clientX;
+  W.dragging = true;
+  wbBar.classList.add('drag');
+  wbBar.setPointerCapture(e.pointerId);
+  renderBar(at(x));
+  const move = ev => { x = ev.clientX; renderBar(at(x)); };
+  wbBar.addEventListener('pointermove', move);
+  wbBar.addEventListener('lostpointercapture', () => {
+    wbBar.removeEventListener('pointermove', move);
+    wbBar.classList.remove('drag');
+    W.dragging = false;
+    if (W.vod) wbSeek(at(x));
+  }, { once: true });
+});
 
 $('wb').addEventListener('click', e => {
   const g = e.target.closest('[data-wb-game]');
   if (g) return playGame(+g.dataset.wbGame);
   const b = e.target.closest('[data-wb]');
   if (b) return wbAction(b.dataset.wb);
-  // Clicking the video itself plays/pauses, like a normal player.
-  if (e.target.closest('#wbCover') && (W.cover === 'play' || W.cover === 'paused')) wbAction('play');
 });
-$('wbClose').onclick = closeWatch;
-$('wbRate').onchange = e => W.player?.setPlaybackRate?.(+e.target.value);
+$('wbRates').addEventListener('click', e => {
+  const b = e.target.closest('[data-rate]');
+  if (!b) return;
+  W.rate = +b.dataset.rate;
+  W.player?.setPlaybackRate?.(W.rate);
+  for (const x of $('wbRates').children) x.classList.toggle('on', x === b);
+});
 // isMuted() lags behind mute()/unMute(), so track it here.
 function setMuted(on) {
   W.muted = on;
   W.player?.[on ? 'mute' : 'unMute']?.();
-  $('wbMute').textContent = on ? 'Unmute' : 'Mute';
+  stageEl.classList.toggle('muted', on);
 }
 $('wbVol').oninput = e => {
   W.player?.setVolume?.(+e.target.value);
@@ -2063,9 +2318,14 @@ $('wbVol').oninput = e => {
 document.addEventListener('keydown', e => {
   if ($('wb').hidden || e.target.closest('select, input')) return;
   const k = e.key.toLowerCase();
-  const act = { ' ': 'play', k: 'play', arrowleft: '-10', j: '-10', arrowright: '10', l: '10', f: 'fs', m: 'mute' }[k];
+  const act = { ' ': 'play', k: 'play', arrowleft: '-10', j: '-10', arrowright: e.shiftKey ? '60' : '10', l: '10', f: 'fs', m: 'mute' }[k];
+  wake();
   if (act) { e.preventDefault(); wbAction(act); }
-  else if (k === 'escape' && !document.fullscreenElement) closeWatch();
+  else if (k === 'escape') {
+    if (!$('wbMenu').hidden) $('wbMenu').hidden = true;
+    else if (stageEl.classList.contains('fake-fs')) setFakeFs(false);
+    else if (!document.fullscreenElement) closeWatch();
+  }
 });
 
 /* ---------- Data Dragon ---------- */
