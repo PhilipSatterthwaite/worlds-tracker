@@ -2425,7 +2425,31 @@ function streamLabel(x) {
 // or at the beginning of the day's broadcast (YouTube's embed starts at the
 // beginning). Twitch embeds are live only.
 const LS = { player: null, x: null, from: 'live' };
+
+// Your Watch live / From the beginning choice is kept for the game on air (a
+// new game asks again), with your place in the stream when you're watching
+// from the beginning, tied to that stream's video.
+const LIVE_PREF_KEY = 'worlds2026.liveFrom';
+function streamKey() {
+  const st = state.stream, L = state.live;
+  if (!st) return '';
+  if (!st.matchId) return `show:${st.streams.find(x => x.provider === 'youtube')?.parameter || ''}`;
+  const n = L?.matchId === st.matchId ? (L.between ? L.nextNo || L.gameNo : L.gameNo) : '';
+  return `match:${st.matchId}:${n || ''}`;
+}
+function livePref() {
+  try { const o = JSON.parse(localStorage.getItem(LIVE_PREF_KEY)); return o?.key === streamKey() ? o : null; } catch { return null; }
+}
+function saveLivePref(at) {
+  const p = LS.player, x = LS.x;
+  if (!x || x.provider !== 'youtube') return;
+  const pos = LS.from !== 'start' ? null : at ?? (p?.getCurrentTime ? p.getCurrentTime() : null);
+  try { localStorage.setItem(LIVE_PREF_KEY, JSON.stringify({ key: streamKey(), from: LS.from, vid: x.parameter, pos })); } catch {}
+}
+
 function stopStream() {
+  clearInterval(LS.timer);
+  if (LS.player) saveLivePref();
   try { LS.player?.destroy(); } catch {}
   LS.player = null;
   $('lsmStage').innerHTML = '';
@@ -2436,14 +2460,15 @@ function markFrom(from) {
   LS.from = from;
   for (const b of $('lsmFrom').children) b.classList.toggle('on', b.dataset.lsmFrom === from);
 }
-function streamSeek(from) {
+function streamSeek(from, at = 0) {
   const p = LS.player;
   markFrom(from);
-  if (!p?.seekTo) return;
-  if (from === 'start') p.seekTo(0, true);
+  if (!p?.seekTo) return saveLivePref(at);
+  if (from === 'start') p.seekTo(at, true);
   else if ((p.getDuration?.() || 0) > 30) p.seekTo(p.getDuration(), true);
   else { LS.settled = false; p.loadVideoById(LS.x.parameter); }
   p.playVideo();
+  saveLivePref(from === 'start' ? at : null); // the player still reports the old time for a moment
 }
 // If a live start landed behind the edge anyway, move it up once playing.
 function streamState(e) {
@@ -2459,7 +2484,8 @@ function askStart(x) {
     <div class="acts"><button class="main" data-lsm-first="live">● Watch live</button><button data-lsm-first="start">⏮ From the beginning</button></div></div>`;
   LS.x = x;
 }
-async function playStream(x, from = LS.from) {
+// `at`: where to resume when playing from the beginning (seconds).
+async function playStream(x, from = LS.from, at = 0) {
   try { localStorage.setItem(LIVE_SRC_KEY, srcKey(x)); } catch {}
   stopStream();
   LS.x = x;
@@ -2478,8 +2504,9 @@ async function playStream(x, from = LS.from) {
   LS.player = new YT.Player('lsmPlayer', {
     videoId: x.parameter,
     playerVars: { autoplay: 1, rel: 0, playsinline: 1 },
-    events: { onReady: () => { LS.settled = false; if (from === 'start') streamSeek('start'); else markFrom('live'); }, onStateChange: streamState },
+    events: { onReady: () => { LS.settled = false; if (from === 'start') streamSeek('start', at); else { markFrom('live'); saveLivePref(); } }, onStateChange: streamState },
   });
+  LS.timer = setInterval(saveLivePref, 10e3); // keep your place even if the tab is closed
 }
 async function openStream() {
   const list = state.stream?.streams;
@@ -2493,8 +2520,10 @@ async function openStream() {
   $('lsmSrc').innerHTML = list.map(x => `<option value="${esc(srcKey(x))}" ${x === pick ? 'selected' : ''}>${esc(streamLabel(x))}</option>`).join('');
   $('lsm').hidden = false;
   document.body.style.overflow = 'hidden';
-  if (pick.provider === 'youtube') askStart(pick);
-  else playStream(pick, 'live');
+  const pref = livePref();
+  if (pick.provider !== 'youtube') playStream(pick, 'live');
+  else if (pref) playStream(pick, pref.from, pref.from === 'start' && pref.vid === pick.parameter ? pref.pos || 0 : 0);
+  else askStart(pick);
 }
 function closeStream() {
   $('lsm').hidden = true;
