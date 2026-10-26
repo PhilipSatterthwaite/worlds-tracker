@@ -285,6 +285,49 @@ if (/^((www|ads)\.esportstracker\.app|philipsatterthwaite\.github\.io)$/.test(lo
   .out.e .tchip:not(.tbd) { opacity: .7; }
   .legend { display: flex; gap: 18px; flex-wrap: wrap; color: var(--muted); font-size: 12px; margin: -4px 0 14px; }
   .legend i { display: inline-block; width: 22px; height: 0; border-top: 2px solid; vertical-align: middle; margin-right: 6px; }
+  /* Swiss on phones: round tabs and one round at a time (renderSwissPhone) */
+  .swm { display: none; }
+  .swm-tabs { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; margin: 0 0 14px; padding-bottom: 2px; }
+  .swm-tabs::-webkit-scrollbar { display: none; }
+  .swm-tabs button { flex: none; font-size: 14px; font-weight: 700; padding: 8px 15px; border-radius: 999px; color: var(--muted); }
+  .swm-tabs button.on { background: var(--gold); border-color: var(--gold); color: #0a0d14; }
+  .swm-note { color: var(--muted); font-size: 13px; margin: -4px 0 12px; }
+  .swm-pool { background: var(--panel); border: 1px solid var(--line-2); border-radius: 12px; overflow: hidden; margin-bottom: 14px; }
+  .swm-pool > header { display: flex; align-items: baseline; gap: 4px 10px; flex-wrap: wrap; padding: 10px 14px; background: var(--panel-2); border-bottom: 1px solid var(--line); }
+  .swm-pool > header b { font-size: 18px; font-variant-numeric: tabular-nums; }
+  .swm-pool > header span { color: var(--muted); font-size: 12px; font-weight: 600; }
+  .swm-pool > header .swm-next { margin-left: auto; }
+  .swm-pool.decider > header .swm-bo { color: var(--gold); }
+  .swm-pool.q > header b { color: var(--win); }
+  .swm-pool.e > header b { color: var(--loss); }
+  .swm-row { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) 38px; align-items: center; gap: 8px; padding: 9px 10px 9px 14px; min-height: 56px; }
+  .swm-row + .swm-row { border-top: 1px solid var(--line); }
+  .swm-row.live { box-shadow: inset 3px 0 0 var(--live); }
+  .swm-t { display: flex; align-items: center; gap: 8px; min-width: 0; font-size: 16px; }
+  .swm-t.r { flex-direction: row-reverse; }
+  .swm-t .lg { width: 26px; height: 26px; }
+  .swm-t b { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .swm-t.l { opacity: .4; }
+  .swm-t.tbd b { color: var(--muted); font-weight: 500; font-style: italic; }
+  .swm-mid { min-width: 56px; text-align: center; }
+  .swm-rev { width: 56px; height: 36px; padding: 0; font-size: 17px; font-weight: 800; color: var(--gold); background: var(--gold-soft); border: 1px dashed rgba(200,170,110,.6); border-radius: 8px; }
+  .swm-sc { font-size: 18px; font-weight: 800; color: var(--gold); font-variant-numeric: tabular-nums; }
+  .swm-row.live .swm-sc { color: var(--live); }
+  .swm-vs { display: block; font-size: 12px; line-height: 1.25; color: var(--muted); font-weight: 600; }
+  .swm-w { width: 36px; height: 36px; padding: 0; border-radius: 50%; font-size: 13px; color: var(--muted); }
+  .swm-st { display: grid; grid-template-columns: 24px auto minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 10px 14px; font-size: 15px; }
+  .swm-st + .swm-st { border-top: 1px solid var(--line); }
+  .swm-st .lg { width: 24px; height: 24px; }
+  .swm-st span { color: var(--muted); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .swm-st em { font-style: normal; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .swm-pool > header b.txt { font-size: 16px; }
+  /* Phones swap every bracket for its round-by-round cards; each row there
+     carries its own time and buttons, so the stage schedules are dropped. */
+  @media (max-width: 720px) {
+    .board-desk, .stage-sched { display: none; }
+    .swm { display: block; }
+  }
+
   /* Hover/tap a team to trace its path through the Swiss chart */
   .mm .mt[data-team], .tchip[data-team] { cursor: pointer; }
   .sw.focus .mm:not(.hl), .sw.focus .tchip:not(.hl) { opacity: .22; }
@@ -547,6 +590,31 @@ if (/^((www|ads)\.esportstracker\.app|philipsatterthwaite\.github\.io)$/.test(lo
     .hero-team .full { display: none; }
     .tab { padding: 10px 12px 11px; font-size: 14px; }
   }
+
+  /* Phones: header on two tidy lines, the top cards as a swipeable row, and
+     buttons big enough to tap. */
+  @media (max-width: 600px) {
+    header { padding: 14px 0 12px; gap: 10px; margin-bottom: 16px; }
+    .brand h1 { font-size: 20px; }
+    .status { width: 100%; gap: 8px; }
+    .switch { font-size: 14px; white-space: nowrap; padding: 5px 12px 5px 6px; gap: 8px; }
+    .switch i { width: 38px; height: 22px; }
+    .switch i::after { width: 14px; height: 14px; }
+    .switch input:checked + i::after { transform: translateX(16px); }
+    #updated { display: none; }
+    #refresh { margin-left: auto; }
+    .hero { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; gap: 10px; margin: 0 -16px; padding: 0 16px 4px; scrollbar-width: none; }
+    .hero::-webkit-scrollbar { display: none; }
+    .hero-card { flex: 0 0 86%; scroll-snap-align: center; padding: 14px 16px; }
+    .hero-card:only-child { flex-basis: 100%; }
+    .hero-teams { margin: 10px 0 6px; }
+    .hero-score { font-size: 24px; }
+    .reveal { font-size: 13px; line-height: 30px; padding: 0 12px; border-radius: 7px; }
+    .wbtn { font-size: 12px; line-height: 28px; padding: 0 10px; border-radius: 6px; }
+    .mc-row { padding: 10px 12px; font-size: 15px; }
+    .mc-row .lg { width: 22px; height: 22px; }
+    .mc-foot { padding: 6px 10px; font-size: 12px; align-items: center; }
+  }
 </style>
 </head>
 <body>
@@ -584,8 +652,9 @@ if (/^((www|ads)\.esportstracker\.app|philipsatterthwaite\.github\.io)$/.test(lo
       <li><b>Double elimination:</b> lose once and you drop to the lower bracket; lose twice and you're out.</li>
       <li>Every series is <b>best of 5</b>. The upper-bracket winner meets the lower-bracket winner in the qualifier final.</li>
     </ul></div>
-    <div class="scroll"><div class="board pi" id="piBoard"></div></div>
-    <div id="piSched"></div>
+    <div class="scroll board-desk"><div class="board pi" id="piBoard"></div></div>
+    <div class="swm" id="piPhone"></div>
+    <div class="stage-sched" id="piSched"></div>
   </div>
 
   <div class="panel" id="panel-swiss" hidden>
@@ -601,8 +670,9 @@ if (/^((www|ads)\.esportstracker\.app|philipsatterthwaite\.github\.io)$/.test(lo
       <li>Your record seeds the quarterfinal draw: the two <b>3–0</b> teams each face a <b>3–2</b> team; the remaining four are drawn at random.</li>
       <li>In the chart, green arrows carry winners up and red arrows carry losers down. Hover or tap a team to trace its path.</li>
     </ul></div>
-    <div class="scroll"><div class="board sw" id="swBoard"></div></div>
-    <div id="swSched"></div>
+    <div class="scroll board-desk"><div class="board sw" id="swBoard"></div></div>
+    <div class="swm" id="swPhone"></div>
+    <div class="stage-sched" id="swSched"></div>
   </div>
 
   <div class="panel" id="panel-ko" hidden>
@@ -615,8 +685,9 @@ if (/^((www|ads)\.esportstracker\.app|philipsatterthwaite\.github\.io)$/.test(lo
       <li>Quarterfinal draw: the two 3–0 teams each get a 3–2 team; the other four are paired at random.</li>
       <li>Quarterfinals and semifinals are in Allen, TX; the Grand Final is at Barclays Center in Brooklyn.</li>
     </ul></div>
-    <div class="scroll"><div class="board ko" id="koBoard"></div></div>
-    <div id="koSched"></div>
+    <div class="scroll board-desk"><div class="board ko" id="koBoard"></div></div>
+    <div class="swm" id="koPhone"></div>
+    <div class="stage-sched" id="koSched"></div>
   </div>
 
   <div class="ad-slot" hidden></div>
@@ -1701,6 +1772,13 @@ function renderPlayin() {
     { from: 'pi-ubf', to: 'pi-f', kind: 'win' }, { from: 'pi-ubf', to: 'pi-lbf', kind: 'loss', dashed: true },
     { from: 'pi-lb1', to: 'pi-lbf', kind: 'win' }, { from: 'pi-lbf', to: 'pi-f', kind: 'win' },
   ];
+  $('piPhone').innerHTML = phoneStage([
+    { title: 'Upper round 1', next: 'Win → Upper final · Lose → Lower round 1', matches: [slots.ub1, slots.ub2] },
+    { title: 'Upper final', next: 'Win → Qualifier final · Lose → Lower final', matches: [slots.ubf] },
+    { title: 'Lower round 1', next: 'Win → Lower final · Lose → out', matches: [slots.lb1] },
+    { title: 'Lower final', next: 'Win → Qualifier final · Lose → out', matches: [slots.lbf] },
+    { title: 'Qualifier final', next: 'Win → Swiss Stage', matches: [fin] },
+  ]) + (champ ? `<p class="swm-note">${esc(champ.short)} advances to the Swiss Stage.</p>` : '');
   $('piSched').innerHTML = upcomingList(ms);
 }
 
@@ -1803,8 +1881,76 @@ function renderSwiss() {
   }
   boardLinks.swBoard = links;
   focusTeam(state.focus);
+  renderSwissPhone(swiss, records);
   $('swSched').innerHTML = upcomingList(swiss);
 }
+
+// Phones get the Swiss stage one round at a time: round tabs, then each
+// record pool as a card of full-width match rows with big tap targets, and a
+// Standings tab instead of the qualified/eliminated boxes. It opens on the
+// first round that still has a match to watch or play.
+const SWISS_POOLS = { 1: ['0–0'], 2: ['1–0', '0–1'], 3: ['2–0', '1–1', '0–2'], 4: ['2–1', '1–2'], 5: ['2–2'] };
+function poolNext(key) {
+  const [w, l] = key.split('–').map(Number);
+  const to = (a, b) => a === 3 ? 'qualified' : b === 3 ? 'out' : `${a}–${b}`;
+  return `Win → ${to(w + 1, l)} · Lose → ${to(w, l + 1)}`;
+}
+
+function phoneRow(m) {
+  const side = (t, s) => `<span class="swm-t ${s === 2 ? 'r' : ''} ${!t ? 'tbd' : m.winner && m.winner !== s ? 'l' : ''}">${logo(t)}<b title="${esc(t?.name || 'TBD')}">${esc(t?.short || 'TBD')}</b></span>`;
+  const live = m.status === 'live' || m.liveNow;
+  const mid = m.status === 'hidden' ? `<button class="swm-rev" data-reveal="${esc(m.id)}" aria-label="Reveal result">?</button>`
+    : m.status === 'done' || live ? `<span class="swm-sc">${m.s1 ?? 0}–${m.s2 ?? 0}</span>`
+    : `<span class="swm-vs">${m.time ? fmtWhen.format(m.time).replace(' ', '<br>') : 'vs'}</span>`;
+  const watch = canWatch(m) ? `<button class="swm-w" data-watch="${esc(m.id)}" aria-label="Watch">▶</button>` : '<span></span>';
+  return `<div class="swm-row ${live ? 'live' : ''}">${side(m.t1, 1)}<span class="swm-mid">${mid}</span>${side(m.t2, 2)}${watch}</div>`;
+}
+
+// The Play-In and Knockout on phones: each round as a card of match rows,
+// saying where the winner (and loser) goes next.
+function phoneStage(sections) {
+  return sections.map(s => `<section class="swm-pool"><header><b class="txt">${s.title}</b>${s.sub ? `<span class="swm-bo">${s.sub}</span>` : ''}${s.next ? `<span class="swm-next">${s.next}</span>` : ''}</header>
+    ${s.matches.map(m => phoneRow(m || { t1: null, t2: null, status: 'upcoming' })).join('')}</section>`).join('');
+}
+
+function renderSwissPhone(swiss, records) {
+  const open = r => swiss.some(m => m.swissRound === r && m.status !== 'done');
+  const cur = state.swRound || [1, 2, 3, 4, 5].find(open) || 'st';
+  const tab = (v, label) => `<button class="${cur === v ? 'on' : ''}" data-swr="${v}">${label}</button>`;
+  let body;
+  if (cur === 'st') {
+    // Every team seen so far, with records from the results you can see.
+    const all = new Map();
+    for (const m of swiss) for (const t of [m.t1, m.t2]) if (t && !all.has(t.id)) all.set(t.id, { team: t, w: 0, l: 0 });
+    for (const r of records) all.set(r.team.id, r);
+    const list = [...all.values()].sort((a, b) => b.w - a.w || a.l - b.l || a.team.short.localeCompare(b.team.short));
+    const group = (title, cls, rs) => rs.length ? `<section class="swm-pool ${cls}"><header><b>${title}</b><span>${rs.length}</span></header>
+      ${rs.map(r => `<div class="swm-st">${logo(r.team)}<b>${esc(r.team.short)}</b><span>${esc(r.team.name)}</span><em>${r.w}–${r.l}</em></div>`).join('')}</section>` : '';
+    const partial = state.spoil.on && swiss.some(m => m.status === 'hidden');
+    body = (partial ? '<p class="swm-note">Only counts results you\'ve revealed.</p>' : '')
+      + group('Qualified', 'q', list.filter(r => r.w >= 3)) + group('Still in it', '', list.filter(r => r.w < 3 && r.l < 3))
+      + group('Eliminated', 'e', list.filter(r => r.l >= 3));
+  } else {
+    const undrawn = swiss.filter(m => m.swissRound === cur && !m.pool);
+    body = (undrawn.length ? `<p class="swm-note">Matchups are drawn after round ${cur - 1} · starts ${whenLabel(undrawn[0].time)}</p>` : '')
+      + SWISS_POOLS[cur].map(key => {
+        const [w, l] = key.split('–').map(Number);
+        const ms = swiss.filter(m => m.pool === key);
+        const bo = ms[0]?.bo || (w === 2 || l === 2 ? 3 : 1);
+        const tbd = phoneRow({ t1: null, t2: null, status: 'upcoming' });
+        return `<section class="swm-pool ${w === 2 || l === 2 ? 'decider' : ''}">
+          <header><b>${key}</b><span class="swm-bo">Bo${bo}</span><span class="swm-next">${poolNext(key)}</span></header>
+          ${ms.map(phoneRow).join('')}${tbd.repeat(Math.max(0, POOL_SIZE[key] - ms.length))}</section>`;
+      }).join('');
+  }
+  $('swPhone').innerHTML = `<div class="swm-tabs" role="tablist">${[1, 2, 3, 4, 5].map(r => tab(r, `Round ${r}`)).join('')}${tab('st', 'Standings')}</div>${body}`;
+}
+$('swPhone').addEventListener('click', e => {
+  const b = e.target.closest('[data-swr]');
+  if (!b) return;
+  state.swRound = b.dataset.swr === 'st' ? 'st' : +b.dataset.swr;
+  renderSwiss();
+});
 
 // Highlights every match and result chip for one team, dimming the rest.
 function focusTeam(id) {
@@ -1875,6 +2021,11 @@ function renderKnockout() {
     { from: 'qf2', to: 'sf1', kind: 'path' }, { from: 'qf3', to: 'sf1', kind: 'path' },
     { from: 'sf0', to: 'f', kind: 'path' }, { from: 'sf1', to: 'f', kind: 'path' },
   ];
+  $('koPhone').innerHTML = phoneStage([
+    { title: 'Quarterfinals', sub: 'Nov 3–6', next: 'Win → Semifinals', matches: [qf[0], qf[1], qf[2], qf[3]] },
+    { title: 'Semifinals', sub: 'Nov 7–8', next: 'Win → Final', matches: [sf[0], sf[1]] },
+    { title: 'Final', sub: 'Nov 14 · Brooklyn', matches: [fin] },
+  ]) + (champ ? `<p class="swm-note">🏆 ${esc(champ.name)} are the 2026 World Champions.</p>` : '');
   $('koSched').innerHTML = upcomingList(ko, ko.every(m => m.status === 'done') ? 'All knockout matches are complete.' : '');
 }
 
