@@ -362,17 +362,12 @@ if (/^((www|ads)\.esportstracker\.app|philipsatterthwaite\.github\.io)$/.test(lo
   }
   .wbtn:hover { color: var(--gold); border-color: var(--gold); }
   .mc-foot .tag { gap: 6px; }
-  /* No-spoilers welcome panel */
-  .hero-card.welcome { grid-column: 1 / -1; border-color: rgba(200,170,110,.35); padding: 22px 24px; }
-  .wl-head { display: flex; align-items: baseline; justify-content: space-between; gap: 6px 16px; flex-wrap: wrap; padding-bottom: 16px; margin-bottom: 16px; border-bottom: 1px solid var(--line); }
-  .wl-head h2 { margin: 0; font-size: 24px; font-weight: 800; color: var(--text); text-transform: none; letter-spacing: 0; }
-  .wl-head p { margin: 0; color: var(--muted); }
-  .wl-last { display: inline-flex; align-items: center; gap: 10px; }
-  .welcome .hero-teams { max-width: 640px; margin: 14px auto 16px; }
-  .wl-acts { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-bottom: 14px; }
-  .wl-acts button { font-size: 15px; font-weight: 700; line-height: 1.2; padding: 9px 20px; border-radius: 8px; }
-  .wl-acts .wbtn.main { background: var(--gold); border: 1px solid var(--gold); color: #0a0d14; }
-  .wl-acts .wbtn.main:hover { filter: brightness(1.1); color: #0a0d14; }
+  /* No-spoilers watch queue: hidden/result cards and their buttons */
+  .hero-hidden { text-align: center; padding: 14px 0 6px; border-top: 1px solid var(--line); margin-top: 6px; color: var(--muted); font-size: 13px; }
+  .hero-hidden .acts { display: flex; gap: 8px; justify-content: center; margin-top: 8px; flex-wrap: wrap; }
+  .hero-card.result { border-color: rgba(200,170,110,.45); }
+  .hero-team.l { opacity: .45; }
+  /* A finished series on one line (the player's end screen) */
   .res-line { display: inline-flex; align-items: center; gap: 8px; font-weight: 800; white-space: nowrap; }
   .res-line span { display: inline-flex; align-items: center; gap: 6px; }
   .res-line img { width: 22px; height: 22px; object-fit: contain; }
@@ -1536,54 +1531,55 @@ const resultLine = m => {
   return `<span class="res-line">${t(m.t1, 1)}<b>${m.s1 ?? 0} – ${m.s2 ?? 0}</b>${t(m.t2, 2)}</span>`;
 };
 
-// kind: 'live' or 'next' (not played yet).
-function heroCard(m, kind) {
-  const live = kind === 'live';
-  const score = live ? `${m.s1 ?? 0} – ${m.s2 ?? 0}` : 'vs';
+// kind: 'live', 'next' (not played yet), 'result' (the last result you
+// revealed; `opts.next` is the match after it, offered as "Reveal next"), or
+// 'watch' (a hidden result in the queue; `opts.first` marks the next one to
+// watch).
+function heroCard(m, kind, opts = {}) {
+  const live = kind === 'live', hidden = m.status === 'hidden', done = kind === 'result';
+  const next = opts.next;
+  const score = hidden ? '? – ?' : live || done ? `${m.s1 ?? 0} – ${m.s2 ?? 0}` : 'vs';
   const liveLink = '<a class="watch" href="https://lolesports.com/live/worlds" target="_blank" rel="noopener">Watch live ↗</a>';
-  const meta = live
+  const meta = live && !hidden
     ? `<span>${esc(stageLabel(m))} · Bo${m.bo}</span><span class="tag">${state.live?.players
         ? `<button class="info-btn" data-ls-toggle aria-expanded="${state.lsOpen}">${state.lsOpen ? 'Hide game stats ▴' : 'Show game stats ▾'}</button>` : ''}
       ${liveLink}</span>`
-    : `<span>${esc(stageLabel(m))} · Bo${m.bo}</span>`;
-  const label = live ? '<span class="live-pip"></span>Live now' : `Up next · <span class="when">${whenLabel(m.time)}</span>`;
-  return `<div class="hero-card ${live ? 'live' : ''}">
-    <div class="hero-label">${label}</div>
-    <div class="hero-teams">${heroSide(m.t1)}<div class="hero-score">${score}</div>${heroSide(m.t2, true)}</div>
-    ${live ? liveStats(m) : ''}
-    <div class="hero-meta">${meta}</div></div>`;
-}
-
-// No-spoilers landing while behind: a welcome panel built around the next
-// match to watch. Revealing it puts its result on the "Last result" line and
-// brings up the match after it.
-function welcomeCard(m, last) {
+    : `<span>${esc(stageLabel(m))} · Bo${m.bo}</span>${live ? liveLink : ''}`;
+  const body = hidden
+    ? `<div class="hero-hidden"><div class="acts"><button class="reveal" data-reveal="${esc(m.id)}">Reveal</button>${watchBtn(m, '▶ Watch')}</div></div>`
+    : done
+    ? `<div class="hero-hidden"><div class="acts">${next?.status === 'hidden' ? `<button class="reveal" data-reveal="${esc(next.id)}">Reveal next ▸</button>` : ''}${watchBtn(m, '↺ Rewatch')}</div></div>`
+    : live ? liveStats(m) : '';
+  // Played matches show only their date; matches still to come show day and time.
   const date = `<span class="when">${fmtDate.format(m.time)}</span>`;
-  return `<div class="hero-card welcome">
-    <div class="wl-head">
-      <h2>${last ? 'Keep watching' : 'Welcome to Worlds 2026'}</h2>
-      ${last ? `<span class="wl-last"><span class="hero-label">Last result</span>${resultLine(last)}</span>`
-        : '<p>Results stay hidden until you reveal them.</p>'}
-    </div>
-    <div class="hero-label">${m.liveNow ? '<span class="live-pip"></span>' : ''}Next to watch · ${date}</div>
-    <div class="hero-teams">${heroSide(m.t1)}<div class="hero-score">? – ?</div>${heroSide(m.t2, true)}</div>
-    <div class="wl-acts">
-      <button class="wbtn main" data-watch="${esc(m.id)}">▶ Watch</button>
-      <button class="reveal" data-reveal="${esc(m.id)}">Reveal result</button>
-    </div>
-    <div class="hero-meta"><span>${esc(stageLabel(m))} · Bo${m.bo}</span>
-      ${last ? '' : '<button class="linkish" data-spoil-off>Show all results</button>'}</div></div>`;
+  const label = live ? '<span class="live-pip"></span>Live now'
+    : done ? `Result · ${date}`
+    : hidden ? `${m.liveNow ? '<span class="live-pip"></span>' : ''}${opts.first ? 'Next to watch' : 'After that'} · ${date}`
+    : `Up next · <span class="when">${whenLabel(m.time)}</span>`;
+  const dim = r => done && m.winner && m.winner !== (r ? 2 : 1);
+  return `<div class="hero-card ${live ? 'live' : ''} ${done ? 'result' : ''}">
+    <div class="hero-label">${label}</div>
+    <div class="hero-teams">${heroSide(m.t1, false, dim(false))}<div class="hero-score">${score}</div>${heroSide(m.t2, true, dim(true))}</div>
+    ${body}
+    <div class="hero-meta">${meta}</div></div>`;
 }
 
 function renderHero() {
   const V = state.view;
   let html;
-  const toWatch = state.spoil.on && V.find(m => m.status === 'hidden');
-  if (toWatch) {
+  if (state.spoil.on && V.some(m => m.status === 'hidden')) {
+    // Behind with no spoilers: a fixed queue in schedule order. Slot 1 is the
+    // last result you revealed; then the next matches to watch, each with its
+    // own Reveal. Revealing one moves its result into slot 1.
     const ri = revealIdx();
     const last = ri >= 0 ? V[ri] : null;
-    html = (last?.status === 'live' ? heroCard(last, 'live') : '')
-      + welcomeCard(toWatch, last?.status === 'done' ? last : null);
+    // Everything not yet revealed, in schedule order (reveals needn't go in order).
+    const queue = V.filter((m, i) => !isRevealed(state.matches[i]));
+    const cards = last ? [last.status === 'live' ? heroCard(last, 'live') : heroCard(last, 'result', { next: queue[0] })] : [];
+    queue.slice(0, 3 - cards.length).forEach((m, k) => cards.push(m.status === 'hidden'
+      ? heroCard(m, 'watch', { first: k === 0 })
+      : heroCard(m, m.status === 'live' ? 'live' : 'next')));
+    html = cards.join('');
   } else {
     const live = V.find(m => m.status === 'live' || m.liveNow);
     const upcoming = V.filter(m => m.status === 'upcoming').slice(0, 2);
@@ -1957,7 +1953,6 @@ document.addEventListener('click', e => {
   const r = e.target.closest('[data-reveal]');
   if (r) { revealThrough(r.dataset.reveal); return; }
   if (e.target.closest('[data-hide-all]')) { state.spoil.revealed = []; saveSpoil(); render(); return; }
-  if (e.target.closest('[data-spoil-off]')) { state.spoil.on = false; saveSpoil(); render(); return; }
   const w = e.target.closest('[data-watch]');
   if (w) openWatch(w.dataset.watch);
 });
