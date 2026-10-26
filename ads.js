@@ -29,7 +29,7 @@ function renderAds() {
     frame.height = unit.height;
     frame.setAttribute('scrolling', 'no');
     frame.setAttribute('sandbox', ADS.sandbox);
-    frame.srcdoc = `<!doctype html><html><head><style>html,body{margin:0;overflow:hidden;background:transparent}</style></head><body>
+    frame.srcdoc = `<!doctype html><html><head><style>:root{color-scheme:dark}html,body{margin:0;overflow:hidden;background:transparent}</style></head><body>
 <script>atOptions={key:${JSON.stringify(unit.key)},format:'iframe',height:${unit.height},width:${unit.width},params:{}};<\/script>
 <script src="${unit.src}"><\/script></body></html>`;
     slot.replaceChildren(Object.assign(document.createElement('span'), { className: 'ad-label', textContent: 'Advertisement' }), frame);
