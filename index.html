@@ -399,6 +399,10 @@ if (/^((www|ads)\.esportstracker\.app|philipsatterthwaite\.github\.io)$/.test(lo
      YouTube's "Skip ad" button, and our controls step aside. */
   .wb-cover { position: absolute; inset: 0; z-index: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; text-align: center; cursor: pointer; padding: 20px; }
   .wb-cover.paused { background: rgba(0,0,0,.3); }
+  /* No tap flash: phones paint a highlight box over whatever is tapped, and
+     the cover is one big tap target. The pause dim fades instead of snapping. */
+  .wb-stage, .wb-stage * { -webkit-tap-highlight-color: transparent; }
+  .wb-cover:not(.solid) { transition: background-color .2s ease; }
   .wb-cover.solid { background: #05070b; cursor: default; overflow-y: auto; }
   .wb-stage.ad .wb-cover { pointer-events: none; }
   .wb-stage.ad .wb-bottom { display: none; }
@@ -2282,12 +2286,6 @@ function wake() {
     if (W.cover === 'play' && $('wbMenu').hidden && !W.overCtrl) stageEl.classList.add('idle');
   }, 2800);
 }
-function hideControls() {
-  if (W.cover !== 'play') return;
-  clearTimeout(W.idleT);
-  $('wbMenu').hidden = true;
-  stageEl.classList.add('idle');
-}
 
 async function openWatch(matchId) {
   const m = state.matches.find(x => x.id === matchId);
@@ -2386,7 +2384,7 @@ async function playGame(n) {
       <div class="acts"><a class="watch" href="https://lolesports.com/live/worlds" target="_blank" rel="noopener">Watch live ↗</a></div>`);
   }
   if (g.state !== 'completed') return cover('solid', `<h3>Game ${n} hasn't started yet</h3>`);
-  W.cands = vodsFor(g);
+  W.cands = vodsFor(g).filter(c => !badVods.has(c.id));
   W.failed = new Set();
   if (!W.cands.length) return cover('solid', `<h3>Game ${n}</h3><p>No video yet. Usually up within a few hours.</p>`);
   // Start with the language picked last time, if this game has it.
@@ -2469,8 +2467,26 @@ $('wbLang').addEventListener('change', e => {
   startVod();
 });
 
+// Riot's feed sometimes tags another language's upload as en-US (one
+// "English" Swiss game was the Vietnamese broadcast). Real English uploads
+// are titled "… | WORLDS 2026 | …", so as soon as YouTube reports the title
+// (while buffering, before playback), an "English" video without it is
+// skipped like one that won't embed, normally landing on the English
+// full-day stream. Skipped videos aren't offered again this visit.
+const badVods = new Set();
+function mislabeled(vod) {
+  if (vod.locale !== 'en-US') return false;
+  const d = W.player?.getVideoData?.();
+  return !!d?.title && d.video_id === vod.id && !/\bworlds\b/i.test(d.title);
+}
+
 function wbState(s) {
   if (!W.vod) return;
+  if (mislabeled(W.vod)) {
+    badVods.add(W.vod.id);
+    try { W.player.pauseVideo(); } catch {}
+    return wbError();
+  }
   if (s === YT.PlayerState.PLAYING) cover('play');
   else if (s === YT.PlayerState.PAUSED || s === YT.PlayerState.CUED) cover('paused');
   else if (s === YT.PlayerState.ENDED) wbEnded();
@@ -2703,7 +2719,8 @@ for (const ev of ['fullscreenchange', 'webkitfullscreenchange']) {
 }
 
 // Mouse: moving shows the controls, clicking the video plays/pauses and
-// double-clicking toggles fullscreen. Touch: a tap shows or hides the controls.
+// double-clicking toggles fullscreen. Touch: a tap plays/pauses too (pausing
+// brings the controls up).
 stageEl.addEventListener('pointermove', e => { if (e.pointerType === 'mouse') wake(); });
 for (const el of stageEl.querySelectorAll('.wb-top, .wb-bottom, .wb-menu')) {
   el.addEventListener('pointerenter', e => { if (e.pointerType === 'mouse') W.overCtrl = true; });
@@ -2713,9 +2730,8 @@ $('wbCover').addEventListener('pointerup', e => {
   W.lastPtr = e.pointerType;
   if (W.cover !== 'play' && W.cover !== 'paused') return;
   if (!$('wbMenu').hidden) { $('wbMenu').hidden = true; return wake(); }
-  if (e.pointerType === 'mouse') return e.button === 0 && wbAction('play');
-  if (W.cover === 'paused') return wbAction('play');
-  stageEl.classList.contains('idle') ? wake() : hideControls();
+  if (e.pointerType === 'mouse' && e.button !== 0) return;
+  wbAction('play');
 });
 $('wbCover').addEventListener('dblclick', e => { if (W.lastPtr === 'mouse' && (W.cover === 'play' || W.cover === 'paused')) toggleFs(); });
 
