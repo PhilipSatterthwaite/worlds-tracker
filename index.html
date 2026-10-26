@@ -173,7 +173,6 @@ if (/^((www|ads)\.esportstracker\.app|philipsatterthwaite\.github\.io)$/.test(lo
   .drk svg { width: 12px; height: 12px; fill: var(--c); }
   .soul { font-size: 10px; font-weight: 800; letter-spacing: .06em; color: var(--gold); border: 1px solid var(--gold); border-radius: 4px; padding: 0 4px; margin-left: 3px; }
   .ls-h { font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin: 14px 0 6px; display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
-  .ls-h small { text-transform: none; letter-spacing: 0; font-weight: 500; }
 
   /* Objective timers */
   .objs { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin-top: 10px; }
@@ -1684,7 +1683,7 @@ function liveStats(m) {
     ${state.lsOpen ? `
     ${objs ? `<div class="objs">${objs}</div>` : ''}
     ${L.loading ? '' : goldChart(L, m)}
-    <div class="ls-h">${L.loading ? 'Draft' : L.final ? 'Draft · final lane gold' : 'Draft · lane gold'}<small>Bans aren't in Riot's live feed</small></div>
+    <div class="ls-h">${L.loading ? 'Draft' : L.final ? 'Draft · final lane gold' : 'Draft · lane gold'}</div>
     ${lanes(L)}` : ''}
   </div>`;
 }
