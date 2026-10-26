@@ -120,7 +120,16 @@ if (/^((www|ads)\.esportstracker\.app|philipsatterthwaite\.github\.io)$/.test(lo
   .lsm-head select { font: inherit; font-size: 13px; color: var(--text); background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 5px 8px; max-width: 60vw; }
   .lsm-x { background: none; border: 0; color: var(--text); font-size: 20px; padding: 2px 8px; }
   .lsm-stage { position: relative; width: 100%; aspect-ratio: 16 / 9; max-height: calc(100dvh - 90px); background: #000; border-radius: 8px; overflow: hidden; }
-  .lsm-stage iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+  .lsm-stage iframe, .lsm-stage #lsmPlayer { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+  .lsm-from { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  .lsm-from[hidden] { display: none; }
+  .lsm-from button { border: 0; border-radius: 0; background: var(--panel-2); color: var(--muted); font-size: 12px; font-weight: 700; padding: 5px 10px; }
+  .lsm-from button.on { background: rgba(255,70,85,.18); color: #fff; }
+  .lsm-choice { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; background: radial-gradient(ellipse at 50% 40%, rgba(255,70,85,.10), transparent 70%), #05070b; }
+  .lsm-choice b { font-size: 18px; }
+  .lsm-choice .acts { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+  .lsm-choice button { font-size: 15px; padding: 9px 18px; font-weight: 700; }
+  .lsm-choice button.main { color: #fff; background: rgba(255,70,85,.22); border-color: rgba(255,70,85,.6); }
   .watch { color: var(--gold); text-decoration: none; font-weight: 600; }
   .watch:hover { text-decoration: underline; }
 
@@ -796,7 +805,9 @@ if (/^((www|ads)\.esportstracker\.app|philipsatterthwaite\.github\.io)$/.test(lo
 <div class="lsm" id="lsm" hidden role="dialog" aria-modal="true" aria-label="Live broadcast">
   <div class="lsm-box">
     <div class="lsm-head"><span class="live-pip"></span><b>Live</b>
-      <select id="lsmSrc" aria-label="Stream"></select><span class="sp"></span>
+      <select id="lsmSrc" aria-label="Stream"></select>
+      <span class="lsm-from" id="lsmFrom" hidden><button data-lsm-from="live" title="Jump to what's happening now">● Live</button><button data-lsm-from="start" title="Watch today's broadcast from the beginning">⏮ From the start</button></span>
+      <span class="sp"></span>
       <button class="lsm-x" data-lsm-close title="Close (Esc)" aria-label="Close">✕</button></div>
     <div class="lsm-stage" id="lsmStage"></div>
   </div>
@@ -2410,14 +2421,52 @@ function streamLabel(x) {
   try { lang = langName.of(x.locale) || x.locale; } catch {}
   return `${lang} · ${x.provider === 'youtube' ? 'YouTube' : 'Twitch'}`;
 }
-function streamSrc(x) {
-  return x.provider === 'youtube'
-    ? `https://www.youtube.com/embed/${encodeURIComponent(x.parameter)}?autoplay=1&rel=0&playsinline=1`
-    : `https://player.twitch.tv/?channel=${encodeURIComponent(x.parameter)}&parent=${encodeURIComponent(location.hostname)}&autoplay=true`;
+// YouTube streams go through the IFrame API so you can start at the live edge
+// or at the beginning of the day's broadcast (YouTube's embed starts at the
+// beginning). Twitch embeds are live only.
+const LS = { player: null, x: null, from: 'live' };
+function stopStream() {
+  try { LS.player?.destroy(); } catch {}
+  LS.player = null;
+  $('lsmStage').innerHTML = '';
 }
-function playStream(x) {
+// The live edge is the end of the stream so far.
+function streamSeek(from) {
+  const p = LS.player;
+  LS.from = from;
+  for (const b of $('lsmFrom').children) b.classList.toggle('on', b.dataset.lsmFrom === from);
+  if (!p?.seekTo) return;
+  p.seekTo(from === 'start' ? 0 : Math.max(0, (p.getDuration?.() || 0) - 1), true);
+  p.playVideo();
+}
+// Before the first stream plays: live, or from the beginning?
+function askStart(x) {
+  $('lsmFrom').hidden = true;
+  $('lsmStage').innerHTML = `<div class="lsm-choice"><b>Watch the broadcast</b>
+    <div class="acts"><button class="main" data-lsm-first="live">● Watch live</button><button data-lsm-first="start">⏮ From the beginning</button></div></div>`;
+  LS.x = x;
+}
+async function playStream(x, from = LS.from) {
   try { localStorage.setItem(LIVE_SRC_KEY, srcKey(x)); } catch {}
-  $('lsmStage').innerHTML = `<iframe src="${esc(streamSrc(x))}" title="Live broadcast" allow="autoplay; fullscreen; encrypted-media; picture-in-picture" allowfullscreen></iframe>`;
+  stopStream();
+  LS.x = x;
+  const yt = x.provider === 'youtube';
+  $('lsmFrom').hidden = !yt;
+  if (!yt) {
+    $('lsmStage').innerHTML = `<iframe src="https://player.twitch.tv/?channel=${encodeURIComponent(x.parameter)}&parent=${encodeURIComponent(location.hostname)}&autoplay=true" title="Live broadcast" allow="autoplay; fullscreen; encrypted-media; picture-in-picture" allowfullscreen></iframe>`;
+    return;
+  }
+  $('lsmStage').innerHTML = '<div id="lsmPlayer"></div>';
+  try { await loadYT(); } catch {
+    $('lsmStage').innerHTML = `<iframe src="https://www.youtube.com/embed/${encodeURIComponent(x.parameter)}?autoplay=1&rel=0&playsinline=1" title="Live broadcast" allow="autoplay; fullscreen; encrypted-media; picture-in-picture" allowfullscreen></iframe>`;
+    return;
+  }
+  if (LS.x !== x || $('lsm').hidden) return; // switched or closed while loading
+  LS.player = new YT.Player('lsmPlayer', {
+    videoId: x.parameter,
+    playerVars: { autoplay: 1, rel: 0, playsinline: 1 },
+    events: { onReady: () => streamSeek(from) },
+  });
 }
 async function openStream() {
   const list = state.stream?.streams;
@@ -2431,11 +2480,12 @@ async function openStream() {
   $('lsmSrc').innerHTML = list.map(x => `<option value="${esc(srcKey(x))}" ${x === pick ? 'selected' : ''}>${esc(streamLabel(x))}</option>`).join('');
   $('lsm').hidden = false;
   document.body.style.overflow = 'hidden';
-  playStream(pick);
+  if (pick.provider === 'youtube') askStart(pick);
+  else playStream(pick, 'live');
 }
 function closeStream() {
   $('lsm').hidden = true;
-  $('lsmStage').innerHTML = ''; // stops playback
+  stopStream();
   document.body.style.overflow = '';
 }
 $('lsmSrc').addEventListener('change', e => {
@@ -2443,6 +2493,10 @@ $('lsmSrc').addEventListener('change', e => {
   if (x) playStream(x);
 });
 document.addEventListener('click', e => {
+  const first = e.target.closest('[data-lsm-first]');
+  if (first) { if (LS.x) playStream(LS.x, first.dataset.lsmFirst); return; }
+  const from = e.target.closest('[data-lsm-from]');
+  if (from) { streamSeek(from.dataset.lsmFrom); return; }
   if (e.target.closest('[data-live-stream]')) openStream();
   else if (e.target.closest('[data-lsm-close]') || e.target === $('lsm')) closeStream();
 });
