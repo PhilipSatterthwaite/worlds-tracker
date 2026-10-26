@@ -275,6 +275,20 @@ if (/^((www|ads)\.esportstracker\.app|philipsatterthwaite\.github\.io)$/.test(lo
   .tchip { display: inline-flex; align-items: center; gap: 6px; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; font-weight: 700; font-size: 13px; }
   .tchip.tbd { color: var(--muted); font-weight: 500; border-style: dashed; background: transparent; }
   .out.e .tchip:not(.tbd) { opacity: .7; }
+  /* Teams on a record whose next match isn't drawn yet */
+  .draw { padding: 7px 8px 2px; }
+  .mm + .draw { border-top: 1px solid var(--line); }
+  .draw-h { display: block; font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0 0 6px 2px; }
+  .draw .out-teams { padding: 0 0 6px; gap: 5px; }
+  /* Knockout: qualified so far, before the quarterfinal draw */
+  .koq { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; margin: 0 0 18px; }
+  .koq[hidden] { display: none; }
+  .koq-h { font-weight: 700; margin-bottom: 10px; }
+  .koq-h span { display: block; font-weight: 500; font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .koq-g { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr)); gap: 10px 18px; }
+  .koq-b { display: flex; align-items: center; gap: 10px; }
+  .koq-b b { color: var(--win); font-variant-numeric: tabular-nums; min-width: 30px; }
+  .koq-b .out-teams { padding: 0; }
   .legend { display: flex; gap: 18px; flex-wrap: wrap; color: var(--muted); font-size: 12px; margin: -4px 0 14px; }
   .legend i { display: inline-block; width: 22px; height: 0; border-top: 2px solid; vertical-align: middle; margin-right: 6px; }
   /* Hover/tap a team to trace its path through the Swiss chart */
@@ -734,6 +748,7 @@ if (/^((www|ads)\.esportstracker\.app|philipsatterthwaite\.github\.io)$/.test(lo
       <li>Quarterfinal draw: the two 3–0 teams each get a 3–2 team; the other four are paired at random.</li>
       <li>Quarterfinals and semifinals are in Allen, TX; the Grand Final is at Barclays Center in Brooklyn.</li>
     </ul></div>
+    <div class="koq" id="koQual" hidden></div>
     <div class="scroll"><div class="board ko" id="koBoard"></div></div>
     <div id="koSched"></div>
   </div>
@@ -1915,33 +1930,48 @@ function miniMatch(m) {
   return `<div class="mm ${live ? 'live' : ''}">${side(m.t1, 1)}${mid}${side(m.t2, 2)}${when}</div>`;
 }
 
-function renderSwiss() {
-  // Pools come from the real results (stamped in render()); records, and so
-  // the qualified/eliminated boxes, count only results you can see.
-  const swiss = state.view.filter(m => m.stage === 'swiss');
+// Swiss win-loss records counting only the results you can see.
+function swissRecords() {
   const rec = new Map();
-  for (const m of swiss) {
-    if (!m.winner) continue;
+  for (const m of state.view) {
+    if (m.stage !== 'swiss' || !m.winner) continue;
     for (const [t, won] of [[m.t1, m.winner === 1], [m.t2, m.winner === 2]]) {
       const r = rec.get(t.id) || rec.set(t.id, { team: t, w: 0, l: 0 }).get(t.id);
       won ? r.w++ : r.l++;
     }
   }
-  const records = [...rec.values()];
+  return [...rec.values()];
+}
+// Teams sitting on a record with no next match drawn yet. Only teams whose
+// every played match is revealed, since placing one gives its record away.
+const awaitingDraw = (records, w, l, drawn = new Set()) =>
+  records.filter(r => r.w === w && r.l === l && !drawn.has(r.team.id) && sideKnown(r.team, state.matches.length));
+const teamChip = t => `<span class="tchip" data-team="${esc(t.id)}" title="${esc(t.name)}">${logo(t)}${esc(t.short)}</span>`;
+
+function renderSwiss() {
+  // Pools come from the real results (stamped in render()); records, and so
+  // the qualified/eliminated boxes, count only results you can see.
+  const swiss = state.view.filter(m => m.stage === 'swiss');
+  const records = swissRecords();
   const poolBox = key => {
     const [w, l] = key.split('–').map(Number);
     const ms = swiss.filter(m => m.pool === key);
     const bo = ms[0]?.bo || (w === 2 || l === 2 ? 3 : 1);
     const what = `Bo${bo}`;
     const empty = Math.max(0, POOL_SIZE[key] - ms.length);
-    const rows = ms.map(miniMatch).join('') + `<div class="mm"><span class="mt a tbd">TBD</span><span class="ms up">vs</span><span class="mt b tbd">TBD</span></div>`.repeat(empty);
+    // Teams already on this record whose match isn't drawn yet go in an
+    // "Awaiting draw" block, with TBD for spots still being played for.
+    const waiting = empty ? awaitingDraw(records, w, l, new Set(ms.flatMap(m => [m.t1?.id, m.t2?.id]).filter(Boolean))) : [];
+    const rows = ms.map(miniMatch).join('') + (waiting.length
+      ? `<div class="draw"><span class="draw-h">Awaiting draw</span><div class="out-teams">${waiting.map(r => teamChip(r.team)).join('')}${'<span class="tchip tbd">TBD</span>'.repeat(Math.max(0, empty * 2 - waiting.length))}</div></div>`
+      : `<div class="mm"><span class="mt a tbd">TBD</span><span class="ms up">vs</span><span class="mt b tbd">TBD</span></div>`.repeat(empty));
     return `<div class="node pool ${w === 2 || l === 2 ? 'decider' : ''}" data-node="sw-${key}"><div class="pool-h"><b>${key}</b><span>${what}</span></div>${rows}</div>`;
   };
   const outBox = key => {
     const [w, l] = key.split('–').map(Number);
     const q = w === 3;
     const teams = records.filter(r => r.w === w && r.l === l);
-    const chips = teams.map(r => `<span class="tchip" data-team="${esc(r.team.id)}" title="${esc(r.team.name)}">${logo(r.team)}${esc(r.team.short)}</span>`).join('')
+    const chips = teams.map(r => teamChip(r.team)).join('')
       + '<span class="tchip tbd">TBD</span>'.repeat(Math.max(0, OUT_SIZE[key] - teams.length));
     return `<div class="node out ${q ? 'q' : 'e'}" data-node="sw-${key}"><div class="pool-h"><b>${key}</b><span>${q ? 'Qualified' : 'Eliminated'}</span></div><div class="out-teams">${chips}</div></div>`;
   };
@@ -2014,6 +2044,16 @@ function renderKnockout() {
     for (const s of sf) for (const q of qf) if (!ordered.includes(q) && ids(q).some(id => ids(s).includes(id))) ordered.push(q);
     qf = [...ordered, ...qf.filter(q => !ordered.includes(q))];
   }
+  // Until the quarterfinals are drawn, show who has qualified so far by Swiss record.
+  const records = swissRecords();
+  const drawn = qf.length && qf.every(m => m.t1 && m.t2);
+  $('koQual').hidden = drawn;
+  $('koQual').innerHTML = drawn ? '' : `<div class="koq-h">Qualified so far <span>Quarterfinal pairings are drawn after the Swiss Stage: the two 3–0 teams each draw a 3–2 team, and the other four are paired at random.</span></div>
+    <div class="koq-g">${[['3–0', 2], ['3–1', 3], ['3–2', 3]].map(([k, n]) => {
+      const [w, l] = k.split('–').map(Number);
+      const teams = awaitingDraw(records, w, l);
+      return `<div class="koq-b"><b>${k}</b><div class="out-teams">${teams.map(r => teamChip(r.team)).join('')}${'<span class="tchip tbd">TBD</span>'.repeat(Math.max(0, n - teams.length))}</div></div>`;
+    }).join('')}</div>`;
   const slot = (id, m, ph) => `<div class="node" data-node="${id}">${matchCard(m, ph)}</div>`;
   const champ = fin && fin.winner ? (fin.winner === 1 ? fin.t1 : fin.t2) : null;
   $('koBoard').innerHTML = `
