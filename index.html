@@ -775,11 +775,13 @@ if (/^((www|ads)\.esportstracker\.app|philipsatterthwaite\.github\.io)$/.test(lo
       </div>
     </div>
     <div class="wb-menu" id="wbMenu" hidden>
+      <div><h5>Mode</h5><div class="wb-rates" id="wbMode">
+        <button data-mode="live" title="Like watching it live: the video's length stays hidden">Live</button><button data-mode="replay" title="A normal player: full-length scrubber and clock">Replay</button>
+      </div></div>
       <div><h5>Speed</h5><div class="wb-rates" id="wbRates">
         <button data-rate="1" class="on">1×</button><button data-rate="1.25">1.25×</button><button data-rate="1.5">1.5×</button><button data-rate="2">2×</button>
       </div></div>
-      <div class="wb-opts"><h5>Playback</h5>
-        <label class="wb-opt"><input type="checkbox" id="wbOptFull"> Show video length</label>
+      <div class="wb-opts">
         <label class="wb-opt"><input type="checkbox" id="wbOptSkip"> Skip the draft <span class="wb-na" id="wbSkipNa" hidden>· not for this video</span></label>
       </div>
       <div class="wb-lang" id="wbLang"></div>
@@ -2220,18 +2222,23 @@ function wbSave(fn) {
   fn(s);
   try { localStorage.setItem(WB_KEY, JSON.stringify(s)); } catch {}
 }
-// Playback options, remembered per browser: full (show the video's length) and
-// skip (start each game after its draft, where that's known exactly).
+// Playback options, remembered per browser: full (Replay mode: show the
+// video's length; Live mode hides it) and skip (start each game after its
+// draft, where that's known exactly).
 W.opt = { full: false, skip: false, ...wbStore().opts };
-$('wbOptFull').checked = W.opt.full;
-$('wbOptSkip').checked = W.opt.skip;
-for (const [el, k] of [['wbOptFull', 'full'], ['wbOptSkip', 'skip']]) {
-  $(el).addEventListener('change', e => {
-    W.opt[k] = e.target.checked;
-    wbSave(s => { s.opts = W.opt; });
-    if (W.vod && W.player?.getCurrentTime) renderBar(W.player.getCurrentTime());
-  });
+function setOpt(k, on) {
+  W.opt[k] = on;
+  wbSave(s => { s.opts = W.opt; });
+  for (const b of $('wbMode').children) b.classList.toggle('on', (b.dataset.mode === 'replay') === W.opt.full);
+  if (W.vod && W.player?.getCurrentTime) renderBar(W.player.getCurrentTime());
 }
+setOpt('full', W.opt.full);
+$('wbOptSkip').checked = W.opt.skip;
+$('wbMode').addEventListener('click', e => {
+  const b = e.target.closest('[data-mode]');
+  if (b) setOpt('full', b.dataset.mode === 'replay');
+});
+$('wbOptSkip').addEventListener('change', e => setOpt('skip', e.target.checked));
 
 // A full-day stream holds several games, so its positions are kept per game.
 const posKey = v => v.day ? `${v.id}@${Math.round(v.start)}` : v.id;
