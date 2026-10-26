@@ -2,6 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<script>
+// One address: send www and the old GitHub Pages copy to esportstracker.app.
+if (/^(www\.esportstracker\.app|philipsatterthwaite\.github\.io)$/.test(location.hostname)) {
+  location.replace('https://esportstracker.app' + location.pathname.replace(/^\/worlds-tracker/, '') + location.search + location.hash);
+}
+</script>
+<link rel="canonical" href="https://esportstracker.app/">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Esports Tracker</title>
 <meta name="description" content="Live esports brackets, in-game stats, a no-spoilers mode, and rewatches that hide the video length.">

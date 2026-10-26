@@ -2,6 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<script>
+// One address: send www and the old GitHub Pages copy to esportstracker.app.
+if (/^(www\.esportstracker\.app|philipsatterthwaite\.github\.io)$/.test(location.hostname)) {
+  location.replace('https://esportstracker.app' + location.pathname.replace(/^\/worlds-tracker/, '') + location.search + location.hash);
+}
+</script>
+<link rel="canonical" href="https://esportstracker.app/privacy">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Privacy · Esports Tracker</title>
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
@@ -39,7 +46,7 @@
     <li><b>Riot Data Dragon</b>: champion and item images.</li>
     <li><b>YouTube</b> (Google): rewatches play official videos in YouTube's embedded player, which may set cookies under <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Google's privacy policy</a>. Nothing loads from YouTube until you press ▶.</li>
     <li><b>Google Fonts</b>: the page font.</li>
-    <li><b>GitHub Pages</b>: hosts the site and, like any web host, receives standard request information such as your IP address.</li>
+    <li><b>Cloudflare</b>: hosts the site and, like any web host, receives standard request information such as your IP address. It may also count visits with Cloudflare Web Analytics, which doesn't use cookies or track you across sites.</li>
   </ul>
 
   <h2>Advertising</h2>
