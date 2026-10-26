@@ -481,10 +481,24 @@ if (/^((www|ads)\.esportstracker\.app|philipsatterthwaite\.github\.io)$/.test(lo
   @media (max-width: 600px) {
     .wb { padding: 0; }
     .wb-stage { border-radius: 0; }
-    .wb-ic { width: 38px; height: 38px; }
-    .wb-ic svg { width: 23px; height: 23px; }
-    .wb-volw input, .wb-time { display: none; }
     .wb-top { padding-left: 12px; }
+  }
+  /* Controls scale with the player's own width (cqi = 1% of it), so the
+     whole bar fits on a phone and stays full size on big screens. Narrow
+     players drop the volume slider (phones use their buttons) and the clock. */
+  .wb-stage { container-type: inline-size; }
+  .wb-bottom { padding-left: clamp(4px, 2cqi, 10px); padding-right: clamp(4px, 2cqi, 10px); }
+  .wb-ic { width: clamp(28px, 8cqi, 42px); height: clamp(28px, 8cqi, 42px); }
+  .wb-ic svg { width: clamp(18px, 5cqi, 26px); height: clamp(18px, 5cqi, 26px); }
+  .wb-ic.sm svg { width: clamp(17px, 4.3cqi, 22px); height: clamp(17px, 4.3cqi, 22px); }
+  .wb-live { font-size: clamp(10px, 2.8cqi, 12px); padding: 3px clamp(5px, 1.8cqi, 9px); margin-left: clamp(2px, 1.5cqi, 8px); }
+  .wb-time { font-size: clamp(11px, 3cqi, 13px); }
+  .wb-sb { font-size: clamp(13px, 4cqi, 17px); gap: clamp(6px, 2cqi, 10px); }
+  .wb-sb img { width: clamp(18px, 6cqi, 26px); height: clamp(18px, 6cqi, 26px); }
+  .wb-games button { font-size: clamp(11px, 3cqi, 12px); padding: 3px clamp(7px, 2.4cqi, 10px); }
+  .wb-step button { font-size: clamp(11px, 3.2cqi, 13px); padding: 4px clamp(9px, 3cqi, 14px); }
+  @container (max-width: 600px) {
+    .wb-volw input, .wb-time { display: none; }
   }
 
   /* Ad slots (filled by ads.js; hidden until configured) */
