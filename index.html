@@ -943,9 +943,12 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': 
 
 /* ---------- data ---------- */
 
+// A stalled request would hold up every later refresh, so give up after 10s.
+const fetchT = (url, opts) => fetch(url, { ...opts, signal: AbortSignal.timeout?.(10e3) });
+
 async function api(path, params = {}) {
   const qs = new URLSearchParams({ hl: 'en-US', ...params });
-  const res = await fetch(`${API}/${path}?${qs}`, { headers: { 'x-api-key': API_KEY } });
+  const res = await fetchT(`${API}/${path}?${qs}`, { headers: { 'x-api-key': API_KEY } });
   if (!res.ok) throw new Error(`${path} returned HTTP ${res.status}`);
   return (await res.json()).data;
 }
@@ -1105,7 +1108,9 @@ function schedule() {
 }
 
 document.addEventListener('visibilitychange', () => {
-  if (!document.hidden && Date.now() - state.fetchedAt > 60e3) load();
+  if (document.hidden) return;
+  syncLive(); // live stats paused while hidden; catch up now, not at the next poll
+  if (Date.now() - state.fetchedAt > 60e3) load();
 });
 
 /* ---------- live game stats ---------- */
@@ -1117,7 +1122,7 @@ const feedTime = (ago = 30e3) => new Date(Math.floor((Date.now() - ago) / 10e3) 
 
 // The feed answers 204 with no body for games it has nothing on yet.
 async function feedJson(url) {
-  const res = await fetch(url);
+  const res = await fetchT(url);
   return res.status === 200 ? res.json() : null;
 }
 
@@ -1126,7 +1131,7 @@ async function feedJson(url) {
 // each refusal and stay there.
 async function liveFeed(kind, gameId) {
   for (;;) {
-    const res = await fetch(`${FEED}/${kind}/${gameId}?startingTime=${feedTime(state.feedLag)}`);
+    const res = await fetchT(`${FEED}/${kind}/${gameId}?startingTime=${feedTime(state.feedLag)}`);
     if (res.status === 400 && state.feedLag < 90e3) { state.feedLag += 10e3; continue; }
     return res.status === 200 ? res.json() : null;
   }
@@ -1334,6 +1339,10 @@ async function fetchLive(match) {
     return { ...snap, finished: true };
   }
 
+  // Items come from the details feed, ~250 KB a poll, so refresh them every
+  // 30s, alongside the objective search rather than after it.
+  const D = state.details;
+  const parts = D?.id !== game.id || Date.now() - D.at > 25e3 ? liveDetails(game.id) : null;
   const T = await tracker(game.id);
   let now = null;
   if (T.start) {
@@ -1342,12 +1351,8 @@ async function fetchLive(match) {
     const G = goldHist(game.id);
     goldPoints(G, game.id, T.start, w.frames, ts => gameMs(T, ts));
   }
-  // Items come from the details feed, ~250 KB a poll, so refresh them every 30s.
-  const D = state.details;
-  if (D?.id !== game.id || Date.now() - D.at > 25e3) {
-    const parts = await liveDetails(game.id);
-    if (parts) state.details = { id: game.id, at: Date.now(), parts };
-  }
+  const got = await parts;
+  if (got) state.details = { id: game.id, at: Date.now(), parts: got };
   const L = snapshot(match, ev, game, w, state.details?.id === game.id ? state.details.parts : null, now);
   if (now != null) L.objs = objTimers(T, f, now, L.code);
   return L;
@@ -1380,8 +1385,8 @@ async function finalSnapshot(match, ev, game, w) {
   const f = w?.frames?.at(-1);
   if (!f) return null;
   const T = state.track;
-  const start = T?.id === game.id && T.start ? T.start + T.paused : await gameStart(game.id);
-  const snap = { ...snapshot(match, ev, game, w, await liveDetails(game.id), start ? Date.parse(f.rfc460Timestamp) - start : null), final: true };
+  const [start, details] = await Promise.all([T?.id === game.id && T.start ? T.start + T.paused : gameStart(game.id), liveDetails(game.id)]);
+  const snap = { ...snapshot(match, ev, game, w, details, start ? Date.parse(f.rfc460Timestamp) - start : null), final: true };
   if (start) {
     const G = goldHist(game.id);
     goldPoints(G, game.id, start, [f], ts => ts - start);
@@ -1438,12 +1443,13 @@ const onAir = list => list.find(m => isLiveM(m) && m.id === state.stream?.matchI
 
 async function syncLive() {
   const m = onAir(state.matches.filter(x => x.status === 'live' && isRevealed(x))); // hidden in no-spoilers mode: nothing to show, so don't fetch
-  if (!m) { clearTimeout(state.liveTimer); if (state.live) { state.live = null; renderHero(); } return; }
+  if (!m) { clearTimeout(state.liveTimer); state.liveTimer = null; if (state.live) { state.live = null; renderHero(); } return; }
   // The first poll of a game can take a few seconds (finding past objective
   // kills), so don't start a second one alongside it.
   if (!document.hidden && !state.liveBusy) {
     state.liveBusy = true;
-    try { state.live = await fetchLive(m); } catch { state.live = { matchId: m.id, noStats: true }; }
+    // A failed poll keeps the last stats up; the next one replaces them.
+    try { state.live = await fetchLive(m); } catch { if (state.live?.matchId !== m.id) state.live = { matchId: m.id, noStats: true }; }
     state.liveBusy = false;
     renderHero();
   }
@@ -3469,6 +3475,9 @@ function render() {
   renderSwiss();
   renderKnockout();
   if (!$('wb').hidden) renderWbTop(); // a match being watched may have just finished
+  // Live stats stop while no live match is revealed; revealing one (or a
+  // recent saved schedule on page open) starts them now, not at the next refresh.
+  if (!state.liveTimer && Date.now() - state.fetchedAt < 10 * 60e3) syncLive();
   if (key && !a.isConnected) document.querySelector(`[${key[0]}="${CSS.escape(key[1])}"]`)?.focus({ preventScroll: true });
   requestAnimationFrame(drawAll);
   tick();
