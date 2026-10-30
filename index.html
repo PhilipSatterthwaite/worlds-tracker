@@ -1908,9 +1908,13 @@ function renderHero() {
     html = cards.join('');
   } else {
     const live = onAir(V);
-    const upcoming = V.filter(m => m.status === 'upcoming').slice(0, 2);
-    shown = [live, ...upcoming];
-    html = (live ? heroCard(live, 'live') : '') + upcoming.map(m => heroCard(m, 'next')).join('');
+    // Caught up with no spoilers: the last result you revealed stays in front,
+    // as when behind, so revealing your last hidden one still shows it here.
+    const ri = state.spoil.on ? revealIdx() : -1;
+    const last = ri >= 0 && V[ri].status === 'done' ? V[ri] : null;
+    const upcoming = V.filter(m => m.status === 'upcoming').slice(0, last && live ? 1 : 2);
+    shown = [last, live, ...upcoming];
+    html = (last ? heroCard(last, 'result') : '') + (live ? heroCard(live, 'live') : '') + upcoming.map(m => heroCard(m, 'next')).join('');
   }
   // League is live (a show, or a match that isn't among the cards above, as
   // with no spoilers when you're behind): say so up front, in either mode.
